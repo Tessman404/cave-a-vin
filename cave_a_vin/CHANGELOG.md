@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.3.1
+
+- Le bouton « 🤖 Demander la garde à l'IA » est toujours visible sur la fiche d'un vin ; si l'IA n'est pas
+  joignable, il indique pourquoi au lieu d'être caché. Même chose dans les réglages.
+
 ## 1.3.0
 
 - **Garde estimée par l'IA de Home Assistant** : pour chaque vin en cave, l'IA estime la fenêtre de dégustation

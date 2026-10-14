@@ -361,7 +361,7 @@ async function pageVin(main, id) {
             <button class="bouton primaire" id="sortir" ${v.stock ? "" : "disabled"}>🍷 Déguster / sortir</button>
             <button class="bouton" id="entrer">📥 Ajouter des bouteilles</button>
             <a class="bouton" href="#/vins/${v.id}/modifier">✎ Modifier</a>
-            ${CAPACITES.ia_texte?.possible ? `<button class="bouton" id="garde-ia">🤖 Demander la garde à l'IA</button>` : ""}
+            <button class="bouton" id="garde-ia">🤖 Demander la garde à l'IA</button>
             <button class="bouton" id="favori">${v.favori ? "♥ Retirer des favoris" : "♡ Favori"}</button>
             <button class="bouton danger" id="supprimer">Supprimer</button>
           </div>
@@ -392,6 +392,9 @@ async function pageVin(main, id) {
   $("#entrer", main).onclick = () => dialogueEntree(v, recharger);
   const boutonIA = $("#garde-ia", main);
   if (boutonIA) boutonIA.onclick = async () => {
+    if (!CAPACITES.ia_texte?.possible) {
+      return toast(`IA indisponible : ${CAPACITES.ia_texte?.raison || "inconnue"}. Voir Réglages → IA.`, true, 7000);
+    }
     if (v.garde_source === "manuel" && !(await confirmer("Remplacer la garde saisie à la main par l'estimation de l'IA ?", "Remplacer"))) return;
     boutonIA.disabled = true;
     boutonIA.textContent = "🤖 L'IA réfléchit…";
@@ -1048,7 +1051,8 @@ async function pageReglages(main) {
     etatGardes.innerHTML = g.en_cours
       ? `🤖 Estimation en cours : ${g.fait} / ${g.total} vins…`
       : `${derniere}${g.erreurs?.length ? ` ${g.erreurs.length} erreur(s) : ${esc(g.erreurs.slice(0, 3).join(" ; "))}` : ""}
-         ${g.ia?.possible ? `<button class="bouton petit" type="button" id="lancer-gardes">Réestimer toute la cave maintenant</button>` : ""}`;
+         ${g.ia?.possible ? `<button class="bouton petit" type="button" id="lancer-gardes">🤖 Réestimer la garde de toute la cave maintenant</button>`
+           : `<br><span style="color:var(--danger)">IA indisponible : ${esc(g.ia?.raison || "inconnue")}.</span>`}`;
     const bouton = $("#lancer-gardes", etatGardes);
     if (bouton) bouton.onclick = async () => {
       try { afficherGardes(await api("POST", "ia/gardes", {})); suivre(); } catch (err) { toast(err.message, true); }
