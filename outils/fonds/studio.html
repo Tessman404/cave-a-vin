@@ -1,0 +1,14 @@
+<!doctype html><html><body style="margin:0;background:#000">
+<svg width="900" height="1200" viewBox="0 0 900 1200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="spot" cx="50%" cy="42%" r="65%"><stop offset="0" stop-color="#7a2335"/><stop offset=".45" stop-color="#3a0f19"/><stop offset="1" stop-color="#0c0306"/></radialGradient>
+  <linearGradient id="sol" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a0a12"/><stop offset="1" stop-color="#050102"/></linearGradient>
+  <filter id="flou"><feGaussianBlur stdDeviation="40"/></filter>
+  <filter id="grain"><feTurbulence baseFrequency=".8" numOctaves="2" seed="9"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .05 0"/></filter>
+</defs>
+<rect width="900" height="1200" fill="url(#spot)"/>
+<ellipse cx="450" cy="420" rx="320" ry="420" fill="#c25a6c" opacity=".18" filter="url(#flou)"/>
+<rect y="990" width="900" height="210" fill="url(#sol)"/>
+<rect y="988" width="900" height="3" fill="#a04a5a" opacity=".35"/>
+<rect width="900" height="1200" filter="url(#grain)"/>
+</svg></body></html>

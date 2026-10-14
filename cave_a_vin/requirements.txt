@@ -1,0 +1,4 @@
+# Facultatif : sans ces bibliothèques, la cave fonctionne mais sans détourage des photos.
+numpy>=1.26
+pillow>=10.0
+onnxruntime>=1.17

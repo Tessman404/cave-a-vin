@@ -13,6 +13,8 @@ const COULEURS_CSS = ["rouge", "blanc", "rose", "effervescent", "liquoreux", "au
 const ICONES_STATUT = { trop_jeune: "⏳", a_boire: "✓", apogee: "★", urgent: "⚠", depasse: "✕", inconnu: "?" };
 
 let REF = null;          // référentiel (couleurs, statuts, plats, autocomplétion…)
+let CAPACITES = null;    // détourage, fonds, IA disponibles
+let ajout = null;        // ajout en cours : { champs, code_barre, brouillon, fond, source }
 let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", stock: "1", tri: "nom" };
 
 /* ------------------------------------------------------------------ API */
@@ -45,12 +47,12 @@ const urlPhoto = (vin) => avecCle(`api/vins/${vin.id}/photo?v=${encodeURICompone
 
 /* ------------------------------------------------------------------ petits composants */
 
-function toast(message, erreur = false) {
+function toast(message, erreur = false, duree) {
   const t = $("#toast");
   t.textContent = message;
   t.className = "visible" + (erreur ? " erreur" : "");
   clearTimeout(toast.minuteur);
-  toast.minuteur = setTimeout(() => (t.className = ""), erreur ? 5000 : 2500);
+  toast.minuteur = setTimeout(() => (t.className = ""), duree || (erreur ? 5000 : 2500));
 }
 
 const pastille = (couleur) => `<span class="pastille ${esc(couleur)}" title="${esc(REF.couleurs[couleur] || couleur)}"></span>`;
@@ -201,7 +203,7 @@ async function pageAccueil(main) {
       <h1>Bienvenue dans votre cave</h1>
       <p>Commencez par décrire votre cave (casiers, armoire à vin…) puis ajoutez vos premières bouteilles.</p>
       <div class="actions" style="justify-content:center"><a class="bouton" href="#/caves">Créer une cave</a>
-      <a class="bouton primaire" href="#/vins/nouveau">Ajouter un vin</a></div></div>`;
+      <a class="bouton primaire" href="#/ajouter">Ajouter un vin</a></div></div>`;
     return;
   }
   const mesure = (m, unite, titre) => {
@@ -255,7 +257,7 @@ async function pageVins(main) {
   const caves = await api("GET", "caves");
   const statuts = { ...REF.statuts, "urgent,depasse": "⚠ À boire vite ou dépassés", "apogee,a_boire": "✓ Prêts à boire" };
   main.innerHTML = `
-    <div class="entete"><h1>Mes vins</h1><a class="bouton primaire" href="#/vins/nouveau">+ Ajouter un vin</a></div>
+    <div class="entete"><h1>Mes vins</h1><a class="bouton primaire" href="#/ajouter">+ Ajouter un vin</a></div>
     <div class="filtres">
       <input type="search" name="q" placeholder="Rechercher : nom, domaine, cépage, millésime…" value="${esc(filtresVins.q)}" aria-label="Rechercher">
       <select name="couleur" aria-label="Couleur">${options(REF.couleurs, filtresVins.couleur, "Toutes couleurs")}</select>
@@ -317,6 +319,7 @@ async function pageVin(main, id) {
         <div class="actions" style="margin-top:8px">
           <label class="bouton petit" style="color:var(--texte)">📷 ${v.a_photo ? "Changer" : "Photo de l'étiquette"}
             <input type="file" accept="image/*" capture="environment" hidden id="photo"></label>
+          ${v.a_photo && CAPACITES.detourage ? `<button class="bouton petit" id="changer-fond">🎨 Fond</button>` : ""}
           ${v.a_photo ? `<button class="bouton petit danger" id="suppr-photo">Retirer</button>` : ""}
         </div>
       </div>
@@ -376,12 +379,18 @@ async function pageVin(main, id) {
   $("#photo", main).onchange = async (e) => {
     const fichier = e.target.files[0];
     if (!fichier) return;
+    toast(CAPACITES.detourage ? "Détourage de la bouteille…" : "Envoi de la photo…", false, 60000);
     try {
-      await api("PUT", `vins/${v.id}/photo`, { image: await redimensionner(fichier) });
-      toast("Photo enregistrée");
+      const r = await api("PUT", `vins/${v.id}/photo`, { image: await redimensionner(fichier, 1600), fond: CAPACITES.detourage ? CAPACITES.fond_defaut : "" });
+      toast(r.avertissement || "Photo enregistrée", !!r.avertissement);
       recharger();
     } catch (err) { toast(err.message, true); }
   };
+  const fond = $("#changer-fond", main);
+  if (fond) fond.onclick = () => dialogueFond(async (choix) => {
+    await api("POST", `vins/${v.id}/photo/fond`, { fond: choix });
+    recharger();
+  }, avecCle(`api/vins/${v.id}/photo?original=1&v=${encodeURIComponent(v.updated_at)}`));
   const suppr = $("#suppr-photo", main);
   if (suppr) suppr.onclick = async () => { await api("DELETE", `vins/${v.id}/photo`); recharger(); };
 }
@@ -404,12 +413,17 @@ function redimensionner(fichier, max = 1200) {
 }
 
 async function pageFormulaire(main, id) {
-  const [v, caves] = await Promise.all([id ? api("GET", `vins/${id}`) : Promise.resolve({ couleur: "rouge", pays: "France", format: "75 cl" }), api("GET", "caves")]);
+  const defaut = { couleur: "rouge", pays: "France", format: "75 cl", ...(ajout?.champs || {}), code_barre: ajout?.code_barre || ajout?.champs?.code_barre || "" };
+  const [v, caves] = await Promise.all([id ? api("GET", `vins/${id}`) : Promise.resolve(defaut), api("GET", "caves")]);
+  const brouillon = !id && ajout?.brouillon ? ajout : null;
   const a = REF.autocompletion;
   const champ = (nom, libelle, attrs = "") => `<label>${libelle}<input name="${nom}" value="${esc(v[nom])}" ${attrs}></label>`;
   main.innerHTML = `
     <p><a href="${id ? `#/vins/${id}` : "#/vins"}">← Retour</a></p>
     <div class="carte"><h1>${id ? "Modifier le vin" : "Ajouter un vin"}</h1>
+    ${!id && ajout?.source ? `<p class="muted">${{ off: "📦 Fiche pré-remplie depuis Open Food Facts", ia: "🔎 Fiche pré-remplie par l'IA à partir de l'étiquette", photo: "📷 Complétez la fiche de la bouteille photographiée" }[ajout.source] || ""} : vérifiez et complétez.</p>` : ""}
+    ${brouillon ? `<div class="apercu-ajout"><img id="apercu" src="${avecCle(`api/brouillons/${brouillon.brouillon}/image?fond=${brouillon.fond || ""}`)}" alt="Photo de la bouteille">
+      ${CAPACITES.detourage ? `<button class="bouton petit" type="button" id="fond-ajout">🎨 Changer de fond</button>` : ""}</div>` : ""}
     <form class="form" id="formulaire" autocomplete="off">
       <fieldset><legend>Identité</legend>
         ${champ("nom", "Nom de la cuvée *", 'required placeholder="Château Margaux, Clos des Mouches…"')}
@@ -422,6 +436,7 @@ async function pageFormulaire(main, id) {
         ${champ("cepages", "Cépages", 'list="l-cepages" placeholder="Merlot, Cabernet franc"')}
         ${champ("format", "Format", 'list="l-formats"')}
         ${champ("degre", "Degré (%)", 'type="number" step="0.1" min="0" max="25"')}
+        ${champ("code_barre", "Code-barres", 'inputmode="numeric" placeholder="Rempli par le scan"')}
       </fieldset>
       <fieldset><legend>Achat & valeur</legend>
         ${champ("prix_achat", "Prix d'achat (€ / bouteille)", 'type="number" step="0.01" min="0"')}
@@ -444,7 +459,7 @@ async function pageFormulaire(main, id) {
       <label class="large">Notes<textarea name="notes">${esc(v.notes)}</textarea></label>
       <label class="case large"><input type="checkbox" name="favori" value="1" ${v.favori ? "checked" : ""}> ♥ Favori</label>
       <div class="actions large"><button class="bouton primaire" type="submit">${id ? "Enregistrer" : "Ajouter à ma cave"}</button>
-        <a class="bouton" href="${id ? `#/vins/${id}` : "#/vins"}">Annuler</a></div>
+        <a class="bouton" href="${id ? `#/vins/${id}` : "#/vins"}" id="annuler">Annuler</a></div>
     </form></div>
     ${datalist("l-domaines", a.domaines)}${datalist("l-appellations", a.appellations)}${datalist("l-regions", [...new Set([...a.regions, "Alsace", "Beaujolais", "Bordeaux", "Bourgogne", "Champagne", "Jura", "Languedoc", "Loire", "Provence", "Rhône", "Roussillon", "Savoie", "Sud-Ouest", "Corse"])].sort())}
     ${datalist("l-pays", [...new Set([...a.pays, "France", "Italie", "Espagne", "Portugal", "Allemagne", "Suisse", "États-Unis", "Argentine", "Chili", "Afrique du Sud", "Australie", "Nouvelle-Zélande"])])}
@@ -459,16 +474,237 @@ async function pageFormulaire(main, id) {
     form.garde_debut.value = g.garde_debut; form.garde_apogee.value = g.garde_apogee ?? ""; form.garde_fin.value = g.garde_fin;
     toast(`Estimé comme ${g.niveau_label}${form.millesime.value ? "" : " non millésimé, à boire dès maintenant"}`);
   };
+  $("#annuler", main).onclick = () => { ajout = null; };
+  const boutonFond = $("#fond-ajout", main);
+  if (boutonFond) boutonFond.onclick = () => dialogueFond(async (choix) => {
+    if (choix) await api("POST", `brouillons/${brouillon.brouillon}/rendu`, { fond: choix });
+    brouillon.fond = choix;
+    $("#apercu", main).src = avecCle(`api/brouillons/${brouillon.brouillon}/image?fond=${choix}`);
+  }, avecCle(`api/brouillons/${brouillon.brouillon}/image`));
+  // fiche pré-remplie sans garde : on propose tout de suite une estimation
+  if (!id && ajout?.champs && !v.garde_fin) $("#estimer", main).click();
   form.onsubmit = async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form));
     data.favori = !!data.favori;
+    if (brouillon) data.photo = { brouillon: brouillon.brouillon, fond: brouillon.fond || "" };
     try {
       const vin = id ? await api("PUT", `vins/${id}`, data) : await api("POST", "vins", data);
+      ajout = null;
       REF = await api("GET", "referentiel");
       toast(id ? "Modifications enregistrées" : "Vin ajouté à la cave");
       location.hash = `#/vins/${vin.id}`;
     } catch (err) { toast(err.message, true); }
+  };
+}
+
+/* ------------------------------------------------------------------ ajout assisté : scan, photo, IA */
+
+function dialogueFond(choisir, urlOriginal) {
+  const vignettes = CAPACITES.fonds.map((f) => `<button type="button" class="vignette-fond" data-fond="${esc(f.id)}">
+      <img src="fonds/${esc(f.id)}.jpg" alt=""><span>${esc(f.label)}</span></button>`).join("");
+  const d = dialogue(`<h2>Choisir le fond</h2>
+    <div class="fonds">${vignettes}<button type="button" class="vignette-fond" data-fond=""><img src="${urlOriginal}" alt=""><span>Photo d'origine</span></button></div>
+    <p class="muted petit-texte" id="etat-fond"></p>
+    <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
+  $$("[data-fond]", d).forEach((b) => (b.onclick = async () => {
+    $$("[data-fond]", d).forEach((x) => (x.disabled = true));
+    $("#etat-fond", d).textContent = "Détourage et mise en scène…";
+    try { await choisir(b.dataset.fond); d.close(); toast("Fond appliqué"); }
+    catch (err) { $("#etat-fond", d).textContent = err.message; $$("[data-fond]", d).forEach((x) => (x.disabled = false)); }
+  }));
+}
+
+function chargerScript(src) {
+  return new Promise((resolve, reject) => {
+    if ($(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement("script");
+    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error("Lecteur de code-barres indisponible"));
+    document.head.appendChild(s);
+  });
+}
+
+async function lecteurZXing() {
+  await chargerScript("vendor/zxing-0.21.3.min.js");
+  const Z = window.ZXing;
+  const indices = new Map([[Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]],
+    [Z.DecodeHintType.TRY_HARDER, true]]);
+  return new Z.BrowserMultiFormatReader(indices, 300);
+}
+
+const FORMATS_NATIFS = ["ean_13", "ean_8", "upc_a", "upc_e"];
+
+async function decoderImage(fichier) {
+  const img = new Image();
+  img.src = URL.createObjectURL(fichier);
+  await img.decode();
+  try {
+    if ("BarcodeDetector" in window) {
+      const codes = await new BarcodeDetector({ formats: FORMATS_NATIFS }).detect(img);
+      if (codes.length) return codes[0].rawValue;
+    }
+    const lecteur = await lecteurZXing();
+    return (await lecteur.decodeFromImageElement(img)).getText();
+  } catch { return null; } finally { URL.revokeObjectURL(img.src); }
+}
+
+/** Ouvre la caméra et renvoie le premier code-barres lu (ou null si l'on annule). */
+function scannerEnDirect() {
+  return new Promise((resolve) => {
+    const d = dialogue(`<h2>Scanner le code-barres</h2>
+      <div class="viseur"><video playsinline muted></video><div class="cadre"></div></div>
+      <p class="muted petit-texte">Placez le code-barres de la contre-étiquette dans le cadre.</p>
+      <div class="actions"><button class="bouton" data-fermer>Annuler</button></div>`);
+    const video = $("video", d);
+    let fini = false, flux = null, lecteur = null;
+    const terminer = (code) => {
+      if (fini) return;
+      fini = true;
+      flux?.getTracks().forEach((t) => t.stop());
+      lecteur?.reset();
+      if (d.open) d.close();
+      resolve(code);
+    };
+    d.addEventListener("close", () => terminer(null), { once: true });
+    (async () => {
+      try {
+        if ("BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats()).includes("ean_13")) {
+          flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          video.srcObject = flux;
+          await video.play();
+          const detecteur = new BarcodeDetector({ formats: FORMATS_NATIFS });
+          while (!fini) {
+            const codes = await detecteur.detect(video).catch(() => []);
+            if (codes.length) return terminer(codes[0].rawValue);
+            await new Promise((r) => setTimeout(r, 200));
+          }
+        } else {
+          lecteur = await lecteurZXing();
+          await lecteur.decodeFromConstraints({ video: { facingMode: "environment" } }, video, (resultat) => {
+            if (resultat) terminer(resultat.getText());
+          });
+        }
+      } catch (err) {
+        toast("Caméra inaccessible : " + (err.message || err), true);
+        terminer(null);
+      }
+    })();
+  });
+}
+
+async function pageAjouter(main) {
+  CAPACITES = await api("GET", "capacites");
+  const direct = !!(navigator.mediaDevices?.getUserMedia && window.isSecureContext);
+  main.innerHTML = `
+    <div class="entete"><h1>Ajouter un vin</h1></div>
+    <div class="tuiles-ajout">
+      <button class="carte tuile-ajout" id="t-scan"><span class="icone">▥</span><b>Scanner le code-barres</b><span class="muted">La fiche se remplit toute seule si le vin est connu</span></button>
+      <label class="carte tuile-ajout"><span class="icone">📷</span><b>Photographier la bouteille</b>
+        <span class="muted">${CAPACITES.ia.possible ? "L'IA lit l'étiquette" : "Photo de la bouteille"}${CAPACITES.detourage ? ", la bouteille est détourée et posée sur un fond de cave" : ""}</span>
+        <input type="file" accept="image/*" capture="environment" hidden id="t-photo"></label>
+      <a class="carte tuile-ajout" href="#/vins/nouveau" id="t-main"><span class="icone">✎</span><b>Saisir à la main</b><span class="muted">Formulaire complet</span></a>
+    </div>
+    <form class="filtres" id="code-manuel" style="margin-top:16px;max-width:460px">
+      <input name="code" inputmode="numeric" placeholder="… ou tapez le code-barres (13 chiffres)" aria-label="Code-barres">
+      <button class="bouton" type="submit">Chercher</button>
+    </form>
+    <input type="file" accept="image/*" capture="environment" hidden id="photo-code">
+    <div id="resultat"></div>`;
+  ajout = null;
+  const resultat = $("#resultat", main);
+  $("#t-main", main).onclick = () => { ajout = null; };
+
+  const montrer = () => resultat.scrollIntoView({ behavior: "smooth", block: "start" });
+  const chercher = async (code) => {
+    resultat.innerHTML = `<div class="carte chargement">Recherche du code ${esc(code)}…</div>`;
+    montrer();
+    let r;
+    try { r = await api("GET", "scan/" + encodeURIComponent(code)); }
+    catch (err) { resultat.innerHTML = `<div class="carte"><p>${esc(err.message)}</p></div>`; return; }
+    if (r.local) {
+      const v = r.local;
+      resultat.innerHTML = `<div class="carte resultat-scan">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="">` : bouteilleSVG(v.couleur)}
+        <div><p class="muted">Déjà dans votre cave</p><h2>${titreVin(v)}</h2><p class="muted">${sousTitre(v)}</p><p>${badgeStatut(v.statut)} · ${pluriel(v.stock, "bouteille")}</p>
+        <div class="actions"><button class="bouton primaire" id="r-entree">📥 Ajouter des bouteilles</button><a class="bouton" href="#/vins/${v.id}">Voir la fiche</a></div></div></div>`;
+      $("#r-entree", resultat).onclick = () => dialogueEntree(v, () => (location.hash = `#/vins/${v.id}`));
+      return;
+    }
+    if (r.externe) {
+      const x = r.externe.vin;
+      resultat.innerHTML = `<div class="carte resultat-scan">${r.externe.image_url ? `<img src="${esc(r.externe.image_url)}" alt="" referrerpolicy="no-referrer">` : bouteilleSVG(x.couleur || "autre")}
+        <div><p class="muted">Trouvé dans Open Food Facts</p><h2>${titreVin(x)}</h2><p class="muted">${sousTitre(x)}</p>
+        <div class="actions"><button class="bouton primaire" id="r-suite">Continuer</button>
+        <label class="bouton">📷 Prendre ma photo<input type="file" accept="image/*" capture="environment" hidden id="r-photo"></label></div></div></div>`;
+      $("#r-suite", resultat).onclick = async () => {
+        ajout = { champs: x, code_barre: r.code, source: "off" };
+        if (r.externe.image_url) {
+          try { ajout.brouillon = (await api("POST", "brouillons", { url: r.externe.image_url })).id; ajout.fond = ""; } catch { /* sans photo */ }
+        }
+        location.hash = "#/vins/nouveau";
+      };
+      $("#r-photo", resultat).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0], { code_barre: r.code, champs: x });
+      return;
+    }
+    resultat.innerHTML = `<div class="carte"><h2>Vin inconnu</h2>
+      <p>${r.erreur ? esc(r.erreur) + ". " : "Ce code-barres n'est pas dans la base Open Food Facts. "}Prenez la bouteille en photo${CAPACITES.ia.possible ? " : l'IA lira l'étiquette pour remplir la fiche" : ""}.</p>
+      <label class="bouton primaire">📷 Photographier la bouteille<input type="file" accept="image/*" capture="environment" hidden id="r-photo"></label></div>`;
+    $("#r-photo", resultat).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0], { code_barre: r.code });
+  };
+
+  const traiterPhoto = async (fichier, base = {}) => {
+    resultat.innerHTML = `<div class="carte traitement"><div class="apercu-ajout"><img id="apercu" alt="Photo de la bouteille"></div>
+      <ul class="liste etapes"><li id="e-envoi">⏳ Envoi de la photo…</li>
+      ${CAPACITES.detourage ? `<li id="e-detour">⏳ Détourage de la bouteille…</li>` : ""}
+      ${CAPACITES.ia.possible ? `<li id="e-ia">⏳ Lecture de l'étiquette par l'IA…</li>` : ""}</ul>
+      <div class="actions" id="e-actions" hidden>
+        ${CAPACITES.detourage ? `<button class="bouton" id="e-fond">🎨 Changer de fond</button>` : ""}
+        <button class="bouton primaire" id="e-suite">Continuer →</button></div></div>`;
+    montrer();
+    const etape = (id, texte) => { const li = $("#" + id, resultat); if (li) li.textContent = texte; };
+    const image = await redimensionner(fichier, 1600);
+    $("#apercu", resultat).src = image;
+    let ident;
+    try { ident = (await api("POST", "brouillons", { image })).id; etape("e-envoi", "✓ Photo reçue"); }
+    catch (err) { etape("e-envoi", "✕ " + err.message); return; }
+    ajout = { ...base, champs: { ...(base.champs || {}) }, brouillon: ident, fond: "", source: "photo" };
+    const lent = setTimeout(() => etape("e-detour", "⏳ Détourage… (la première fois, le modèle de détourage est téléchargé : patientez une minute)"), 6000);
+    await Promise.all([
+      CAPACITES.detourage && api("POST", `brouillons/${ident}/rendu`, { fond: CAPACITES.fond_defaut })
+        .then(() => { ajout.fond = CAPACITES.fond_defaut; $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${ajout.fond}`); etape("e-detour", "✓ Bouteille détourée"); })
+        .catch((err) => etape("e-detour", "✕ Détourage impossible : " + err.message))
+        .finally(() => clearTimeout(lent)),
+      CAPACITES.ia.possible && api("POST", `brouillons/${ident}/lire`)
+        .then((r) => {
+          ajout.champs = { ...r.champs, ...ajout.champs };  // les données du code-barres priment
+          ajout.source = "ia";
+          const lu = [r.champs.nom, r.champs.millesime, r.champs.appellation].filter(Boolean).join(" · ");
+          etape("e-ia", lu ? `✓ Étiquette lue : ${lu}` : "✕ L'IA n'a rien pu lire : complétez à la main");
+        })
+        .catch((err) => etape("e-ia", "✕ Lecture impossible : " + err.message)),
+    ]);
+    $("#e-actions", resultat).hidden = false;
+    $("#e-suite", resultat).onclick = () => (location.hash = "#/vins/nouveau");
+    const bf = $("#e-fond", resultat);
+    if (bf) bf.onclick = () => dialogueFond(async (choix) => {
+      if (choix) await api("POST", `brouillons/${ident}/rendu`, { fond: choix });
+      ajout.fond = choix;
+      $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${choix}`);
+    }, avecCle(`api/brouillons/${ident}/image`));
+  };
+
+  $("#t-photo", main).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0]);
+  $("#code-manuel", main).onsubmit = (e) => { e.preventDefault(); const c = e.target.code.value.replace(/\D/g, ""); if (c) chercher(c); };
+  $("#photo-code", main).onchange = async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const code = await decoderImage(f);
+    e.target.value = "";
+    if (code) chercher(code); else toast("Aucun code-barres lisible sur la photo : réessayez de plus près", true);
+  };
+  $("#t-scan", main).onclick = async () => {
+    if (!direct) return $("#photo-code", main).click();  // pas de caméra en direct (connexion non sécurisée) : photo du code
+    const code = await scannerEnDirect();
+    if (code) chercher(code);
   };
 }
 
@@ -679,7 +915,8 @@ async function pageHistorique(main) {
 }
 
 async function pageReglages(main) {
-  const [r, capteurs] = await Promise.all([api("GET", "reglages"), api("GET", "ha/capteurs").catch(() => [])]);
+  const [r, capteurs, entitesIA] = await Promise.all([api("GET", "reglages"), api("GET", "ha/capteurs").catch(() => []), api("GET", "ia/entites").catch(() => [])]);
+  CAPACITES = await api("GET", "capacites");
   const choixCapteur = (nom, type) => {
     const liste = capteurs.filter((c) => c.type === type);
     if (!liste.length) return `<input name="${nom}" value="${esc(r[nom])}" placeholder="sensor.cave_${type === "temperature" ? "temperature" : "humidite"}">`;
@@ -709,6 +946,22 @@ async function pageReglages(main) {
           <label>Humidité max (%)<input name="hum_max" type="number" value="${esc(r.hum_max)}"></label>
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form></div>
+      <div class="carte"><h2>📷 Photos & lecture d'étiquette</h2>
+        <form class="form" id="photos">
+          <label class="large">Lecture d'étiquette par l'IA de Home Assistant
+            <select name="ia_active">${options({ 1: "Activée", 0: "Désactivée" }, r.ia_active)}</select></label>
+          <label class="large">IA à utiliser
+            <select name="ia_entite"><option value="">IA par défaut de Home Assistant</option>${entitesIA.map((e) => `<option value="${esc(e.entity_id)}"${e.entity_id === r.ia_entite ? " selected" : ""}>${esc(e.nom)}</option>`).join("")}</select></label>
+          <p class="large petit-texte" style="margin:0;color:${CAPACITES.ia.possible ? "var(--ok)" : "var(--texte-2)"}">${CAPACITES.ia.possible ? "✓ Lecture d'étiquette disponible" : "Indisponible : " + esc(CAPACITES.ia.raison)}</p>
+          <label class="large">Qualité du détourage
+            <select name="detourage_qualite">${options({ rapide: "Rapide (modèle de 5 Mo)", standard: "Standard (45 Mo, recommandé)", precis: "Précis (180 Mo, plus lent, 2 Go de mémoire conseillés)" }, r.detourage_qualite)}</select></label>
+          <label class="large">Fond par défaut
+            <select name="fond_defaut">${options(Object.fromEntries(CAPACITES.fonds.map((f) => [f.id, f.label])), r.fond_defaut)}</select></label>
+          ${CAPACITES.detourage ? "" : `<p class="large petit-texte muted" style="margin:0">Le détourage n'est pas disponible sur cette installation (bibliothèques de traitement d'image absentes) : les photos sont gardées telles quelles.</p>`}
+          <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
+        </form>
+        <p class="muted petit-texte">Le modèle de détourage est téléchargé une seule fois, au premier usage, puis tout se fait sur votre installation. Pour la lecture d'étiquette, la photo est envoyée à l'IA configurée dans Home Assistant.</p>
+      </div>
       <div class="carte"><h2>🔌 Intégration Home Assistant</h2>
         <p>L'intégration <b>Cave à vin</b> (dossier <code>custom_components/cave_a_vin</code>) crée dans Home Assistant :</p>
         <ul><li>des capteurs : bouteilles, valeur, vins à boire, à boire vite…</li>
@@ -732,6 +985,14 @@ async function pageReglages(main) {
       </div>
     </div>`;
   $("#ha", main).onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api("PUT", "reglages", Object.fromEntries(new FormData(e.target)));
+      toast("Réglages enregistrés");
+      route();
+    } catch (err) { toast(err.message, true); }
+  };
+  $("#photos", main).onsubmit = async (e) => {
     e.preventDefault();
     try {
       await api("PUT", "reglages", Object.fromEntries(new FormData(e.target)));
@@ -771,6 +1032,7 @@ async function pageReglages(main) {
 const ROUTES = [
   [/^$/, pageAccueil, "accueil"],
   [/^vins$/, pageVins, "vins"],
+  [/^ajouter$/, pageAjouter, "vins"],
   [/^vins\/nouveau$/, (m) => pageFormulaire(m, null), "vins"],
   [/^vins\/(\d+)$/, (m, id) => pageVin(m, +id), "vins"],
   [/^vins\/(\d+)\/modifier$/, (m, id) => pageFormulaire(m, +id), "vins"],
@@ -793,7 +1055,7 @@ async function route() {
     $$("#menu a").forEach((a) => a.classList.toggle("actif", a.dataset.page === menu));
     $("#menu a.actif")?.scrollIntoView({ block: "nearest", inline: "nearest" });
     try {
-      if (!REF) REF = await api("GET", "referentiel");
+      if (!REF) [REF, CAPACITES] = await Promise.all([api("GET", "referentiel"), api("GET", "capacites")]);
       if (!main.childElementCount) main.innerHTML = `<div class="chargement">Chargement…</div>`;
       await fn(main, m[1], params);
     } catch (err) {

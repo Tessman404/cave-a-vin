@@ -1,0 +1,50 @@
+<!doctype html><html><body style="margin:0;background:#000">
+<svg width="900" height="1200" viewBox="0 0 900 1200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="lumiere" cx="50%" cy="38%" r="70%"><stop offset="0" stop-color="#e2a35c"/><stop offset=".35" stop-color="#8a4f26"/><stop offset=".75" stop-color="#2e1a10"/><stop offset="1" stop-color="#120a06"/></radialGradient>
+  <filter id="pierre" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .03" numOctaves="4" seed="7"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .38  0 0 0 0 .24  0 0 0 .55 0"/></filter>
+  <radialGradient id="halo" cx="50%" cy="48%" r="50%"><stop offset="0" stop-color="#f0b46a" stop-opacity=".28"/><stop offset="1" stop-color="#f0b46a" stop-opacity="0"/></radialGradient>
+  <filter id="flou"><feGaussianBlur stdDeviation="9"/></filter>
+  <filter id="flou2"><feGaussianBlur stdDeviation="3"/></filter>
+  <pattern id="briques" width="120" height="56" patternUnits="userSpaceOnUse"><rect width="120" height="56" fill="none"/><path d="M0 0.5h120M0 28.5h120M60 0v28M0 28v28M120 28v28" stroke="#1a0e08" stroke-width="3" opacity=".55"/></pattern>
+  <radialGradient id="bouteilleFond" cx="40%" cy="40%" r="60%"><stop offset="0" stop-color="#6d4a2a"/><stop offset=".5" stop-color="#1b120b"/><stop offset="1" stop-color="#0b0705"/></radialGradient>
+  <linearGradient id="bois" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e4325"/><stop offset="1" stop-color="#2b170b"/></linearGradient>
+  <filter id="veines"><feTurbulence type="fractalNoise" baseFrequency=".004 .09" numOctaves="3" seed="2"/><feColorMatrix values="0 0 0 0 .35  0 0 0 0 .2  0 0 0 0 .1  0 0 0 .5 0"/></filter>
+  <radialGradient id="vignette" cx="50%" cy="45%" r="75%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".75"/></radialGradient>
+</defs>
+<rect width="900" height="1200" fill="url(#lumiere)"/>
+<g filter="url(#flou)">
+  <rect width="900" height="980" filter="url(#pierre)"/>
+  <rect width="900" height="980" fill="url(#briques)"/>
+  <!-- voûte -->
+  <path d="M-40 980 V420 Q450 -60 940 420 V980" fill="none" stroke="#24150c" stroke-width="70" opacity=".8"/>
+  <path d="M-40 980 V420 Q450 -60 940 420 V980" fill="none" stroke="#b07a4a" stroke-width="6" opacity=".35"/>
+  <!-- casiers latéraux : culs de bouteilles -->
+  <g id="casier">
+    <rect x="-10" y="420" width="250" height="560" fill="#1c110a" opacity=".85"/>
+    <g fill="url(#bouteilleFond)">
+      <circle cx="30" cy="460" r="22"/><circle cx="85" cy="460" r="22"/><circle cx="140" cy="460" r="22"/><circle cx="195" cy="460" r="22"/>
+      <circle cx="30" cy="520" r="22"/><circle cx="85" cy="520" r="22"/><circle cx="140" cy="520" r="22"/><circle cx="195" cy="520" r="22"/>
+      <circle cx="30" cy="580" r="22"/><circle cx="85" cy="580" r="22"/><circle cx="140" cy="580" r="22"/><circle cx="195" cy="580" r="22"/>
+      <circle cx="30" cy="640" r="22"/><circle cx="85" cy="640" r="22"/><circle cx="140" cy="640" r="22"/><circle cx="195" cy="640" r="22"/>
+      <circle cx="30" cy="700" r="22"/><circle cx="85" cy="700" r="22"/><circle cx="140" cy="700" r="22"/><circle cx="195" cy="700" r="22"/>
+      <circle cx="30" cy="760" r="22"/><circle cx="85" cy="760" r="22"/><circle cx="140" cy="760" r="22"/><circle cx="195" cy="760" r="22"/>
+      <circle cx="30" cy="820" r="22"/><circle cx="85" cy="820" r="22"/><circle cx="140" cy="820" r="22"/><circle cx="195" cy="820" r="22"/>
+      <circle cx="30" cy="880" r="22"/><circle cx="85" cy="880" r="22"/><circle cx="140" cy="880" r="22"/><circle cx="195" cy="880" r="22"/>
+    </g>
+    <g fill="#f3c98a" opacity=".55"><circle cx="24" cy="452" r="4"/><circle cx="134" cy="572" r="4"/><circle cx="79" cy="692" r="4"/><circle cx="189" cy="812" r="4"/><circle cx="24" cy="872" r="4"/><circle cx="189" cy="512" r="4"/></g>
+  </g>
+  <use href="#casier" transform="translate(900 0) scale(-1 1)"/>
+  <!-- tonneau du fond -->
+  <ellipse cx="450" cy="760" rx="150" ry="150" fill="#3a2212"/>
+  <ellipse cx="450" cy="760" rx="150" ry="150" fill="none" stroke="#120a05" stroke-width="10"/>
+  <ellipse cx="450" cy="760" rx="105" ry="105" fill="none" stroke="#120a05" stroke-width="6" opacity=".7"/>
+</g>
+<!-- halo chaud derrière le sujet -->
+<rect width="900" height="980" fill="url(#halo)"/>
+<!-- plateau en bois où pose la bouteille -->
+<rect y="980" width="900" height="220" fill="url(#bois)"/>
+<rect y="980" width="900" height="220" filter="url(#veines)"/>
+<rect y="976" width="900" height="8" fill="#9a6a40" opacity=".6" filter="url(#flou2)"/>
+<rect width="900" height="1200" fill="url(#vignette)"/>
+</svg></body></html>

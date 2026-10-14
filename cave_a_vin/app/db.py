@@ -93,8 +93,17 @@ class Database:
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.execute("PRAGMA journal_mode = WAL")
         self.conn.executescript(SCHEMA)
+        self._migrer()
         self.conn.commit()
         self.lock = threading.RLock()
+
+    def _migrer(self):
+        """Ajoute les colonnes apparues après la première version."""
+        colonnes = {r[1] for r in self.conn.execute("PRAGMA table_info(vins)")}
+        for nom, definition in (("code_barre", "TEXT NOT NULL DEFAULT ''"), ("photo_originale", "TEXT")):
+            if nom not in colonnes:
+                self.conn.execute(f"ALTER TABLE vins ADD COLUMN {nom} {definition}")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_vins_code_barre ON vins(code_barre)")
 
     def all(self, sql, params=()):
         with self.lock:

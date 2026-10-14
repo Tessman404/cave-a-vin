@@ -1,0 +1,36 @@
+<!doctype html><html><body style="margin:0;background:#000">
+<svg width="900" height="1200" viewBox="0 0 900 1200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="fond" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1a10"/><stop offset=".6" stop-color="#4a2e19"/><stop offset="1" stop-color="#1a100a"/></linearGradient>
+  <radialGradient id="cul" cx="38%" cy="35%" r="65%"><stop offset="0" stop-color="#5d7a3a"/><stop offset=".45" stop-color="#1d2a12"/><stop offset="1" stop-color="#070a04"/></radialGradient>
+  <radialGradient id="culR" cx="38%" cy="35%" r="65%"><stop offset="0" stop-color="#8a3a3a"/><stop offset=".45" stop-color="#2a0e10"/><stop offset="1" stop-color="#080304"/></radialGradient>
+  <pattern id="losanges" width="150" height="150" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="150" height="150" fill="#140c07"/>
+    <rect x="0" y="0" width="150" height="14" fill="#8a5a32"/><rect x="0" y="0" width="14" height="150" fill="#7a4e2a"/>
+  </pattern>
+  <radialGradient id="halo" cx="50%" cy="50%" r="55%"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".22"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient>
+  <filter id="flou"><feGaussianBlur stdDeviation="8"/></filter>
+  <filter id="veines"><feTurbulence type="fractalNoise" baseFrequency=".003 .08" numOctaves="3" seed="5"/><feColorMatrix values="0 0 0 0 .4  0 0 0 0 .25  0 0 0 0 .12  0 0 0 .45 0"/></filter>
+  <linearGradient id="plateau" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a06b3c"/><stop offset="1" stop-color="#4a2c16"/></linearGradient>
+  <radialGradient id="vignette" cx="50%" cy="45%" r="75%"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".7"/></radialGradient>
+</defs>
+<rect width="900" height="1200" fill="url(#fond)"/>
+<g filter="url(#flou)">
+  <rect width="900" height="990" fill="url(#losanges)"/>
+  <g>
+    <circle cx="106" cy="106" r="34" fill="url(#cul)"/><circle cx="318" cy="106" r="34" fill="url(#culR)"/><circle cx="530" cy="106" r="34" fill="url(#cul)"/><circle cx="742" cy="106" r="34" fill="url(#culR)"/>
+    <circle cx="0" cy="212" r="34" fill="url(#culR)"/><circle cx="212" cy="212" r="34" fill="url(#cul)"/><circle cx="424" cy="212" r="34" fill="url(#cul)"/><circle cx="636" cy="212" r="34" fill="url(#culR)"/><circle cx="848" cy="212" r="34" fill="url(#cul)"/>
+    <circle cx="106" cy="318" r="34" fill="url(#cul)"/><circle cx="318" cy="318" r="34" fill="url(#cul)"/><circle cx="530" cy="318" r="34" fill="url(#culR)"/><circle cx="742" cy="318" r="34" fill="url(#cul)"/>
+    <circle cx="0" cy="424" r="34" fill="url(#cul)"/><circle cx="212" cy="424" r="34" fill="url(#culR)"/><circle cx="424" cy="424" r="34" fill="url(#cul)"/><circle cx="636" cy="424" r="34" fill="url(#cul)"/><circle cx="848" cy="424" r="34" fill="url(#culR)"/>
+    <circle cx="106" cy="530" r="34" fill="url(#culR)"/><circle cx="318" cy="530" r="34" fill="url(#cul)"/><circle cx="530" cy="530" r="34" fill="url(#cul)"/><circle cx="742" cy="530" r="34" fill="url(#culR)"/>
+    <circle cx="0" cy="636" r="34" fill="url(#cul)"/><circle cx="212" cy="636" r="34" fill="url(#cul)"/><circle cx="424" cy="636" r="34" fill="url(#culR)"/><circle cx="636" cy="636" r="34" fill="url(#cul)"/><circle cx="848" cy="636" r="34" fill="url(#cul)"/>
+    <circle cx="106" cy="742" r="34" fill="url(#cul)"/><circle cx="318" cy="742" r="34" fill="url(#culR)"/><circle cx="530" cy="742" r="34" fill="url(#cul)"/><circle cx="742" cy="742" r="34" fill="url(#cul)"/>
+    <circle cx="0" cy="848" r="34" fill="url(#culR)"/><circle cx="212" cy="848" r="34" fill="url(#cul)"/><circle cx="424" cy="848" r="34" fill="url(#cul)"/><circle cx="636" cy="848" r="34" fill="url(#culR)"/><circle cx="848" cy="848" r="34" fill="url(#cul)"/>
+    <circle cx="106" cy="954" r="34" fill="url(#cul)"/><circle cx="318" cy="954" r="34" fill="url(#cul)"/><circle cx="530" cy="954" r="34" fill="url(#culR)"/><circle cx="742" cy="954" r="34" fill="url(#cul)"/>
+  </g>
+</g>
+<rect width="900" height="990" fill="url(#halo)"/>
+<rect y="990" width="900" height="210" fill="url(#plateau)"/>
+<rect y="990" width="900" height="210" filter="url(#veines)"/>
+<rect width="900" height="1200" fill="url(#vignette)"/>
+</svg></body></html>

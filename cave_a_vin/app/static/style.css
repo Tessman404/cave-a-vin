@@ -289,3 +289,28 @@ dialog .actions { justify-content: flex-end; margin-top: 18px; }
 .plats { display: flex; gap: 8px; flex-wrap: wrap; }
 .plats button { border-radius: 999px; }
 .plats button.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+
+/* ajout assisté */
+.tuiles-ajout { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.tuile-ajout { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 22px 16px; cursor: pointer;
+  font: inherit; color: var(--texte); }
+.tuile-ajout:hover { border-color: var(--accent); text-decoration: none; }
+.tuile-ajout .icone { font-size: 2rem; line-height: 1; }
+.tuile-ajout .muted { font-size: .88rem; }
+.resultat-scan, .traitement { display: flex; gap: 16px; align-items: flex-start; margin-top: 16px; flex-wrap: wrap; }
+.resultat-scan > img, .resultat-scan > svg { width: 110px; max-height: 160px; object-fit: contain; border-radius: 10px; flex: none; }
+.resultat-scan h2 { margin: 2px 0; }
+.apercu-ajout { display: grid; gap: 8px; justify-items: center; margin-bottom: 14px; }
+.apercu-ajout img { width: 180px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 12px; background: var(--surface-2); box-shadow: var(--ombre); }
+.traitement .etapes { flex: 1; min-width: 220px; }
+.traitement .actions { flex-basis: 100%; }
+.viseur { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; }
+.viseur video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.viseur .cadre { position: absolute; inset: 30% 12%; border: 3px solid rgba(255, 255, 255, .9); border-radius: 10px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, .35); }
+.fonds { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+.vignette-fond { display: grid; gap: 4px; padding: 4px; border: 2px solid var(--bord); border-radius: 12px; background: var(--surface);
+  color: var(--texte); font: inherit; font-size: .8rem; cursor: pointer; }
+.vignette-fond:hover { border-color: var(--accent); }
+.vignette-fond img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; }
+.vignette-fond:disabled { opacity: .5; cursor: wait; }

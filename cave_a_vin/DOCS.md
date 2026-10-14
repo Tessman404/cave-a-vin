@@ -8,6 +8,17 @@ Gérez votre cave à vin depuis Home Assistant : inventaire, plan de cave, fenê
 2. Ouvrez **Cave à vin** dans la barre latérale.
 3. **Plan de cave → + Nouvelle cave** pour décrire vos casiers, puis **+ Ajouter** pour vos premiers vins.
 
+## Ajouter un vin
+
+Bouton **+ Ajouter** : scannez le code-barres ; si le vin est inconnu, photographiez la bouteille.
+
+- **Lecture d'étiquette** : utilise l'IA de Home Assistant (action « AI Task », Home Assistant 2025.8 ou plus récent,
+  avec une IA qui comprend les images : OpenAI, Google Gemini, Anthropic, Ollama avec un modèle de vision…).
+  La photo est déposée un instant dans le dossier `media/cave_a_vin` de Home Assistant, puis supprimée.
+  Choix de l'IA : **Réglages → Photos & lecture d'étiquette** dans la cave.
+- **Détourage** : fait par le module lui-même. Le modèle (45 Mo) est téléchargé au premier usage, puis conservé.
+- **Scan en direct** : demande une adresse `https://`. Sinon, l'application photographie le code-barres pour le lire.
+
 ## Température et humidité de la cave
 
 Dans la cave : **Réglages → Home Assistant — capteurs de la cave**, choisissez vos capteurs. La connexion à Home Assistant est automatique.

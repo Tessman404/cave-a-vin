@@ -2,6 +2,7 @@
 
 import csv
 import io
+import re
 from datetime import date
 
 from .db import maintenant
@@ -28,7 +29,7 @@ RAISONS_ENTREE = {"achat": "Achat", "cadeau": "Cadeau", "inventaire": "Inventair
 RAISONS_SORTIE = {"bue": "Bue", "offerte": "Offerte", "cassee": "Cassée / bouchonnée", "vendue": "Vendue", "autre": "Autre"}
 
 CHAMPS_TEXTE = ["nom", "domaine", "appellation", "region", "pays", "couleur", "cepages",
-                "format", "fournisseur", "accords", "notes"]
+                "format", "fournisseur", "accords", "notes", "code_barre"]
 CHAMPS_ENTIERS = ["millesime", "garde_debut", "garde_apogee", "garde_fin"]
 CHAMPS_REELS = ["degre", "prix_achat", "valeur"]
 CHAMPS_VIN = CHAMPS_TEXTE + CHAMPS_ENTIERS + CHAMPS_REELS + ["favori"]
@@ -155,6 +156,8 @@ def nettoyer_vin(data, partiel=False):
             propre[champ] = _reel(v, champ)
         elif champ == "favori":
             propre[champ] = 1 if v in (True, 1, "1", "true", "oui") else 0
+    if propre.get("code_barre"):
+        propre["code_barre"] = re.sub(r"\D", "", propre["code_barre"])
     if "nom" in propre and not propre["nom"]:
         raise ErreurAPI("Le nom du vin est obligatoire")
     if "couleur" in propre:
@@ -208,6 +211,7 @@ def _enrichir(vin, annee=None):
     vin["valeur_unitaire"] = vin["valeur"] if vin["valeur"] is not None else vin["prix_achat"]
     vin["favori"] = bool(vin["favori"])
     vin["a_photo"] = bool(vin.pop("photo", None))
+    vin["a_photo_originale"] = bool(vin.pop("photo_originale", None))
     return vin
 
 
@@ -224,8 +228,8 @@ def lister_vins(db, filtres):
     q = (filtres.get("q") or "").strip().lower()
     if q:
         for mot in q.split():
-            where.append("(LOWER(v.nom || ' ' || v.domaine || ' ' || v.appellation || ' ' || v.region"
-                         " || ' ' || v.cepages || ' ' || v.pays || ' ' || IFNULL(v.millesime, '')) LIKE ?)")
+            where.append("(LOWER(v.nom || ' ' || v.domaine || ' ' || v.appellation || ' ' || v.region || ' ' || v.cepages"
+                         " || ' ' || v.pays || ' ' || IFNULL(v.millesime, '') || ' ' || v.code_barre) LIKE ?)")
             params.append(f"%{mot}%")
     for champ in ("couleur", "region", "pays", "appellation"):
         if filtres.get(champ):
@@ -277,6 +281,14 @@ def lire_vin(db, vin_id, details=True):
     return vin
 
 
+def vin_par_code_barre(db, code):
+    code = (code or "").strip()
+    if not code:
+        return None
+    vin = db.one(SELECT_VIN + " WHERE v.code_barre = ? GROUP BY v.id ORDER BY v.id DESC", (code,))
+    return _enrichir(vin) if vin else None
+
+
 def creer_vin(db, data):
     vin = nettoyer_vin(data)
     quantite = _entier(data.get("quantite"), "quantite") or 0
@@ -308,12 +320,13 @@ def modifier_vin(db, vin_id, data):
 
 
 def supprimer_vin(db, vin_id):
-    vin = db.one("SELECT photo FROM vins WHERE id = ?", (vin_id,))
+    """Supprime le vin et renvoie les noms de ses fichiers photo, à effacer."""
+    vin = db.one("SELECT photo, photo_originale FROM vins WHERE id = ?", (vin_id,))
     if not vin:
         raise ErreurAPI("Vin introuvable", 404)
     with db.transaction() as conn:
         conn.execute("DELETE FROM vins WHERE id = ?", (vin_id,))
-    return vin["photo"]
+    return [n for n in vin.values() if n]
 
 
 # --------------------------------------------------------------------------- caves & emplacements

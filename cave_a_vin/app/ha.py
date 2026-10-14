@@ -15,6 +15,10 @@ REGLAGES_DEFAUT = {
     "temp_max": "16",
     "hum_min": "60",
     "hum_max": "80",
+    "ia_active": "1",
+    "ia_entite": "",
+    "detourage_qualite": "standard",
+    "fond_defaut": "cave-voutee",
 }
 
 _cache = {"cle": None, "quand": 0, "valeur": None}

@@ -13,8 +13,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, cave, ha
+from . import __version__, cave, ha, ia, photo, scan
 from .cave import ErreurAPI
+from .db import maintenant
 
 log = logging.getLogger("cave_a_vin")
 
@@ -72,7 +73,19 @@ def _vins(app, req):
 
 @route("POST", "api/vins")
 def _creer_vin(app, req):
-    return cave.creer_vin(app.db, req.json()), 201
+    data = req.json()
+    vin = cave.creer_vin(app.db, data)
+    photo_demandee = data.get("photo") or {}
+    if photo_demandee.get("brouillon"):
+        ident = str(photo_demandee["brouillon"])
+        original = app.brouillons.original(ident).read_bytes()
+        rendu = None
+        if photo_demandee.get("fond"):
+            rendu = app.brouillons.rendu(ident, photo_demandee["fond"]).read_bytes()
+        _enregistrer_photos(app, vin["id"], original, rendu)
+        app.brouillons.supprimer(ident)
+        vin = cave.lire_vin(app.db, vin["id"])
+    return vin, 201
 
 
 @route("GET", r"api/vins/(\d+)")
@@ -85,14 +98,6 @@ def _modifier_vin(app, req, vin_id):
     return cave.modifier_vin(app.db, int(vin_id), req.json())
 
 
-@route("DELETE", r"api/vins/(\d+)")
-def _supprimer_vin(app, req, vin_id):
-    photo = cave.supprimer_vin(app.db, int(vin_id))
-    if _fichier_photo(app, photo):
-        _fichier_photo(app, photo).unlink(missing_ok=True)
-    return {"ok": True}
-
-
 @route("POST", r"api/vins/(\d+)/entree")
 def _entree(app, req, vin_id):
     return cave.ajouter_bouteilles(app.db, int(vin_id), req.json())
@@ -103,10 +108,52 @@ def _sortie(app, req, vin_id):
     return cave.sortir_bouteilles(app.db, int(vin_id), req.json())
 
 
+@route("DELETE", r"api/vins/(\d+)")
+def _supprimer_vin(app, req, vin_id):
+    for nom in cave.supprimer_vin(app.db, int(vin_id)):
+        _effacer_photo(app, nom)
+    return {"ok": True}
+
+
+def _decoder_image(image):
+    m = re.match(r"^data:image/(jpeg|png|webp);base64,(.+)$", image or "", re.S)
+    if not m:
+        raise ErreurAPI("Image invalide (JPEG, PNG ou WebP attendu)")
+    try:
+        return base64.b64decode(m.group(2), validate=True)
+    except (binascii.Error, ValueError):
+        raise ErreurAPI("Image illisible")
+
+
+def _effacer_photo(app, nom):
+    chemin = _fichier_photo(app, nom)
+    if chemin:
+        chemin.unlink(missing_ok=True)
+        chemin.with_name(chemin.name + ".detour.png").unlink(missing_ok=True)
+
+
+def _enregistrer_photos(app, vin_id, original, rendu=None):
+    """Enregistre la photo affichée (rendu sur fond, ou l'original) et garde l'original pour changer de fond."""
+    anciens = app.db.one("SELECT photo, photo_originale FROM vins WHERE id = ?", (vin_id,))
+    if photo.pil_disponible():
+        original = photo.jpeg(photo.ouvrir(original), 90)
+    jeton = os.urandom(4).hex()
+    nom_original = f"vin-{vin_id}-{jeton}-original.jpg"
+    nom_affiche = f"vin-{vin_id}-{jeton}.jpg"
+    (app.photos / nom_original).write_bytes(original)
+    (app.photos / nom_affiche).write_bytes(rendu or original)
+    with app.db.transaction() as conn:
+        conn.execute("UPDATE vins SET photo = ?, photo_originale = ?, updated_at = ? WHERE id = ?",
+                     (nom_affiche, nom_original, maintenant(), vin_id))
+    for nom in (anciens or {}).values():
+        _effacer_photo(app, nom)
+
+
 @route("GET", r"api/vins/(\d+)/photo")
 def _photo(app, req, vin_id):
-    vin = app.db.one("SELECT photo FROM vins WHERE id = ?", (int(vin_id),))
-    chemin = _fichier_photo(app, vin["photo"]) if vin else None
+    vin = app.db.one("SELECT photo, photo_originale FROM vins WHERE id = ?", (int(vin_id),))
+    champ = "photo_originale" if req.query.get("original") == "1" else "photo"
+    chemin = _fichier_photo(app, vin[champ]) if vin else None
     if not chemin or not chemin.exists():
         raise ErreurAPI("Pas de photo", 404)
     return Reponse(chemin.read_bytes(), "image/jpeg", entetes={"Cache-Control": "no-cache"})
@@ -116,33 +163,126 @@ def _photo(app, req, vin_id):
 def _envoyer_photo(app, req, vin_id):
     vin_id = int(vin_id)
     cave.lire_vin(app.db, vin_id, details=False)
-    image = (req.json().get("image") or "")
-    m = re.match(r"^data:image/(jpeg|png|webp);base64,(.+)$", image, re.S)
-    if not m:
-        raise ErreurAPI("Image invalide (JPEG, PNG ou WebP attendu)")
-    try:
-        contenu = base64.b64decode(m.group(2), validate=True)
-    except (binascii.Error, ValueError):
-        raise ErreurAPI("Image illisible")
-    ancien = app.db.one("SELECT photo FROM vins WHERE id = ?", (vin_id,))["photo"]
-    nom = f"vin-{vin_id}-{os.urandom(4).hex()}.{ 'jpg' if m.group(1) == 'jpeg' else m.group(1)}"
+    data = req.json()
+    original = _decoder_image(data.get("image"))
+    rendu, avertissement = None, None
+    if data.get("fond"):
+        try:
+            rendu = photo.jpeg(app.atelier.composer(app.atelier.detourer(photo.ouvrir(original)), data["fond"]))
+        except photo.PhotoErreur as e:
+            avertissement = f"Photo enregistrée sans détourage : {e}"
+    _enregistrer_photos(app, vin_id, original, rendu)
+    return {"ok": True, "avertissement": avertissement}
+
+
+@route("POST", r"api/vins/(\d+)/photo/fond")
+def _changer_fond(app, req, vin_id):
+    """Remet la bouteille sur un autre fond (ou sur sa photo d'origine si le fond est vide)."""
+    vin_id = int(vin_id)
+    vin = app.db.one("SELECT photo, photo_originale FROM vins WHERE id = ?", (vin_id,))
+    if not vin:
+        raise ErreurAPI("Vin introuvable", 404)
+    if not vin["photo_originale"] and vin["photo"]:
+        # photo ajoutée avant la version 1.2 : elle devient la photo d'origine
+        with app.db.transaction() as conn:
+            conn.execute("UPDATE vins SET photo_originale = photo WHERE id = ?", (vin_id,))
+        vin["photo_originale"] = vin["photo"]
+    original = _fichier_photo(app, vin["photo_originale"])
+    if not original or not original.exists():
+        raise ErreurAPI("Ce vin n'a pas de photo : prenez-en une d'abord", 409)
+    fond = req.json().get("fond") or ""
+    if fond:
+        cache = original.with_name(original.name + ".detour.png")
+        if cache.exists():
+            sujet = photo.Image.open(cache).convert("RGBA")
+        else:
+            sujet = app.atelier.detourer(photo.ouvrir(original.read_bytes()))
+            sujet.save(cache)
+        contenu = photo.jpeg(app.atelier.composer(sujet, fond))
+    else:
+        contenu = original.read_bytes()
+    nom = f"vin-{vin_id}-{os.urandom(4).hex()}.jpg"
     (app.photos / nom).write_bytes(contenu)
     with app.db.transaction() as conn:
-        conn.execute("UPDATE vins SET photo = ? WHERE id = ?", (nom, vin_id))
-    if _fichier_photo(app, ancien):
-        _fichier_photo(app, ancien).unlink(missing_ok=True)
+        conn.execute("UPDATE vins SET photo = ?, updated_at = ? WHERE id = ?", (nom, maintenant(), vin_id))
+    if vin["photo"] != vin["photo_originale"]:
+        chemin = _fichier_photo(app, vin["photo"])
+        if chemin:
+            chemin.unlink(missing_ok=True)
     return {"ok": True}
 
 
 @route("DELETE", r"api/vins/(\d+)/photo")
 def _supprimer_photo(app, req, vin_id):
-    vin = app.db.one("SELECT photo FROM vins WHERE id = ?", (int(vin_id),))
-    if vin and vin["photo"]:
-        if _fichier_photo(app, vin["photo"]):
-            _fichier_photo(app, vin["photo"]).unlink(missing_ok=True)
+    vin = app.db.one("SELECT photo, photo_originale FROM vins WHERE id = ?", (int(vin_id),))
+    if vin:
+        for nom in vin.values():
+            _effacer_photo(app, nom)
         with app.db.transaction() as conn:
-            conn.execute("UPDATE vins SET photo = NULL WHERE id = ?", (int(vin_id),))
+            conn.execute("UPDATE vins SET photo = NULL, photo_originale = NULL WHERE id = ?", (int(vin_id),))
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------- ajout assisté : scan, photo, IA
+
+@route("GET", "api/capacites")
+def _capacites(app, req):
+    reglages = app.reglages()
+    return {
+        "detourage": photo.detourage_disponible(),
+        "qualite_detourage": reglages.get("detourage_qualite"),
+        "fonds": [{"id": k, "label": v} for k, v in photo.FONDS.items()],
+        "fond_defaut": reglages.get("fond_defaut") or "cave-voutee",
+        "ia": ia.etat(reglages),
+    }
+
+
+@route("GET", r"api/scan/(\w+)")
+def _scan(app, req, code):
+    try:
+        code = scan.nettoyer_code(code)
+    except scan.ScanErreur as e:
+        raise ErreurAPI(str(e))
+    resultat = {"code": code, "local": cave.vin_par_code_barre(app.db, code), "externe": None, "erreur": None}
+    if not resultat["local"]:
+        try:
+            resultat["externe"] = scan.chercher(code)
+        except scan.ScanErreur as e:
+            resultat["erreur"] = str(e)
+    return resultat
+
+
+@route("POST", "api/brouillons")
+def _creer_brouillon(app, req):
+    data = req.json()
+    if data.get("url"):
+        contenu = scan.telecharger_image(data["url"])
+    else:
+        contenu = _decoder_image(data.get("image"))
+    return {"id": app.brouillons.creer(contenu)}, 201
+
+
+@route("POST", r"api/brouillons/(\w+)/rendu")
+def _rendu_brouillon(app, req, ident):
+    fond = req.json().get("fond") or ""
+    app.brouillons.rendu(ident, fond)
+    return {"ok": True, "fond": fond}
+
+
+@route("GET", r"api/brouillons/(\w+)/image")
+def _image_brouillon(app, req, ident):
+    chemin = app.brouillons.rendu(ident, req.query.get("fond") or "")
+    return Reponse(chemin.read_bytes(), "image/jpeg", entetes={"Cache-Control": "no-cache"})
+
+
+@route("POST", r"api/brouillons/(\w+)/lire")
+def _lire_brouillon(app, req, ident):
+    return {"champs": ia.lire_etiquette(app.reglages(), app.brouillons.original(ident).read_bytes())}
+
+
+@route("GET", "api/ia/entites")
+def _entites_ia(app, req):
+    return ia.entites(app.reglages())
 
 
 @route("GET", "api/garde")
@@ -372,6 +512,8 @@ class Handler(BaseHTTPRequestHandler):
             self._envoyer(resultat)
         except ErreurAPI as e:
             self._envoyer(Reponse(json.dumps({"erreur": e.message}, ensure_ascii=False).encode(), status=e.status))
+        except (photo.PhotoErreur, scan.ScanErreur, ia.IAErreur) as e:
+            self._envoyer(Reponse(json.dumps({"erreur": str(e)}, ensure_ascii=False).encode(), status=422))
         except Exception:  # noqa: BLE001 - on renvoie toujours une réponse propre
             log.exception("Erreur sur %s %s", methode, self.path)
             self._envoyer(Reponse(json.dumps({"erreur": "Erreur interne"}).encode(), status=500))
@@ -405,6 +547,9 @@ class Application:
         self.api_key = api_key
         self.photos = Path(dossier_donnees) / "photos"
         self.photos.mkdir(parents=True, exist_ok=True)
+        self.atelier = photo.Atelier(dossier_donnees, STATIC / "fonds",
+                                     qualite=lambda: self.reglages().get("detourage_qualite") or "standard")
+        self.brouillons = photo.Brouillons(Path(dossier_donnees) / "brouillons", self.atelier)
 
     def reglages(self):
         r = dict(ha.REGLAGES_DEFAUT)

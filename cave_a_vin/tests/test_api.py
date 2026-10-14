@@ -156,7 +156,7 @@ class TestCave(BaseTest):
         self.appel("PUT", f"api/vins/{vin['id']}/photo", {"image": "pas une image"}, attendu=400)
         self.appel("PUT", f"api/vins/{vin['id']}/photo", {"image": PIXEL_PNG}, attendu=200)
         self.assertTrue(self.appel("GET", f"api/vins/{vin['id']}")["a_photo"])
-        self.assertTrue(self.appel("GET", f"api/vins/{vin['id']}/photo", attendu=200).startswith(b"\x89PNG"))
+        self.assertTrue(self.appel("GET", f"api/vins/{vin['id']}/photo", attendu=200)[:2] in (b"\x89P", b"\xff\xd8"))
         self.appel("DELETE", f"api/vins/{vin['id']}/photo", attendu=200)
         self.appel("GET", f"api/vins/{vin['id']}/photo", attendu=404)
 

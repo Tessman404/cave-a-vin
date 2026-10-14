@@ -1,5 +1,19 @@
 # Journal des modifications
 
+## 1.2.0
+
+- **Ajout assisté** (bouton « + Ajouter ») :
+  - **scan du code-barres** avec l'appareil photo du téléphone : si le vin est déjà dans la cave, on ajoute
+    des bouteilles en un clic ; sinon la fiche est pré-remplie depuis **Open Food Facts** (base libre) ;
+  - **photo de la bouteille** si le vin est inconnu : l'**IA de Home Assistant** (action « AI Task ») lit
+    l'étiquette et remplit la fiche (nom, domaine, appellation, millésime, couleur…) ;
+  - la bouteille est **détourée automatiquement** et posée sur un **fond de cave** au choix (cave voûtée,
+    casier en bois, studio bordeaux, pierre claire). Le détourage se fait sur votre installation.
+- Bouton « 🎨 Fond » sur la fiche d'un vin pour changer de décor (la photo d'origine est conservée).
+- Code-barres enregistré sur la fiche : un nouveau scan retrouve directement le vin.
+- Nouveaux réglages : IA à utiliser, qualité du détourage, fond par défaut.
+- Le module n'est plus proposé pour les systèmes 32 bits (armv7), abandonnés par Home Assistant.
+
 ## 1.1.0
 
 - Estimation de garde plus juste : elle tient compte du prix (prix d'achat ou valeur) et de l'appellation.

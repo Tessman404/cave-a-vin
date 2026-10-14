@@ -12,16 +12,17 @@ Un logiciel de gestion de cave à vin, dans l'esprit d'Oeni, **qui s'intègre à
 
 Ce qu'il fait :
 
-- **inventaire complet** : cuvée, domaine, appellation, région, couleur, millésime, cépages, format, prix d'achat, valeur estimée, fournisseur, accords, notes, **photo de l'étiquette** (prise directement avec le téléphone) ;
+- **ajout en un geste** : **scannez le code-barres** avec le téléphone ; si le vin est inconnu, **photographiez la bouteille** : l'**IA de Home Assistant lit l'étiquette** et remplit la fiche, et la bouteille est **détourée et posée sur un fond de cave** (cave voûtée, casier en bois, studio, pierre claire) ;
+- **inventaire complet** : cuvée, domaine, appellation, région, couleur, millésime, cépages, format, prix d'achat, valeur estimée, fournisseur, accords, notes, code-barres, photo ;
 - **plan de cave visuel** : décrivez vos casiers ou votre armoire à vin (rangées × colonnes), chaque bouteille a sa case ; un clic pour la sortir ou la déplacer. Plusieurs caves possibles, et rangement « en vrac » pour les cartons ;
-- **garde** : « à boire à partir de », « apogée », « à boire avant », avec **estimation automatique** selon la couleur, la région et le millésime. Les vins à boire vite sont signalés partout ;
+- **garde** : « à boire à partir de », « apogée », « à boire avant », avec **estimation automatique** selon la couleur, l'appellation, le prix et le millésime. Les vins à boire vite sont signalés partout ;
 - **dégustations** : chaque bouteille sortie peut recevoir une note sur 5 et un commentaire, conservés dans l'historique ;
 - **« Que boire ce soir ? »** : choisissez le plat, la cave propose les meilleures bouteilles, en privilégiant celles à boire en priorité ;
 - **statistiques** : bouteilles, valeur de la cave, répartition par couleur, région, millésime, garde et cave ;
 - **liste d'envies** (vins à acheter), visible aussi dans Home Assistant ;
 - **sauvegarde** : export CSV (Excel), sauvegarde complète JSON, import CSV ;
 - fonctionne sur ordinateur, tablette et téléphone, en thème clair ou sombre ;
-- **aucune dépendance** : uniquement Python, tourne sans souci sur un Raspberry Pi.
+- **léger** : Python, tourne sur un Raspberry Pi 4 ou 5 ; le détourage des photos se fait sur votre installation, sans service extérieur.
 
 ---
 
@@ -31,6 +32,7 @@ Ce qu'il fait :
 2. [Ajouter l'intégration (capteurs, actions, envies)](#2-ajouter-lintégration-capteurs-actions-envies)
 3. [Afficher la température de la cave](#3-afficher-la-température-de-la-cave)
 4. [Premiers pas](#4-premiers-pas)
+   - [Ajouter un vin : scan, photo et IA](#4-bis-ajouter-un-vin--scan-photo-et-ia)
 5. [Exemples d'automatisations et de tableau de bord](#5-exemples-dautomatisations-et-de-tableau-de-bord)
 6. [Installation sans Home Assistant OS (Docker)](#6-installation-sans-home-assistant-os-docker)
 7. [Import, export et sauvegardes](#7-import-export-et-sauvegardes)
@@ -140,12 +142,35 @@ Sans le module complémentaire, renseignez aussi l'adresse de Home Assistant et 
 ## 4. Premiers pas
 
 1. **Plan de cave → + Nouvelle cave** : donnez un nom et le nombre de rangées et de colonnes de vos casiers (0 pour un rangement libre). Créez-en autant que vous avez d'emplacements (cave, armoire à vin, cellier…).
-2. **+ Ajouter** : remplissez la fiche du vin. Le bouton **✨ Estimer** propose une fenêtre de garde ; corrigez-la si votre caviste vous a donné d'autres conseils. Indiquez le nombre de bouteilles et la cave : elles sont rangées automatiquement dans les premières cases libres.
-3. Sur la fiche, **📷 Photo de l'étiquette** : sur téléphone, l'appareil photo s'ouvre directement.
+2. **+ Ajouter** : scannez le code-barres, photographiez la bouteille ou saisissez la fiche à la main (voir ci-dessous). Le bouton **✨ Estimer** propose une fenêtre de garde ; corrigez-la si votre caviste vous a donné d'autres conseils. Indiquez le nombre de bouteilles et la cave : elles sont rangées automatiquement dans les premières cases libres.
+3. Sur la fiche, **📷** pour prendre ou changer la photo, **🎨 Fond** pour changer de décor.
 4. Pour boire une bouteille : bouton **−** ou **🍷 Déguster / sortir** sur la fiche, ou clic sur sa case dans le plan. Ajoutez une note et vos impressions : elles restent dans l'historique, même si le vin n'est plus en cave.
 5. Dans le plan, cliquez sur une **case vide** pour y ranger une bouteille non rangée, ou sur une bouteille puis **↔ Déplacer** pour changer sa place.
 
 Astuce : sur téléphone, utilisez *Ajouter à l'écran d'accueil* depuis le navigateur pour avoir la cave comme une application.
+
+---
+
+## 4 bis. Ajouter un vin : scan, photo et IA
+
+![Ajout assisté : code-barres, photo détourée, choix du fond](docs/ajout-assiste.png)
+
+Bouton **+ Ajouter**, puis :
+
+1. **Scanner le code-barres** (celui de la contre-étiquette) :
+   - vin **déjà dans votre cave** → un clic pour ajouter des bouteilles ;
+   - vin connu de **[Open Food Facts](https://fr.openfoodfacts.org)** (base libre, surtout les vins de grande distribution) → la fiche se remplit ;
+   - vin **inconnu** → l'application vous propose de photographier la bouteille.
+2. **Photographier la bouteille** (de face, étiquette lisible, la bouteille entière dans l'image) :
+   - l'**IA lit l'étiquette** : nom, domaine, appellation, millésime, couleur, cépages, degré ;
+   - la bouteille est **détourée** et posée sur le **fond de cave** choisi dans les réglages ; **🎨 Changer de fond** pour essayer les autres. La photo d'origine est conservée : vous pourrez changer de fond plus tard depuis la fiche.
+3. Vérifiez la fiche pré-remplie, indiquez le nombre de bouteilles et la cave, **Ajouter à ma cave**. Le code-barres est enregistré : au prochain scan, le vin est retrouvé tout de suite.
+
+**Ce qu'il faut pour la lecture d'étiquette** : Home Assistant 2025.8 ou plus récent, avec une intégration d'IA qui fournit une entité **« AI Task »** et qui comprend les images : OpenAI, Google Gemini, Anthropic (Claude), ou Ollama avec un modèle de vision (par exemple `qwen2.5vl`). Dans la cave, **Réglages → Photos & lecture d'étiquette** indique si tout est prêt et permet de choisir l'IA. La photo est alors envoyée à cette IA (et donc à son fournisseur si elle est en ligne).
+
+**Le détourage** se fait sur votre installation, sans rien envoyer. Le modèle (45 Mo) est téléchargé au premier usage : la toute première photo prend environ une minute, les suivantes quelques secondes. Trois qualités au choix dans les réglages : *rapide* (5 Mo), *standard* et *précis* (180 Mo, pour un Raspberry Pi 5 ou un mini-PC).
+
+**Le scan en direct** demande une connexion sécurisée (adresse en `https://`, par exemple l'accès distant Home Assistant Cloud). Sur une adresse `http://` locale, les navigateurs interdisent la caméra en direct : l'application ouvre alors l'appareil photo pour **photographier le code-barres**, qu'elle lit ensuite. Vous pouvez aussi taper les chiffres.
 
 ---
 
@@ -256,10 +281,13 @@ Sans Docker, avec Python 3.11 ou plus récent :
 
 ```bash
 cd cave-a-vin/cave_a_vin
-python3 -m app            # données dans ./data, interface sur http://localhost:8099
+pip install -r requirements.txt   # facultatif : détourage des photos
+python3 -m app                    # données dans ./data, interface sur http://localhost:8099
 ```
 
-Variables d'environnement : `CAVE_DATA_DIR` (dossier des données), `CAVE_PORT` (port, 8099 par défaut), `CAVE_API_KEY` (clé d'API), `HA_URL` et `HA_TOKEN` (connexion à Home Assistant).
+Sans le module Home Assistant, la lecture d'étiquette par l'IA demande que la cave puisse écrire dans le dossier `media` de Home Assistant : indiquez son chemin dans la variable `HA_MEDIA_DIR`.
+
+Variables d'environnement : `CAVE_DATA_DIR` (dossier des données), `CAVE_PORT` (port, 8099 par défaut), `CAVE_API_KEY` (clé d'API), `HA_URL` et `HA_TOKEN` (connexion à Home Assistant), `HA_MEDIA_DIR` (dossier media de Home Assistant, pour l'IA).
 
 > Si la cave est accessible depuis Internet sans passer par Home Assistant, **définissez une clé d'API**.
 
@@ -270,8 +298,8 @@ Variables d'environnement : `CAVE_DATA_DIR` (dossier des données), `CAVE_PORT` 
 Dans **Réglages → Sauvegarde & import** :
 
 - **Exporter en CSV** : un fichier qui s'ouvre dans Excel ou LibreOffice (séparateur `;`), une ligne par vin avec sa quantité ;
-- **Sauvegarde complète (JSON)** : tout (caves, vins, emplacements, historique, envies), sauf les photos ;
-- **Importer un CSV** : pour reprendre une cave tenue dans un tableur ou exportée d'une autre application. La première ligne doit contenir les noms de colonnes ; seule `nom` est obligatoire. Colonnes reconnues : `nom`, `domaine`, `appellation`, `region`, `pays`, `couleur` (`rouge`, `blanc`, `rose`, `effervescent`, `liquoreux`, `autre`), `millesime`, `cepages`, `format`, `degre`, `prix_achat`, `valeur`, `fournisseur`, `garde_debut`, `garde_apogee`, `garde_fin`, `accords`, `notes`, `favori`, `quantite`. Le plus simple : exportez d'abord un CSV pour voir le format, puis renommez les colonnes de votre fichier ;
+- **Sauvegarde complète (JSON)** : tout (caves, vins, emplacements, historique, envies), sauf les photos (elles sont dans les sauvegardes Home Assistant) ;
+- **Importer un CSV** : pour reprendre une cave tenue dans un tableur ou exportée d'une autre application. La première ligne doit contenir les noms de colonnes ; seule `nom` est obligatoire. Colonnes reconnues : `nom`, `domaine`, `appellation`, `region`, `pays`, `couleur` (`rouge`, `blanc`, `rose`, `effervescent`, `liquoreux`, `autre`), `millesime`, `cepages`, `format`, `degre`, `prix_achat`, `valeur`, `fournisseur`, `garde_debut`, `garde_apogee`, `garde_fin`, `accords`, `notes`, `favori`, `code_barre`, `quantite`. Le plus simple : exportez d'abord un CSV pour voir le format, puis renommez les colonnes de votre fichier ;
 - **Restaurer une sauvegarde JSON** : remplace toute la cave.
 
 ---
@@ -284,15 +312,19 @@ Organisation :
 cave-a-vin/
 ├── cave_a_vin/                 module complémentaire Home Assistant
 │   ├── config.yaml, build.yaml, Dockerfile
-│   ├── app/                    application (Python, bibliothèque standard uniquement)
+│   ├── app/                    application (Python)
 │   │   ├── server.py           serveur HTTP et routes de l'API
 │   │   ├── cave.py             logique : vins, bouteilles, garde, accords, stats
 │   │   ├── db.py               base SQLite
 │   │   ├── ha.py               lecture des capteurs Home Assistant
-│   │   └── static/             interface web (HTML/CSS/JS, sans étape de compilation)
+│   │   ├── scan.py             recherche par code-barres (Open Food Facts)
+│   │   ├── photo.py            détourage (onnxruntime) et mise en scène sur fond
+│   │   ├── ia.py               lecture d'étiquette par l'IA de Home Assistant (ai_task)
+│   │   └── static/             interface web (HTML/CSS/JS, sans étape de compilation ; vendor/ : lecteur ZXing)
 │   └── tests/                  tests de l'API
 ├── custom_components/cave_a_vin/   intégration Home Assistant
 ├── tests_ha/                   tests de l'intégration dans un vrai Home Assistant
+├── outils/fonds/               sources des fonds de cave (SVG) et script de rendu
 ├── repository.yaml, hacs.json  pour publier en dépôt de modules / HACS
 └── docker-compose.yml
 ```
@@ -304,7 +336,10 @@ Principales routes (toutes en JSON, préfixe `api/`) :
 | `GET vins?q=&couleur=&statut=&cave_id=&stock=1\|0\|all&tri=` | Liste et recherche |
 | `POST vins` · `GET/PUT/DELETE vins/{id}` | Fiches des vins |
 | `POST vins/{id}/entree` · `POST vins/{id}/sortie` | Ajouter / sortir des bouteilles |
-| `PUT vins/{id}/photo` | Photo (data-URL JPEG/PNG/WebP) |
+| `PUT vins/{id}/photo` · `POST vins/{id}/photo/fond` | Photo (data-URL, `fond` facultatif) · changer de fond |
+| `GET scan/{code}` | Vin de la cave ou d'Open Food Facts correspondant au code-barres |
+| `POST brouillons` · `POST brouillons/{id}/rendu` · `POST brouillons/{id}/lire` | Photo en cours d'ajout : détourage sur fond, lecture par l'IA |
+| `GET capacites` | Détourage, fonds et IA disponibles |
 | `GET/POST caves` · `GET/PUT/DELETE caves/{id}` | Caves et plan |
 | `PUT bouteilles/{id}` | Déplacer une bouteille |
 | `GET suggestion?plat=&couleur=` | Accords |
@@ -316,7 +351,7 @@ Avec une clé d'API, ajoutez l'en-tête `X-API-Key: <clé>` (ou `Authorization: 
 Lancer les tests :
 
 ```bash
-# API (aucune dépendance)
+# API (Pillow et numpy conseillés pour les tests de photos, sinon ils sont ignorés)
 cd cave_a_vin && python3 -m unittest discover -s tests
 
 # Intégration Home Assistant
