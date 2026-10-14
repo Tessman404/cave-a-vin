@@ -412,6 +412,12 @@ function redimensionner(fichier, max = 1200) {
   });
 }
 
+/** Année de la première entrée en cave (sert de référence pour la garde d'un vin sans millésime). */
+function anneeAchat(v) {
+  const dates = (v.mouvements || []).filter((m) => m.type === "entree").map((m) => m.date).sort();
+  return String(dates[0] || v.created_at || "").slice(0, 4);
+}
+
 async function pageFormulaire(main, id) {
   const defaut = { couleur: "rouge", pays: "France", format: "75 cl", ...(ajout?.champs || {}), code_barre: ajout?.code_barre || ajout?.champs?.code_barre || "" };
   const [v, caves] = await Promise.all([id ? api("GET", `vins/${id}`) : Promise.resolve(defaut), api("GET", "caves")]);
@@ -468,11 +474,14 @@ async function pageFormulaire(main, id) {
   const form = $("#formulaire", main);
   $("#estimer", main).onclick = async () => {
     const qs = new URLSearchParams({ couleur: form.couleur.value, millesime: form.millesime.value, region: form.region.value,
-      appellation: form.appellation.value, prix_achat: form.prix_achat.value, valeur: form.valeur.value });
+      appellation: form.appellation.value, prix_achat: form.prix_achat.value, valeur: form.valeur.value,
+      annee_achat: id ? anneeAchat(v) : "" });
     const g = await api("GET", "garde?" + qs);
     if (!g.garde_debut) return toast("Pas d'estimation pour cette couleur", true);
     form.garde_debut.value = g.garde_debut; form.garde_apogee.value = g.garde_apogee ?? ""; form.garde_fin.value = g.garde_fin;
-    toast(`Estimé comme ${g.niveau_label}${form.millesime.value ? "" : " non millésimé, à boire dès maintenant"}`);
+    toast(g.reference === "achat"
+      ? `Estimé comme ${g.niveau_label}. Sans millésime, la garde est comptée à partir de l'achat (${g.annee_reference})`
+      : `Estimé comme ${g.niveau_label}`, false, g.reference === "achat" ? 5000 : undefined);
   };
   $("#annuler", main).onclick = () => { ajout = null; };
   const boutonFond = $("#fond-ajout", main);

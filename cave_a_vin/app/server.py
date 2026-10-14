@@ -293,8 +293,9 @@ def _garde(app, req):
         prix = float(prix.replace(",", ".")) if prix else None
     except ValueError:
         prix = None
+    annee_achat = q.get("annee_achat") if (q.get("annee_achat") or "").isdigit() else None
     return cave.estimer_garde(q.get("couleur", "rouge"), q.get("millesime") or None, q.get("region", ""),
-                              q.get("appellation", ""), prix)
+                              q.get("appellation", ""), prix, annee_achat)
 
 
 @route("GET", "api/bouteilles/non-rangees")

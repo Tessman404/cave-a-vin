@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.2.1
+
+- Garde des vins **sans millésime** : elle n'est plus « à boire dès maintenant » d'office. Elle est comptée à
+  partir de l'année d'achat (première entrée en cave), avec le même potentiel qu'un vin millésimé du même
+  niveau : un champagne de grande maison reste à garder plusieurs années, un rosé courant est à boire vite.
+
 ## 1.2.0
 
 - **Ajout assisté** (bouton « + Ajouter ») :
@@ -19,7 +25,6 @@
 - Estimation de garde plus juste : elle tient compte du prix (prix d'achat ou valeur) et de l'appellation.
   Un Médoc à 5 € n'est plus estimé comme un grand cru : il est classé « vin de tous les jours » (à boire sous 5 ans),
   un Saint-Julien à 60 € « vin de garde », un Côte-Rôtie à 250 € « grand vin de garde ».
-- Les vins non millésimés sont estimés « à boire dès maintenant ».
 
 ## 1.0.0
 

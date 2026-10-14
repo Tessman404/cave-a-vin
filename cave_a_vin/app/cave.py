@@ -186,22 +186,27 @@ def statut_garde(vin, annee=None):
     return "a_boire"
 
 
-def estimer_garde(couleur, millesime, region="", appellation="", prix=None):
-    """Fenêtre de dégustation indicative, à affiner par l'utilisateur."""
+def estimer_garde(couleur, millesime, region="", appellation="", prix=None, annee_achat=None):
+    """Fenêtre de dégustation indicative, à affiner par l'utilisateur.
+
+    Sans millésime (vin non millésimé, ou millésime inconnu), la garde est comptée à partir de l'année
+    d'achat : le vin est supposé prêt à boire à sa mise en vente, et il garde le même potentiel
+    (apogée et fin) qu'un vin millésimé du même niveau. Un champagne de grande maison reste ainsi
+    « à garder » plusieurs années, un rosé courant est à boire dans l'année ou la suivante.
+    """
     millesime = int(millesime) if millesime else None
     profil = GARDE.get(couleur)
     if not profil:
         return {"garde_debut": None, "garde_apogee": None, "garde_fin": None, "niveau": None}
     niveau = niveau_du_vin(appellation, region, prix)
     d, a, f = profil[niveau]
+    resultat = {"niveau": niveau, "niveau_label": NIVEAUX[niveau]}
     if millesime is None:
-        # Non millésimé (souvent effervescent) : prêt à boire dès maintenant.
-        base = annee_courante()
-        d, a, f = 0, None, max(2, f // 2)
-        return {"garde_debut": base, "garde_apogee": None, "garde_fin": base + f, "niveau": niveau,
-                "niveau_label": NIVEAUX[niveau]}
-    return {"garde_debut": millesime + d, "garde_apogee": millesime + a, "garde_fin": millesime + f,
-            "niveau": niveau, "niveau_label": NIVEAUX[niveau]}
+        base = int(annee_achat) if annee_achat else annee_courante()
+        return {**resultat, "garde_debut": base, "garde_apogee": base + max(0, a - d), "garde_fin": base + (f - d),
+                "reference": "achat", "annee_reference": base}
+    return {**resultat, "garde_debut": millesime + d, "garde_apogee": millesime + a, "garde_fin": millesime + f,
+            "reference": "millesime", "annee_reference": millesime}
 
 
 def _enrichir(vin, annee=None):

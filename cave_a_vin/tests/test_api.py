@@ -118,10 +118,14 @@ class TestCave(BaseTest):
         self.assertEqual(self.appel("GET", "api/garde?couleur=rouge&millesime=2015&appellation=Pauillac")["niveau"], "garde")
         self.assertEqual(self.appel("GET", "api/garde?couleur=rouge&millesime=2022&appellation=Bordeaux")["niveau"], "courant")
         self.assertEqual(self.appel("GET", "api/garde?couleur=rouge&millesime=2021&appellation=Haut-M%C3%A9doc")["niveau"], "moyen")
-        # non millésimé : à boire dès cette année
-        g = self.appel("GET", "api/garde?couleur=effervescent")
-        self.assertEqual(g["garde_debut"], cave.annee_courante())
-        self.assertIsNone(g["garde_apogee"])
+        # non millésimé : garde comptée à partir de l'achat, avec le même potentiel qu'un millésimé
+        annee = cave.annee_courante()
+        g = self.appel("GET", "api/garde?couleur=effervescent&appellation=Champagne&valeur=60")
+        self.assertEqual((fenetre(g), g["reference"]), ((annee, annee + 4, annee + 9), "achat"))
+        g = self.appel("GET", "api/garde?couleur=effervescent&appellation=Champagne&annee_achat=2020")
+        self.assertEqual(fenetre(g), (2020, 2022, 2025))
+        g = self.appel("GET", "api/garde?couleur=rose&prix_achat=6")
+        self.assertEqual(fenetre(g), (annee, annee + 1, annee + 2))
 
     def test_suggestions_et_statistiques(self):
         annee = cave.annee_courante()
