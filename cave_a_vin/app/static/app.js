@@ -433,7 +433,7 @@ async function pageFormulaire(main, id) {
         ${champ("garde_apogee", "Apogée", 'type="number" min="1800" max="2200"')}
         ${champ("garde_fin", "À boire avant (fin)", 'type="number" min="1800" max="2200"')}
         <div style="align-self:end"><button class="bouton" type="button" id="estimer">✨ Estimer</button></div>
-        <p class="muted petit-texte large" style="margin:0">L'estimation est indicative (couleur, région, millésime) : ajustez-la selon le producteur ou les conseils de votre caviste.</p>
+        <p class="muted petit-texte large" style="margin:0">L'estimation est indicative (couleur, appellation, prix, millésime) : renseignez le prix pour qu'elle soit plus juste, et ajustez-la selon le producteur ou les conseils de votre caviste.</p>
       </fieldset>
       ${id ? "" : `<fieldset><legend>Bouteilles</legend>
         <label>Nombre de bouteilles<input type="number" name="quantite" min="0" max="500" value="1"></label>
@@ -452,11 +452,12 @@ async function pageFormulaire(main, id) {
     ${datalist("l-formats", [...new Set(["37,5 cl", "50 cl", "75 cl", "Magnum 1,5 L", "Jéroboam 3 L", "Clavelin 62 cl", ...a.formats])])}`;
   const form = $("#formulaire", main);
   $("#estimer", main).onclick = async () => {
-    const qs = new URLSearchParams({ couleur: form.couleur.value, millesime: form.millesime.value, region: form.region.value });
+    const qs = new URLSearchParams({ couleur: form.couleur.value, millesime: form.millesime.value, region: form.region.value,
+      appellation: form.appellation.value, prix_achat: form.prix_achat.value, valeur: form.valeur.value });
     const g = await api("GET", "garde?" + qs);
     if (!g.garde_debut) return toast("Pas d'estimation pour cette couleur", true);
-    form.garde_debut.value = g.garde_debut; form.garde_apogee.value = g.garde_apogee; form.garde_fin.value = g.garde_fin;
-    toast(form.millesime.value ? "Garde estimée" : "Garde estimée à partir de cette année (millésime non renseigné)");
+    form.garde_debut.value = g.garde_debut; form.garde_apogee.value = g.garde_apogee ?? ""; form.garde_fin.value = g.garde_fin;
+    toast(`Estimé comme ${g.niveau_label}${form.millesime.value ? "" : " non millésimé, à boire dès maintenant"}`);
   };
   form.onsubmit = async (e) => {
     e.preventDefault();

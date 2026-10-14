@@ -108,8 +108,20 @@ class TestCave(BaseTest):
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2026}, 2026), "urgent")
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2024}, 2026), "depasse")
         self.assertEqual(cave.statut_garde({}, 2026), "inconnu")
-        g = self.appel("GET", "api/garde?couleur=rouge&millesime=2015&region=Bordeaux")
-        self.assertEqual((g["garde_debut"], g["garde_apogee"], g["garde_fin"]), (2020, 2025, 2035))
+        fenetre = lambda g: (g["garde_debut"], g["garde_apogee"], g["garde_fin"])
+        # le prix l'emporte : un Médoc à 5 € n'est pas un vin de garde, un Pauillac à 120 € si
+        g = self.appel("GET", "api/garde?couleur=rouge&millesime=2023&region=Bordeaux&appellation=M%C3%A9doc&prix_achat=4,69")
+        self.assertEqual((fenetre(g), g["niveau"]), ((2024, 2025, 2028), "courant"))
+        g = self.appel("GET", "api/garde?couleur=rouge&millesime=2015&appellation=Pauillac&valeur=120")
+        self.assertEqual(fenetre(g), (2023, 2030, 2045))
+        # sans prix : l'appellation décide, prudemment
+        self.assertEqual(self.appel("GET", "api/garde?couleur=rouge&millesime=2015&appellation=Pauillac")["niveau"], "garde")
+        self.assertEqual(self.appel("GET", "api/garde?couleur=rouge&millesime=2022&appellation=Bordeaux")["niveau"], "courant")
+        self.assertEqual(self.appel("GET", "api/garde?couleur=rouge&millesime=2021&appellation=Haut-M%C3%A9doc")["niveau"], "moyen")
+        # non millésimé : à boire dès cette année
+        g = self.appel("GET", "api/garde?couleur=effervescent")
+        self.assertEqual(g["garde_debut"], cave.annee_courante())
+        self.assertIsNone(g["garde_apogee"])
 
     def test_suggestions_et_statistiques(self):
         annee = cave.annee_courante()

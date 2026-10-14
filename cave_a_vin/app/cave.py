@@ -33,27 +33,57 @@ CHAMPS_ENTIERS = ["millesime", "garde_debut", "garde_apogee", "garde_fin"]
 CHAMPS_REELS = ["degre", "prix_achat", "valeur"]
 CHAMPS_VIN = CHAMPS_TEXTE + CHAMPS_ENTIERS + CHAMPS_REELS + ["favori"]
 
-# Garde indicative en années après le millésime : (début, apogée, fin).
-GARDE_PAR_COULEUR = {
-    "rouge": (3, 6, 12),
-    "blanc": (1, 3, 6),
-    "rose": (0, 1, 2),
-    "effervescent": (1, 3, 8),
-    "liquoreux": (5, 12, 30),
+# Garde indicative en années après le millésime : (début, apogée, fin), selon le « niveau » du vin.
+NIVEAUX = {
+    "courant": "vin de tous les jours",
+    "moyen": "vin de moyenne garde",
+    "garde": "vin de garde",
+    "grand": "grand vin de garde",
 }
-GARDE_PAR_REGION = {
-    ("rouge", "bordeaux"): (5, 10, 20),
-    ("rouge", "bourgogne"): (4, 8, 15),
-    ("rouge", "rhône"): (4, 8, 15),
-    ("rouge", "rhone"): (4, 8, 15),
-    ("rouge", "beaujolais"): (1, 3, 6),
-    ("rouge", "loire"): (2, 5, 10),
-    ("rouge", "sud-ouest"): (4, 8, 15),
-    ("blanc", "bourgogne"): (2, 5, 10),
-    ("blanc", "alsace"): (2, 5, 10),
-    ("blanc", "jura"): (3, 8, 20),
-    ("liquoreux", "bordeaux"): (5, 15, 40),
+GARDE = {
+    "rouge": {"courant": (1, 2, 5), "moyen": (3, 5, 9), "garde": (5, 10, 18), "grand": (8, 15, 30)},
+    "blanc": {"courant": (0, 1, 3), "moyen": (1, 3, 6), "garde": (3, 6, 12), "grand": (5, 10, 20)},
+    "rose": {"courant": (0, 1, 2), "moyen": (0, 1, 2), "garde": (1, 3, 5), "grand": (1, 3, 6)},
+    "effervescent": {"courant": (0, 1, 3), "moyen": (1, 3, 6), "garde": (3, 7, 12), "grand": (5, 10, 20)},
+    "liquoreux": {"courant": (2, 5, 10), "moyen": (4, 10, 20), "garde": (6, 15, 30), "grand": (10, 25, 50)},
 }
+# Appellations réputées pour la garde (sans prix connu, on reste prudent : « garde », jamais « grand »).
+APPELLATIONS_GARDE = [
+    "pauillac", "margaux", "saint-julien", "saint-estèphe", "saint-estephe", "pessac-léognan", "pessac-leognan",
+    "pomerol", "saint-émilion grand cru", "saint-emilion grand cru", "hermitage", "côte-rôtie", "cote-rotie",
+    "cornas", "châteauneuf-du-pape", "chateauneuf-du-pape", "bandol", "madiran", "grand cru", "premier cru",
+    "1er cru", "sauternes", "barsac", "château-chalon", "chateau-chalon", "vin jaune", "barolo", "barbaresco",
+    "brunello", "rioja gran reserva", "vintage", "porto",
+]
+APPELLATIONS_MOYEN = [
+    "haut-médoc", "haut-medoc", "médoc", "medoc", "graves", "saint-émilion", "saint-emilion", "listrac", "moulis",
+    "fronsac", "côtes de bourg", "cotes de bourg", "blaye", "castillon", "cahors", "gigondas", "vacqueyras",
+    "crozes-hermitage", "saint-joseph", "chinon", "bourgueil", "saumur-champigny", "morgon", "moulin-à-vent",
+    "moulin-a-vent", "chablis", "meursault", "pouilly-fuissé", "pouilly-fuisse", "savennières", "savennieres",
+    "vouvray", "faugères", "faugeres", "pic saint-loup", "corbières-boutenac", "minervois-la-livinière", "irouléguy",
+    "jurançon", "jurancon", "champagne",
+]
+APPELLATIONS_COURANT = [
+    "bordeaux supérieur", "bordeaux superieur", "côtes-du-rhône", "cotes-du-rhone", "côtes du rhône",
+    "vin de france", "igp", "pays d'oc", "vin de pays", "beaujolais", "bergerac", "côtes de gascogne",
+    "cotes de gascogne", "muscadet", "touraine", "anjou", "crémant", "cremant",
+]
+
+
+def niveau_du_vin(appellation="", region="", prix=None):
+    """Devine le potentiel de garde : d'abord par le prix, sinon par l'appellation."""
+    if prix:
+        prix = float(prix)
+        return "courant" if prix < 10 else "moyen" if prix < 25 else "garde" if prix < 80 else "grand"
+    texte = f" {appellation or ''} ".lower()
+    if any(m in texte for m in APPELLATIONS_GARDE):
+        return "garde"
+    if any(m in texte for m in APPELLATIONS_MOYEN):
+        return "moyen"
+    if any(m in texte for m in APPELLATIONS_COURANT) or texte.strip() == "bordeaux":
+        return "courant"
+    return "moyen" if (region or "").strip() else "courant"
+
 
 PLATS = {
     "viande_rouge": {"label": "Viande rouge / gibier", "couleurs": {"rouge": 3},
@@ -153,17 +183,22 @@ def statut_garde(vin, annee=None):
     return "a_boire"
 
 
-def estimer_garde(couleur, millesime, region=""):
+def estimer_garde(couleur, millesime, region="", appellation="", prix=None):
     """Fenêtre de dégustation indicative, à affiner par l'utilisateur."""
-    if not millesime:
-        millesime = annee_courante()
-    millesime = int(millesime)
-    region = (region or "").strip().lower()
-    ecarts = GARDE_PAR_REGION.get((couleur, region)) or GARDE_PAR_COULEUR.get(couleur)
-    if not ecarts:
-        return {"garde_debut": None, "garde_apogee": None, "garde_fin": None}
-    d, a, f = ecarts
-    return {"garde_debut": millesime + d, "garde_apogee": millesime + a, "garde_fin": millesime + f}
+    millesime = int(millesime) if millesime else None
+    profil = GARDE.get(couleur)
+    if not profil:
+        return {"garde_debut": None, "garde_apogee": None, "garde_fin": None, "niveau": None}
+    niveau = niveau_du_vin(appellation, region, prix)
+    d, a, f = profil[niveau]
+    if millesime is None:
+        # Non millésimé (souvent effervescent) : prêt à boire dès maintenant.
+        base = annee_courante()
+        d, a, f = 0, None, max(2, f // 2)
+        return {"garde_debut": base, "garde_apogee": None, "garde_fin": base + f, "niveau": niveau,
+                "niveau_label": NIVEAUX[niveau]}
+    return {"garde_debut": millesime + d, "garde_apogee": millesime + a, "garde_fin": millesime + f,
+            "niveau": niveau, "niveau_label": NIVEAUX[niveau]}
 
 
 def _enrichir(vin, annee=None):

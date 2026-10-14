@@ -147,7 +147,14 @@ def _supprimer_photo(app, req, vin_id):
 
 @route("GET", "api/garde")
 def _garde(app, req):
-    return cave.estimer_garde(req.query.get("couleur", "rouge"), req.query.get("millesime"), req.query.get("region"))
+    q = req.query
+    prix = q.get("valeur") or q.get("prix_achat") or None
+    try:
+        prix = float(prix.replace(",", ".")) if prix else None
+    except ValueError:
+        prix = None
+    return cave.estimer_garde(q.get("couleur", "rouge"), q.get("millesime") or None, q.get("region", ""),
+                              q.get("appellation", ""), prix)
 
 
 @route("GET", "api/bouteilles/non-rangees")
