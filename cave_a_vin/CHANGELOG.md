@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.3.2
+
+- **Lecture d'étiquette bien plus complète** : l'IA recopie ce qui est écrit (y compris le producteur indiqué dans
+  « mis en bouteille par… ») puis complète avec ses connaissances : région et pays d'après l'appellation, couleur,
+  cépages habituels, **prix de marché indicatif**, **accords mets-vins** et une courte **description** (dans les notes).
+  Avant, la consigne lui demandait de laisser vide tout ce qui n'était pas écrit mot pour mot.
+- Couleurs comprises même en texte libre (« Vin rouge », « Champagne brut », « Moelleux »…).
+- L'étape de lecture indique les informations trouvées et celles qui restent à compléter.
+
 ## 1.3.1
 
 - Le bouton « 🤖 Demander la garde à l'IA » est toujours visible sur la fiche d'un vin ; si l'IA n'est pas

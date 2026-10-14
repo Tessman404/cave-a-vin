@@ -230,8 +230,9 @@ class TestLectureEtiquette(BaseTest):
         self.media = tempfile.TemporaryDirectory()
         self.addCleanup(self.media.cleanup)
         self.reponse_ia = {"nom": "Château de Cach", "domaine": "Henri Musso", "appellation": "Haut-Médoc",
-                           "region": "Bordeaux", "couleur": "Rouge", "millesime": 2019.0, "degre": "13,5",
-                           "cepages": "", "pays": "inconnu"}
+                           "region": "Bordeaux", "couleur": "Vin rouge", "millesime": 2019.0, "degre": "13,5",
+                           "cepages": ["Merlot", "Cabernet sauvignon"], "pays": "inconnu", "valeur": "15 €",
+                           "accords": "Agneau, entrecôte, fromages affinés", "description": "Haut-Médoc classique."}
         self.fichiers_vus = []
 
         def repondre(methode, chemin, corps):
@@ -259,12 +260,23 @@ class TestLectureEtiquette(BaseTest):
         ident = self.appel("POST", "api/brouillons", {"image": image})["id"]
         champs = self.appel("POST", f"api/brouillons/{ident}/lire", attendu=200)["champs"]
         self.assertEqual(champs, {"nom": "Château de Cach", "domaine": "Henri Musso", "appellation": "Haut-Médoc",
-                                  "region": "Bordeaux", "couleur": "rouge", "millesime": 2019, "degre": 13.5})
+                                  "region": "Bordeaux", "couleur": "rouge", "millesime": 2019, "degre": 13.5,
+                                  "cepages": "Merlot, Cabernet sauvignon", "valeur": 15.0,
+                                  "accords": "Agneau, entrecôte, fromages affinés", "notes": "Haut-Médoc classique."})
+        demande = json.loads(self.ha.requetes[-1][2])
+        self.assertTrue(all(demande["structure"][c].get("required") for c in ("nom", "domaine", "couleur", "region", "accords")))
+        self.assertNotIn("N'invente rien", demande["instructions"])
         self.assertEqual(self.fichiers_vus, [True])  # la photo était bien disponible pour l'IA…
         self.assertEqual(list((Path(self.media.name) / "cave_a_vin").iterdir()), [])  # … puis supprimée
         demande = json.loads(self.ha.requetes[-1][2])
         self.assertEqual(demande["entity_id"], "ai_task.claude")
         self.assertEqual(self.ha.requetes[-1][3]["Authorization"], "Bearer jeton")
+
+    def test_couleurs_en_texte_libre(self):
+        attendus = {"Vin rouge": "rouge", "Blanc sec": "blanc", "Rosé": "rose", "Champagne brut": "effervescent",
+                    "Crémant de Loire": "effervescent", "Moelleux": "liquoreux", "rose": "rose", "violet": None}
+        for texte, couleur in attendus.items():
+            self.assertEqual(ia.couleur_depuis(texte), couleur, texte)
 
     def test_ia_desactivee(self):
         self.appel("PUT", "api/reglages", {"ia_active": "0"})

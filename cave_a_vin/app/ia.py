@@ -5,6 +5,7 @@ La photo est déposée temporairement dans le dossier « media » de Home Assist
 """
 
 import json
+import logging
 import os
 import secrets
 import urllib.error
@@ -14,28 +15,56 @@ from pathlib import Path
 from . import ha
 from .cave import COULEURS
 
+log = logging.getLogger("cave_a_vin")
 SOUS_DOSSIER = "cave_a_vin"
 INSTRUCTIONS = (
-    "Tu es sommelier. La photo jointe montre une bouteille de vin. Lis son étiquette et renvoie les "
-    "informations demandées, en français. N'invente rien : laisse un champ vide si l'information n'est "
-    "ni écrite sur l'étiquette ni déductible avec certitude (par exemple la région à partir d'une "
-    "appellation connue : Haut-Médoc → Bordeaux, Chablis → Bourgogne). Pour la couleur, appuie-toi sur "
-    "l'étiquette, l'appellation ou la couleur visible du vin. Le nom est celui de la cuvée ou du château, "
-    "le domaine est le producteur ou le négociant."
+    "Tu es sommelier. La photo jointe montre une bouteille de vin. Remplis, en français, la fiche de ce vin "
+    "pour l'inventaire d'une cave.\n"
+    "1. Recopie ce qui est écrit sur la bouteille (étiquette, contre-étiquette, collerette, capsule) : le nom de la "
+    "cuvée ou du château ; le producteur (domaine, château, maison ou négociant : il est souvent écrit en grand, ou "
+    "dans la mention « mis en bouteille par… » / « mis en bouteille au château ») ; l'appellation ; le millésime ; "
+    "le degré ; la contenance.\n"
+    "2. Complète avec tes connaissances ce qui n'est pas écrit mais se déduit : la région viticole et le pays à "
+    "partir de l'appellation (Haut-Médoc → Bordeaux, France ; Chablis → Bourgogne) ; la couleur (mention sur "
+    "l'étiquette, appellation, cépages, couleur du vin ou de la bouteille) ; les cépages habituels de l'appellation "
+    "s'ils ne sont pas indiqués ; un prix de marché indicatif en euros pour une bouteille ; trois à cinq accords "
+    "mets-vins ; une description courte du vin.\n"
+    "3. Si la cuvée porte le nom du producteur (par exemple « Château Lagrange »), mets ce nom dans les deux champs.\n"
+    "Remplis tous les champs que tu peux. Seule exception : n'invente pas de millésime, laisse-le vide s'il n'est "
+    "pas lisible."
 )
+TEXTE = {"text": {}}
 STRUCTURE = {
-    "nom": {"description": "Nom du vin : château ou cuvée, sans le millésime", "required": True,
-            "selector": {"text": {}}},
-    "domaine": {"description": "Producteur, domaine, château ou négociant", "selector": {"text": {}}},
-    "appellation": {"description": "Appellation (AOC/AOP/IGP), par exemple Haut-Médoc", "selector": {"text": {}}},
-    "region": {"description": "Région viticole : Bordeaux, Bourgogne, Loire, Rhône, Alsace…", "selector": {"text": {}}},
-    "pays": {"description": "Pays de production", "selector": {"text": {}}},
-    "couleur": {"description": "Type de vin", "selector": {"select": {"options": list(COULEURS)}}},
-    "millesime": {"description": "Année de récolte, si elle est indiquée", "selector": {"number": {"min": 1900, "max": 2100}}},
-    "cepages": {"description": "Cépages mentionnés, séparés par des virgules", "selector": {"text": {}}},
+    "nom": {"description": "Nom du vin : château ou cuvée, sans le millésime", "required": True, "selector": TEXTE},
+    "domaine": {"description": "Producteur : domaine, château, maison ou négociant", "required": True, "selector": TEXTE},
+    "appellation": {"description": "Appellation (AOC/AOP/IGP), par exemple Haut-Médoc", "selector": TEXTE},
+    "region": {"description": "Région viticole : Bordeaux, Bourgogne, Loire, Rhône, Alsace, Champagne…",
+               "required": True, "selector": TEXTE},
+    "pays": {"description": "Pays de production", "required": True, "selector": TEXTE},
+    "couleur": {"description": "Type de vin", "required": True, "selector": {"select": {"options": list(COULEURS)}}},
+    "millesime": {"description": "Année de récolte, seulement si elle est lisible", "selector": {"number": {"min": 1900, "max": 2100}}},
+    "cepages": {"description": "Cépages, indiqués ou habituels pour l'appellation, séparés par des virgules", "selector": TEXTE},
     "degre": {"description": "Degré d'alcool en % vol.", "selector": {"number": {"min": 0, "max": 25, "step": 0.1}}},
-    "format": {"description": "Contenance, par exemple 75 cl", "selector": {"text": {}}},
+    "format": {"description": "Contenance, par exemple 75 cl", "selector": TEXTE},
+    "valeur": {"description": "Prix de marché indicatif d'une bouteille, en euros", "selector": {"number": {"min": 0, "max": 100000, "step": 0.5}}},
+    "accords": {"description": "Trois à cinq accords mets-vins, séparés par des virgules", "required": True, "selector": TEXTE},
+    "description": {"description": "Deux phrases : style du vin, arômes typiques, potentiel", "selector": TEXTE},
 }
+# Réponses libres de certaines IA ramenées aux couleurs de la cave.
+MOTS_COULEURS = [
+    ("effervescent", ("efferv", "mousseux", "champagne", "crémant", "cremant", "pétillant", "petillant", "sparkling", "brut")),
+    ("liquoreux", ("liquoreux", "moelleux", "doux", "sweet", "vendanges tardives")),
+    ("rose", ("rosé", "rose")),
+    ("blanc", ("blanc", "white")),
+    ("rouge", ("rouge", "red")),
+]
+
+
+def couleur_depuis(texte):
+    texte = str(texte or "").strip().lower()
+    if texte in COULEURS:
+        return texte
+    return next((c for c, mots in MOTS_COULEURS if any(m in texte for m in mots)), None)
 
 
 class IAErreur(Exception):
@@ -103,29 +132,31 @@ def entites(reglages):
             for e in etats if e["entity_id"].startswith("ai_task.")]
 
 
+VIDES = ("", "inconnu", "inconnue", "non indiqué", "non indiquée", "n/a", "na", "null", "none", "-", "?")
+
+
 def _nettoyer(donnees):
     if not isinstance(donnees, dict):
         raise IAErreur("Réponse de l'IA inattendue")
     propre = {}
-    for cle in ("nom", "domaine", "appellation", "region", "pays", "cepages", "format"):
+    for cle in ("nom", "domaine", "appellation", "region", "pays", "cepages", "format", "accords"):
         v = donnees.get(cle)
-        if isinstance(v, str) and v.strip() and v.strip().lower() not in ("inconnu", "non indiqué", "n/a", "null"):
-            propre[cle] = v.strip()[:200]
-    couleur = str(donnees.get("couleur") or "").strip().lower().replace("é", "e")
-    if couleur in COULEURS:
+        if isinstance(v, list):
+            v = ", ".join(str(x) for x in v)
+        if isinstance(v, str) and v.strip().lower() not in VIDES:
+            propre[cle] = v.strip()[:300]
+    if couleur := couleur_depuis(donnees.get("couleur")):
         propre["couleur"] = couleur
-    try:
-        millesime = int(float(donnees.get("millesime")))
-        if 1900 <= millesime <= 2100:
-            propre["millesime"] = millesime
-    except (TypeError, ValueError):
-        pass
-    try:
-        degre = float(str(donnees.get("degre")).replace(",", "."))
-        if 3 <= degre <= 25:
-            propre["degre"] = degre
-    except (TypeError, ValueError):
-        pass
+    for cle, mini, maxi, conv in (("millesime", 1900, 2100, int), ("degre", 3, 25, float), ("valeur", 0.5, 100000, float)):
+        try:
+            valeur = conv(float(str(donnees.get(cle)).replace(",", ".").replace("€", "").strip()))
+        except (TypeError, ValueError):
+            continue
+        if mini <= valeur <= maxi:
+            propre[cle] = round(valeur, 2) if conv is float else valeur
+    description = donnees.get("description")
+    if isinstance(description, str) and description.strip().lower() not in VIDES:
+        propre["notes"] = description.strip()[:600]
     return propre
 
 
@@ -145,7 +176,9 @@ def lire_etiquette(reglages, image_jpeg, timeout=120):
                          "media_content_type": "image/jpeg"}],
     }
     try:
-        return _nettoyer(_appeler(reglages, corps, timeout))
+        champs = _nettoyer(_appeler(reglages, corps, timeout))
+        log.info("Étiquette lue par l'IA : %s", ", ".join(f"{k}={v}" for k, v in champs.items() if k != "notes"))
+        return champs
     finally:
         (dossier / nom).unlink(missing_ok=True)
 

@@ -725,8 +725,14 @@ async function pageAjouter(main) {
         .then((r) => {
           ajout.champs = { ...r.champs, ...ajout.champs };  // les données du code-barres priment
           ajout.source = "ia";
-          const lu = [r.champs.nom, r.champs.millesime, r.champs.appellation].filter(Boolean).join(" · ");
-          etape("e-ia", lu ? `✓ Étiquette lue : ${lu}` : "✕ L'IA n'a rien pu lire : complétez à la main");
+          const libelles = { nom: "nom", domaine: "domaine", appellation: "appellation", region: "région", couleur: "couleur",
+            millesime: "millésime", cepages: "cépages", degre: "degré", valeur: "valeur", accords: "accords", notes: "description" };
+          const trouves = Object.keys(libelles).filter((k) => r.champs[k] != null && r.champs[k] !== "");
+          const manquants = Object.keys(libelles).filter((k) => !trouves.includes(k));
+          const titre = [r.champs.nom, r.champs.millesime].filter(Boolean).join(" ");
+          etape("e-ia", trouves.length
+            ? `✓ Étiquette lue${titre ? " : " + titre : ""} — ${trouves.length} informations remplies${manquants.length ? ` (à compléter : ${manquants.map((k) => libelles[k]).join(", ")})` : ""}`
+            : "✕ L'IA n'a rien pu lire : complétez à la main");
         })
         .catch((err) => etape("e-ia", "✕ Lecture impossible : " + err.message)),
     ]);
