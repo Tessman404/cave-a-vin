@@ -1,0 +1,11 @@
+configuration:
+  api_key:
+    name: Clé d'API (facultatif)
+    description: >-
+      Protège l'accès direct à la cave (port 8099 et intégration). L'accès par le panneau
+      Home Assistant n'est pas concerné. Si vous la définissez, saisissez-la aussi dans l'intégration.
+  log_level:
+    name: Niveau de journalisation
+    description: Quantité de détails dans le journal du module.
+network:
+  8099/tcp: Accès direct depuis le réseau local (facultatif)

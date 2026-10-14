@@ -1,0 +1,13 @@
+{
+  "domain": "cave_a_vin",
+  "name": "Cave à vin",
+  "codeowners": ["@Tessman404"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Tessman404/cave-a-vin",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Tessman404/cave-a-vin/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

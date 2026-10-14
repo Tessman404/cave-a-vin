@@ -1,0 +1,213 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter votre cave à vin",
+        "description": "Adresse de l'application Cave à vin. Avec le module complémentaire, utilisez http://<nom d'hôte du module>:8099 (onglet Info du module).",
+        "data": {
+          "url": "Adresse",
+          "api_key": "Clé d'API (si définie)"
+        }
+      },
+      "hassio_confirm": {
+        "title": "Cave à vin détectée",
+        "description": "Le module complémentaire Cave à vin a été détecté. L'ajouter à Home Assistant ?"
+      },
+      "reauth_confirm": {
+        "title": "Clé d'API",
+        "description": "La clé d'API de la cave a changé. Saisissez la nouvelle.",
+        "data": {
+          "api_key": "Clé d'API"
+        }
+      },
+      "reconfigure": {
+        "title": "Modifier la connexion",
+        "data": {
+          "url": "Adresse",
+          "api_key": "Clé d'API (laisser vide pour la conserver)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de joindre la cave à cette adresse.",
+      "invalid_auth": "Clé d'API invalide."
+    },
+    "abort": {
+      "already_configured": "Cette cave est déjà configurée.",
+      "reauth_successful": "Clé d'API mise à jour.",
+      "reconfigure_successful": "Connexion mise à jour."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "bouteilles": {
+        "name": "Bouteilles"
+      },
+      "references": {
+        "name": "Références"
+      },
+      "valeur": {
+        "name": "Valeur de la cave"
+      },
+      "a_boire": {
+        "name": "Prêtes à boire"
+      },
+      "a_boire_vite": {
+        "name": "À boire vite"
+      },
+      "bues_annee": {
+        "name": "Bues cette année"
+      },
+      "dernier_mouvement": {
+        "name": "Dernier mouvement"
+      }
+    },
+    "todo": {
+      "envies": {
+        "name": "Envies"
+      }
+    }
+  },
+  "exceptions": {
+    "pas_de_cave": {
+      "message": "Aucune cave à vin n'est configurée ou disponible."
+    }
+  },
+  "selector": {
+    "raison_sortie": {
+      "options": {
+        "bue": "Bue",
+        "offerte": "Offerte",
+        "cassee": "Cassée / bouchonnée",
+        "vendue": "Vendue",
+        "autre": "Autre"
+      }
+    },
+    "raison_entree": {
+      "options": {
+        "achat": "Achat",
+        "cadeau": "Cadeau",
+        "inventaire": "Inventaire",
+        "autre": "Autre"
+      }
+    },
+    "plat": {
+      "options": {
+        "viande_rouge": "Viande rouge / gibier",
+        "viande_blanche": "Volaille / viande blanche",
+        "poisson": "Poisson",
+        "fruits_de_mer": "Fruits de mer / crustacés",
+        "fromage": "Fromages",
+        "dessert": "Dessert",
+        "aperitif": "Apéritif",
+        "epice": "Cuisine épicée / exotique",
+        "barbecue": "Barbecue",
+        "vegetarien": "Végétarien"
+      }
+    },
+    "couleur": {
+      "options": {
+        "rouge": "Rouge",
+        "blanc": "Blanc",
+        "rose": "Rosé",
+        "effervescent": "Effervescent",
+        "liquoreux": "Liquoreux / moelleux",
+        "autre": "Autre"
+      }
+    }
+  },
+  "services": {
+    "sortir_bouteille": {
+      "name": "Sortir une bouteille",
+      "description": "Retire des bouteilles de la cave (dégustation, cadeau…) avec note et commentaire facultatifs.",
+      "fields": {
+        "vin_id": {
+          "name": "Identifiant du vin",
+          "description": "Numéro du vin (visible dans l'adresse de sa fiche, ou via l'action « Rechercher un vin »)."
+        },
+        "quantite": {
+          "name": "Quantité",
+          "description": "Nombre de bouteilles."
+        },
+        "raison": {
+          "name": "Raison",
+          "description": "Pourquoi la bouteille sort."
+        },
+        "note": {
+          "name": "Note",
+          "description": "Note de dégustation sur 5."
+        },
+        "commentaire": {
+          "name": "Commentaire",
+          "description": "Notes de dégustation."
+        },
+        "config_entry_id": {
+          "name": "Cave",
+          "description": "Cave à utiliser si vous en avez plusieurs."
+        }
+      }
+    },
+    "ajouter_bouteilles": {
+      "name": "Ajouter des bouteilles",
+      "description": "Ajoute des bouteilles d'un vin déjà connu (non rangées).",
+      "fields": {
+        "vin_id": {
+          "name": "Identifiant du vin",
+          "description": "Numéro du vin (visible dans l'adresse de sa fiche, ou via l'action « Rechercher un vin »)."
+        },
+        "quantite": {
+          "name": "Quantité",
+          "description": "Nombre de bouteilles."
+        },
+        "raison": {
+          "name": "Raison",
+          "description": "Origine des bouteilles."
+        },
+        "config_entry_id": {
+          "name": "Cave",
+          "description": "Cave à utiliser si vous en avez plusieurs."
+        }
+      }
+    },
+    "suggerer_vin": {
+      "name": "Suggérer un vin",
+      "description": "Propose les bouteilles à ouvrir selon le plat, en privilégiant celles à boire en premier.",
+      "fields": {
+        "plat": {
+          "name": "Plat",
+          "description": "Ce que vous mangez."
+        },
+        "couleur": {
+          "name": "Couleur",
+          "description": "Limiter à une couleur."
+        },
+        "nombre": {
+          "name": "Nombre",
+          "description": "Nombre de suggestions."
+        },
+        "config_entry_id": {
+          "name": "Cave",
+          "description": "Cave à utiliser si vous en avez plusieurs."
+        }
+      }
+    },
+    "rechercher_vin": {
+      "name": "Rechercher un vin",
+      "description": "Cherche des vins par nom, domaine, appellation, cépage ou millésime.",
+      "fields": {
+        "recherche": {
+          "name": "Recherche",
+          "description": "Mots à chercher."
+        },
+        "inclure_epuises": {
+          "name": "Inclure les épuisés",
+          "description": "Inclure les vins dont il ne reste plus de bouteille."
+        },
+        "config_entry_id": {
+          "name": "Cave",
+          "description": "Cave à utiliser si vous en avez plusieurs."
+        }
+      }
+    }
+  }
+}

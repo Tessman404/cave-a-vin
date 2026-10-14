@@ -1,0 +1,108 @@
+sortir_bouteille:
+  fields:
+    vin_id:
+      required: true
+      example: 12
+      selector:
+        number:
+          min: 1
+          max: 1000000
+          mode: box
+    quantite:
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box
+    raison:
+      default: bue
+      selector:
+        select:
+          translation_key: raison_sortie
+          options: [bue, offerte, cassee, vendue, autre]
+    note:
+      selector:
+        number:
+          min: 0
+          max: 5
+          step: 0.5
+    commentaire:
+      selector:
+        text:
+          multiline: true
+    config_entry_id:
+      advanced: true
+      selector:
+        config_entry:
+          integration: cave_a_vin
+
+ajouter_bouteilles:
+  fields:
+    vin_id:
+      required: true
+      example: 12
+      selector:
+        number:
+          min: 1
+          max: 1000000
+          mode: box
+    quantite:
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 500
+          mode: box
+    raison:
+      default: achat
+      selector:
+        select:
+          translation_key: raison_entree
+          options: [achat, cadeau, inventaire, autre]
+    config_entry_id:
+      advanced: true
+      selector:
+        config_entry:
+          integration: cave_a_vin
+
+suggerer_vin:
+  fields:
+    plat:
+      selector:
+        select:
+          translation_key: plat
+          options: [viande_rouge, viande_blanche, poisson, fruits_de_mer, fromage, dessert, aperitif, epice, barbecue, vegetarien]
+    couleur:
+      selector:
+        select:
+          translation_key: couleur
+          options: [rouge, blanc, rose, effervescent, liquoreux, autre]
+    nombre:
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 20
+    config_entry_id:
+      advanced: true
+      selector:
+        config_entry:
+          integration: cave_a_vin
+
+rechercher_vin:
+  fields:
+    recherche:
+      required: true
+      example: Lagrange 2016
+      selector:
+        text:
+    inclure_epuises:
+      default: false
+      selector:
+        boolean:
+    config_entry_id:
+      advanced: true
+      selector:
+        config_entry:
+          integration: cave_a_vin

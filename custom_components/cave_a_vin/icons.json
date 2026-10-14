@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "sensor": {
+      "bouteilles": { "default": "mdi:bottle-wine" },
+      "references": { "default": "mdi:format-list-bulleted" },
+      "valeur": { "default": "mdi:cash" },
+      "a_boire": { "default": "mdi:glass-wine" },
+      "a_boire_vite": { "default": "mdi:alert-circle-outline" },
+      "bues_annee": { "default": "mdi:glass-cocktail" },
+      "dernier_mouvement": { "default": "mdi:swap-vertical" }
+    },
+    "todo": {
+      "envies": { "default": "mdi:cart-heart" }
+    }
+  },
+  "services": {
+    "sortir_bouteille": { "service": "mdi:bottle-wine-outline" },
+    "ajouter_bouteilles": { "service": "mdi:basket-plus" },
+    "suggerer_vin": { "service": "mdi:silverware-fork-knife" },
+    "rechercher_vin": { "service": "mdi:magnify" }
+  }
+}

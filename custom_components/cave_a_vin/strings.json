@@ -1,0 +1,213 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add your wine cellar",
+        "description": "Address of the Cave à vin app. With the add-on, use http://<add-on hostname>:8099 (add-on Info tab).",
+        "data": {
+          "url": "Address",
+          "api_key": "API key (if set)"
+        }
+      },
+      "hassio_confirm": {
+        "title": "Wine cellar found",
+        "description": "The Cave à vin add-on was found. Add it to Home Assistant?"
+      },
+      "reauth_confirm": {
+        "title": "API key",
+        "description": "The cellar API key changed. Enter the new one.",
+        "data": {
+          "api_key": "API key"
+        }
+      },
+      "reconfigure": {
+        "title": "Change connection",
+        "data": {
+          "url": "Address",
+          "api_key": "API key (leave empty to keep it)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach the cellar at this address.",
+      "invalid_auth": "Invalid API key."
+    },
+    "abort": {
+      "already_configured": "This cellar is already configured.",
+      "reauth_successful": "API key updated.",
+      "reconfigure_successful": "Connection updated."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "bouteilles": {
+        "name": "Bottles"
+      },
+      "references": {
+        "name": "Wines"
+      },
+      "valeur": {
+        "name": "Cellar value"
+      },
+      "a_boire": {
+        "name": "Ready to drink"
+      },
+      "a_boire_vite": {
+        "name": "Drink soon"
+      },
+      "bues_annee": {
+        "name": "Drunk this year"
+      },
+      "dernier_mouvement": {
+        "name": "Last movement"
+      }
+    },
+    "todo": {
+      "envies": {
+        "name": "Wishlist"
+      }
+    }
+  },
+  "exceptions": {
+    "pas_de_cave": {
+      "message": "No wine cellar is configured or available."
+    }
+  },
+  "selector": {
+    "raison_sortie": {
+      "options": {
+        "bue": "Drunk",
+        "offerte": "Given away",
+        "cassee": "Broken / corked",
+        "vendue": "Sold",
+        "autre": "Other"
+      }
+    },
+    "raison_entree": {
+      "options": {
+        "achat": "Purchase",
+        "cadeau": "Gift",
+        "inventaire": "Inventory",
+        "autre": "Other"
+      }
+    },
+    "plat": {
+      "options": {
+        "viande_rouge": "Red meat / game",
+        "viande_blanche": "Poultry / white meat",
+        "poisson": "Fish",
+        "fruits_de_mer": "Seafood",
+        "fromage": "Cheese",
+        "dessert": "Dessert",
+        "aperitif": "Aperitif",
+        "epice": "Spicy food",
+        "barbecue": "Barbecue",
+        "vegetarien": "Vegetarian"
+      }
+    },
+    "couleur": {
+      "options": {
+        "rouge": "Red",
+        "blanc": "White",
+        "rose": "Rosé",
+        "effervescent": "Sparkling",
+        "liquoreux": "Sweet",
+        "autre": "Other"
+      }
+    }
+  },
+  "services": {
+    "sortir_bouteille": {
+      "name": "Take out a bottle",
+      "description": "Removes bottles from the cellar, with optional rating and comment.",
+      "fields": {
+        "vin_id": {
+          "name": "Wine ID",
+          "description": "Wine number (shown in its page address, or found with the “Search wine” action)."
+        },
+        "quantite": {
+          "name": "Quantity",
+          "description": "Number of bottles."
+        },
+        "raison": {
+          "name": "Reason",
+          "description": "Why the bottle leaves."
+        },
+        "note": {
+          "name": "Rating",
+          "description": "Tasting rating out of 5."
+        },
+        "commentaire": {
+          "name": "Comment",
+          "description": "Tasting notes."
+        },
+        "config_entry_id": {
+          "name": "Cellar",
+          "description": "Cellar to use if you have several."
+        }
+      }
+    },
+    "ajouter_bouteilles": {
+      "name": "Add bottles",
+      "description": "Adds bottles of a known wine (unplaced).",
+      "fields": {
+        "vin_id": {
+          "name": "Wine ID",
+          "description": "Wine number (shown in its page address, or found with the “Search wine” action)."
+        },
+        "quantite": {
+          "name": "Quantity",
+          "description": "Number of bottles."
+        },
+        "raison": {
+          "name": "Reason",
+          "description": "Where the bottles come from."
+        },
+        "config_entry_id": {
+          "name": "Cellar",
+          "description": "Cellar to use if you have several."
+        }
+      }
+    },
+    "suggerer_vin": {
+      "name": "Suggest a wine",
+      "description": "Suggests bottles to open for a dish, favouring those to drink first.",
+      "fields": {
+        "plat": {
+          "name": "Dish",
+          "description": "What you are eating."
+        },
+        "couleur": {
+          "name": "Colour",
+          "description": "Limit to one colour."
+        },
+        "nombre": {
+          "name": "Count",
+          "description": "Number of suggestions."
+        },
+        "config_entry_id": {
+          "name": "Cellar",
+          "description": "Cellar to use if you have several."
+        }
+      }
+    },
+    "rechercher_vin": {
+      "name": "Search wine",
+      "description": "Searches wines by name, estate, appellation, grape or vintage.",
+      "fields": {
+        "recherche": {
+          "name": "Query",
+          "description": "Words to search for."
+        },
+        "inclure_epuises": {
+          "name": "Include sold out",
+          "description": "Include wines with no bottle left."
+        },
+        "config_entry_id": {
+          "name": "Cellar",
+          "description": "Cellar to use if you have several."
+        }
+      }
+    }
+  }
+}

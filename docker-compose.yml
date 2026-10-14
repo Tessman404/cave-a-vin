@@ -1,0 +1,15 @@
+# Installation autonome (sans module complémentaire Home Assistant) : docker compose up -d
+services:
+  cave-a-vin:
+    build: ./cave_a_vin
+    container_name: cave-a-vin
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    volumes:
+      - ./donnees:/data
+    environment:
+      TZ: Europe/Paris
+      # CAVE_API_KEY: "choisissez-une-cle"          # protège l'API (recommandé si la cave est exposée)
+      # HA_URL: "http://homeassistant.local:8123"   # pour lire les capteurs de la cave
+      # HA_TOKEN: "jeton-longue-duree"              # (aussi réglable depuis la page Réglages)

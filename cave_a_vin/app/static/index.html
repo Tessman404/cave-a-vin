@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6b1e2e">
+  <title>Cave à vin</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <a class="logo" href="#/"><img src="icon.svg" alt=""> <span>Cave à vin</span></a>
+    <nav id="menu">
+      <a href="#/" data-page="accueil">Tableau de bord</a>
+      <a href="#/vins" data-page="vins">Mes vins</a>
+      <a href="#/caves" data-page="caves">Plan de cave</a>
+      <a href="#/ce-soir" data-page="ce-soir">Ce soir ?</a>
+      <a href="#/envies" data-page="envies">Envies</a>
+      <a href="#/historique" data-page="historique">Historique</a>
+      <a href="#/reglages" data-page="reglages">Réglages</a>
+    </nav>
+    <a class="bouton primaire ajouter" href="#/vins/nouveau">+ Ajouter</a>
+  </header>
+  <main id="page" aria-live="polite"></main>
+  <div id="toast" role="status"></div>
+  <dialog id="dialogue"></dialog>
+  <script src="app.js"></script>
+</body>
+</html>

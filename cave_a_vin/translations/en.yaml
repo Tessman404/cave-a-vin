@@ -1,0 +1,11 @@
+configuration:
+  api_key:
+    name: API key (optional)
+    description: >-
+      Protects direct access to the cellar (port 8099 and the integration). Access through the
+      Home Assistant panel is not affected. If set, enter it in the integration too.
+  log_level:
+    name: Log level
+    description: How much detail to write to the add-on log.
+network:
+  8099/tcp: Direct access from the local network (optional)

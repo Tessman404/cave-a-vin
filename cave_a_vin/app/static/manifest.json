@@ -1,0 +1,10 @@
+{
+  "name": "Cave à vin",
+  "short_name": "Cave",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f3ee",
+  "theme_color": "#6b1e2e",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
