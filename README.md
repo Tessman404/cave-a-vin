@@ -42,15 +42,19 @@ Ce qu'il fait :
 
 Cette méthode demande **Home Assistant OS** ou **Supervised** (ceux qui ont le menu *Paramètres → Modules complémentaires*). Sinon, voir la [section 6](#6-installation-sans-home-assistant-os-docker).
 
-### Méthode A : depuis un dépôt GitHub dédié
+### Méthode A : depuis la boutique (recommandé)
 
-Si ce dossier `cave-a-vin` est publié comme dépôt GitHub à part entière (par exemple `https://github.com/Tessman404/cave-a-vin`) :
+[![Ajouter le dépôt à Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FTessman404%2Fcave-a-vin)
+
+Cliquez sur le bouton ci-dessus, ou à la main :
 
 1. *Paramètres → Modules complémentaires → Boutique des modules complémentaires*.
-2. Menu **⋮** en haut à droite → **Dépôts** → collez l'adresse du dépôt → **Ajouter**.
-3. Cherchez **Cave à vin** dans la boutique → **Installer**.
+2. Menu **⋮** en haut à droite → **Dépôts** → collez `https://github.com/Tessman404/cave-a-vin` → **Ajouter**.
+3. Cherchez **Cave à vin** dans la boutique → **Installer** (la construction prend une à deux minutes sur un Raspberry Pi).
 
-### Méthode B : en module local (fonctionne tout de suite)
+Les nouvelles versions apparaîtront ensuite comme des mises à jour classiques.
+
+### Méthode B : en module local (sans accès à GitHub)
 
 1. Installez le module **Samba share** ou **Advanced SSH & Web Terminal** pour accéder aux fichiers de Home Assistant.
 2. Copiez le dossier **`cave_a_vin`** (celui qui contient `config.yaml`) dans le dossier **`addons`** de Home Assistant. Vous devez obtenir `addons/cave_a_vin/config.yaml`.
@@ -79,7 +83,11 @@ Le module complémentaire donne l'interface ; l'**intégration** donne les capte
 
 ### Installation
 
-- **Avec HACS** (si la cave est dans son propre dépôt GitHub) : *HACS → ⋮ → Dépôts personnalisés* → adresse du dépôt, catégorie **Intégration** → installez **Cave à vin**.
+- **Avec HACS** (recommandé, pour recevoir les mises à jour) :
+
+  [![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Tessman404&repository=cave-a-vin&category=integration)
+
+  ou à la main : *HACS → ⋮ → Dépôts personnalisés* → `https://github.com/Tessman404/cave-a-vin`, catégorie **Intégration** → installez **Cave à vin**.
 - **À la main** : copiez le dossier **`custom_components/cave_a_vin`** dans le dossier `config/custom_components/` de Home Assistant (créez `custom_components` s'il n'existe pas).
 
 Puis **redémarrez Home Assistant**.
@@ -237,6 +245,7 @@ cards:
 Pour Home Assistant « Container », un NAS ou un serveur :
 
 ```bash
+git clone https://github.com/Tessman404/cave-a-vin.git
 cd cave-a-vin
 docker compose up -d
 ```
