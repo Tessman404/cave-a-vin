@@ -140,6 +140,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 80px; }
 .statut.trop_jeune { color: var(--info); }
 .statut.a_boire { color: var(--ok); }
 .statut.apogee { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.statut.declin { color: var(--attention); }
 .statut.urgent { color: var(--attention); background: color-mix(in srgb, var(--attention) 12%, transparent); }
 .statut.depasse { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
 .statut.inconnu { color: var(--texte-3); }
@@ -222,6 +223,8 @@ input[type=checkbox] { width: 18px; min-height: 18px; margin: 0; accent-color: v
 .frise { position: relative; height: 34px; margin: 26px 0 6px; }
 .frise .piste { position: absolute; top: 12px; left: 0; right: 0; height: 10px; border-radius: 5px; background: var(--surface-2); }
 .frise .zone { position: absolute; top: 12px; height: 10px; border-radius: 5px; background: color-mix(in srgb, var(--ok) 55%, transparent); }
+.frise .zone.plateau { background: var(--ok); }
+.origine-garde { margin: 6px 0 0; color: var(--texte-2); }
 .frise .repere { position: absolute; top: 4px; width: 2px; height: 26px; background: var(--texte); }
 .frise .repere span { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); font-size: .75rem; white-space: nowrap; font-weight: 600; }
 .frise .etoile { position: absolute; top: 7px; transform: translateX(-50%); color: var(--ok); font-size: .95rem; line-height: 1; text-shadow: 0 0 3px var(--surface); }

@@ -100,7 +100,10 @@ class Database:
     def _migrer(self):
         """Ajoute les colonnes apparues après la première version."""
         colonnes = {r[1] for r in self.conn.execute("PRAGMA table_info(vins)")}
-        for nom, definition in (("code_barre", "TEXT NOT NULL DEFAULT ''"), ("photo_originale", "TEXT")):
+        for nom, definition in (("code_barre", "TEXT NOT NULL DEFAULT ''"), ("photo_originale", "TEXT"),
+                                ("garde_source", "TEXT NOT NULL DEFAULT ''"), ("garde_ia_debut", "INTEGER"),
+                                ("garde_ia_apogee", "INTEGER"), ("garde_ia_fin", "INTEGER"), ("garde_ia_date", "TEXT"),
+                                ("garde_ia_note", "TEXT NOT NULL DEFAULT ''")):
             if nom not in colonnes:
                 self.conn.execute(f"ALTER TABLE vins ADD COLUMN {nom} {definition}")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_vins_code_barre ON vins(code_barre)")

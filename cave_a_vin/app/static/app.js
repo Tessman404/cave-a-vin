@@ -10,7 +10,7 @@ const dateFr = (d) => d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLoca
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 const pluriel = (n, mot, motPluriel) => `${nombre(n)} ${n > 1 ? (motPluriel || mot + "s") : mot}`;
 const COULEURS_CSS = ["rouge", "blanc", "rose", "effervescent", "liquoreux", "autre"];
-const ICONES_STATUT = { trop_jeune: "⏳", a_boire: "✓", apogee: "★", urgent: "⚠", depasse: "✕", inconnu: "?" };
+const ICONES_STATUT = { trop_jeune: "⏳", a_boire: "✓", apogee: "★", declin: "↘", urgent: "⚠", depasse: "✕", inconnu: "?" };
 
 let REF = null;          // référentiel (couleurs, statuts, plats, autocomplétion…)
 let CAPACITES = null;    // détourage, fonds, IA disponibles
@@ -236,7 +236,7 @@ async function pageAccueil(main) {
         ${s.urgents.length > 8 ? `<a href="#/vins" data-filtre-statut="urgent,depasse">Voir les ${s.urgents.length}</a>` : ""}</div>
       <div class="carte"><h2>Prêts à boire</h2>
         ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}
-        ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
+        ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="declin,apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
       <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true })}</div>
       <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles))}</div>
       <div class="carte"><h2>Par région</h2>${barres(s.par_region)}</div>
@@ -255,7 +255,7 @@ async function pageAccueil(main) {
 
 async function pageVins(main) {
   const caves = await api("GET", "caves");
-  const statuts = { ...REF.statuts, "urgent,depasse": "⚠ À boire vite ou dépassés", "apogee,a_boire": "✓ Prêts à boire" };
+  const statuts = { ...REF.statuts, "urgent,depasse": "⚠ À boire vite ou dépassés", "declin,apogee,a_boire": "✓ Prêts à boire" };
   main.innerHTML = `
     <div class="entete"><h1>Mes vins</h1><a class="bouton primaire" href="#/ajouter">+ Ajouter un vin</a></div>
     <div class="filtres">
@@ -298,10 +298,30 @@ function frise(v, annee) {
   const pos = (a) => ((a - min) / (max - min) * 100).toFixed(1) + "%";
   return `<div class="frise" aria-label="Fenêtre de dégustation de ${debut} à ${fin}">
     <div class="piste"></div><div class="zone" style="left:${pos(debut)};width:calc(${pos(fin + 1)} - ${pos(debut)})"></div>
+    ${v.garde_apogee ? (() => { const fp = v.garde_apogee + Math.max(1, Math.round(((fin) - v.garde_apogee) * 0.4)) - 1;
+      return `<div class="zone plateau" style="left:${pos(v.garde_apogee)};width:calc(${pos(fp + 1)} - ${pos(v.garde_apogee)})" title="Apogée : ${v.garde_apogee}${fp > v.garde_apogee ? " à " + fp : ""}"></div>`; })() : ""}
     ${v.garde_apogee ? `<div class="etoile" style="left:${pos(v.garde_apogee + .5)}" title="Apogée ${v.garde_apogee}">★</div>` : ""}
     <div class="repere" style="left:${pos(annee + .5)}"><span>${annee}</span></div>
     <div class="borne" style="left:${pos(debut)}">${debut}</div><div class="borne" style="left:${pos(fin + 1)}">${fin}</div></div>
     <p class="muted petit-texte" style="margin:14px 0 0">À boire de ${debut} à ${fin}${v.garde_apogee ? ` · ★ apogée ${v.garde_apogee}` : ""}</p>`;
+}
+
+/** D'où vient la garde (IA, estimation, saisie) et ce que l'IA suggère si elle n'a pas pu l'appliquer. */
+function origineGarde(v) {
+  const dateIA = v.garde_ia_date ? dateFr(v.garde_ia_date.slice(0, 10)) : "";
+  let html = "";
+  if (v.garde_source === "ia") {
+    html = `🤖 Garde estimée par l'IA le ${dateIA}${v.garde_ia_note ? " : " + esc(v.garde_ia_note) : ""}`;
+  } else if (v.garde_source === "manuel") {
+    html = "✎ Garde saisie à la main : l'IA ne la modifie pas.";
+    const differe = v.garde_ia_fin && (v.garde_ia_debut !== v.garde_debut || v.garde_ia_fin !== v.garde_fin);
+    if (differe) html += ` L'IA suggère ${v.garde_ia_debut} → ${v.garde_ia_fin}${v.garde_ia_apogee ? ` (apogée ${v.garde_ia_apogee})` : ""}${v.garde_ia_note ? " : " + esc(v.garde_ia_note) : ""}`;
+  } else if (v.garde_source === "estimation") {
+    html = "✨ Garde estimée automatiquement (règle générale)" + (CAPACITES?.ia_texte?.possible ? " : l'IA l'affinera." : ".");
+  } else if (v.garde_debut || v.garde_fin) {
+    html = CAPACITES?.ia_texte?.possible ? "Garde importée : l'IA l'affinera lors de son prochain passage." : "";
+  }
+  return html ? `<p class="petit-texte origine-garde">${html}</p>` : "";
 }
 
 async function pageVin(main, id) {
@@ -336,10 +356,12 @@ async function pageVin(main, id) {
             </div>
           </div>
           ${frise(v, REF.annee)}
+          ${origineGarde(v)}
           <div class="actions" style="margin-top:14px">
             <button class="bouton primaire" id="sortir" ${v.stock ? "" : "disabled"}>🍷 Déguster / sortir</button>
             <button class="bouton" id="entrer">📥 Ajouter des bouteilles</button>
             <a class="bouton" href="#/vins/${v.id}/modifier">✎ Modifier</a>
+            ${CAPACITES.ia_texte?.possible ? `<button class="bouton" id="garde-ia">🤖 Demander la garde à l'IA</button>` : ""}
             <button class="bouton" id="favori">${v.favori ? "♥ Retirer des favoris" : "♡ Favori"}</button>
             <button class="bouton danger" id="supprimer">Supprimer</button>
           </div>
@@ -368,6 +390,17 @@ async function pageVin(main, id) {
   $("#sortir", main).onclick = () => dialogueSortie(v, null, recharger);
   $("#plus", main).onclick = () => dialogueEntree(v, recharger);
   $("#entrer", main).onclick = () => dialogueEntree(v, recharger);
+  const boutonIA = $("#garde-ia", main);
+  if (boutonIA) boutonIA.onclick = async () => {
+    if (v.garde_source === "manuel" && !(await confirmer("Remplacer la garde saisie à la main par l'estimation de l'IA ?", "Remplacer"))) return;
+    boutonIA.disabled = true;
+    boutonIA.textContent = "🤖 L'IA réfléchit…";
+    try {
+      const r = await api("POST", `vins/${v.id}/garde-ia`, {});
+      toast(`Garde estimée par l'IA : ${r.garde_debut} → ${r.garde_fin}`);
+      recharger();
+    } catch (err) { toast(err.message, true); boutonIA.disabled = false; boutonIA.textContent = "🤖 Demander la garde à l'IA"; }
+  };
   $("#favori", main).onclick = async () => { await api("PUT", `vins/${v.id}`, { favori: !v.favori }); recharger(); };
   $("#supprimer", main).onclick = async () => {
     if (await confirmer(`Supprimer définitivement « ${v.nom} » et ses ${v.stock} bouteille(s) ? L'historique des dégustations est conservé.`, "Supprimer")) {
@@ -454,7 +487,8 @@ async function pageFormulaire(main, id) {
         ${champ("garde_apogee", "Apogée", 'type="number" min="1800" max="2200"')}
         ${champ("garde_fin", "À boire avant (fin)", 'type="number" min="1800" max="2200"')}
         <div style="align-self:end"><button class="bouton" type="button" id="estimer">✨ Estimer</button></div>
-        <p class="muted petit-texte large" style="margin:0">L'estimation est indicative (couleur, appellation, prix, millésime) : renseignez le prix pour qu'elle soit plus juste, et ajustez-la selon le producteur ou les conseils de votre caviste.</p>
+        <input type="hidden" name="garde_source" value="${esc(v.garde_source ?? "")}">
+        <p class="muted petit-texte large" style="margin:0">✨ Estimer applique une règle générale (couleur, appellation, prix, millésime).${CAPACITES.ia_texte?.possible ? " L'IA de Home Assistant l'affinera ensuite, puis chaque mois." : ""} Une garde corrigée à la main n'est jamais modifiée par l'IA.</p>
       </fieldset>
       ${id ? "" : `<fieldset><legend>Bouteilles</legend>
         <label>Nombre de bouteilles<input type="number" name="quantite" min="0" max="500" value="1"></label>
@@ -479,11 +513,13 @@ async function pageFormulaire(main, id) {
     const g = await api("GET", "garde?" + qs);
     if (!g.garde_debut) return toast("Pas d'estimation pour cette couleur", true);
     form.garde_debut.value = g.garde_debut; form.garde_apogee.value = g.garde_apogee ?? ""; form.garde_fin.value = g.garde_fin;
+    form.garde_source.value = "estimation";
     toast(g.reference === "achat"
       ? `Estimé comme ${g.niveau_label}. Sans millésime, la garde est comptée à partir de l'achat (${g.annee_reference})`
       : `Estimé comme ${g.niveau_label}`, false, g.reference === "achat" ? 5000 : undefined);
   };
   $("#annuler", main).onclick = () => { ajout = null; };
+  ["garde_debut", "garde_apogee", "garde_fin"].forEach((c) => form[c].addEventListener("input", () => (form.garde_source.value = "manuel")));
   const boutonFond = $("#fond-ajout", main);
   if (boutonFond) boutonFond.onclick = () => dialogueFond(async (choix) => {
     if (choix) await api("POST", `brouillons/${brouillon.brouillon}/rendu`, { fond: choix });
@@ -924,7 +960,8 @@ async function pageHistorique(main) {
 }
 
 async function pageReglages(main) {
-  const [r, capteurs, entitesIA] = await Promise.all([api("GET", "reglages"), api("GET", "ha/capteurs").catch(() => []), api("GET", "ia/entites").catch(() => [])]);
+  const [r, capteurs, entitesIA, gardes] = await Promise.all([api("GET", "reglages"), api("GET", "ha/capteurs").catch(() => []),
+    api("GET", "ia/entites").catch(() => []), api("GET", "ia/gardes").catch(() => null)]);
   CAPACITES = await api("GET", "capacites");
   const choixCapteur = (nom, type) => {
     const liste = capteurs.filter((c) => c.type === type);
@@ -955,10 +992,13 @@ async function pageReglages(main) {
           <label>Humidité max (%)<input name="hum_max" type="number" value="${esc(r.hum_max)}"></label>
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form></div>
-      <div class="carte"><h2>📷 Photos & lecture d'étiquette</h2>
+      <div class="carte"><h2>🤖 IA, photos & étiquettes</h2>
         <form class="form" id="photos">
-          <label class="large">Lecture d'étiquette par l'IA de Home Assistant
+          <label class="large">IA de Home Assistant (lecture d'étiquette, garde)
             <select name="ia_active">${options({ 1: "Activée", 0: "Désactivée" }, r.ia_active)}</select></label>
+          <label class="large">Estimation de la garde par l'IA, chaque mois
+            <select name="ia_garde_auto">${options({ 1: "Activée", 0: "Désactivée" }, r.ia_garde_auto)}</select></label>
+          <div class="large petit-texte" id="etat-gardes"></div>
           <label class="large">IA à utiliser
             <select name="ia_entite"><option value="">IA par défaut de Home Assistant</option>${entitesIA.map((e) => `<option value="${esc(e.entity_id)}"${e.entity_id === r.ia_entite ? " selected" : ""}>${esc(e.nom)}</option>`).join("")}</select></label>
           <p class="large petit-texte" style="margin:0;color:${CAPACITES.ia.possible ? "var(--ok)" : "var(--texte-2)"}">${CAPACITES.ia.possible ? "✓ Lecture d'étiquette disponible" : "Indisponible : " + esc(CAPACITES.ia.raison)}</p>
@@ -1001,6 +1041,27 @@ async function pageReglages(main) {
       route();
     } catch (err) { toast(err.message, true); }
   };
+  const etatGardes = $("#etat-gardes", main);
+  const afficherGardes = (g) => {
+    if (!g) return;
+    const derniere = g.derniere ? `Dernier passage : ${dateFr(g.derniere.slice(0, 10))}.` : "Pas encore de passage.";
+    etatGardes.innerHTML = g.en_cours
+      ? `🤖 Estimation en cours : ${g.fait} / ${g.total} vins…`
+      : `${derniere}${g.erreurs?.length ? ` ${g.erreurs.length} erreur(s) : ${esc(g.erreurs.slice(0, 3).join(" ; "))}` : ""}
+         ${g.ia?.possible ? `<button class="bouton petit" type="button" id="lancer-gardes">Réestimer toute la cave maintenant</button>` : ""}`;
+    const bouton = $("#lancer-gardes", etatGardes);
+    if (bouton) bouton.onclick = async () => {
+      try { afficherGardes(await api("POST", "ia/gardes", {})); suivre(); } catch (err) { toast(err.message, true); }
+    };
+  };
+  const suivre = async () => {
+    const g = await api("GET", "ia/gardes").catch(() => null);
+    if (!document.body.contains(etatGardes)) return;
+    afficherGardes(g);
+    if (g?.en_cours) setTimeout(suivre, 2000);
+  };
+  afficherGardes(gardes);
+  if (gardes?.en_cours) setTimeout(suivre, 2000);
   $("#photos", main).onsubmit = async (e) => {
     e.preventDefault();
     try {

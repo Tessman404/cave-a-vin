@@ -50,7 +50,9 @@ def main():
     api_key = opts.get("api_key") or os.environ.get("CAVE_API_KEY") or ""
 
     db = Database(dossier / "cave.db")
-    serveur = creer_serveur(Application(db, dossier, api_key), port=port)
+    application = Application(db, dossier, api_key)
+    serveur = creer_serveur(application, port=port)
+    application.planificateur.demarrer()  # estimation mensuelle de la garde par l'IA
     logging.info("Cave à vin %s démarrée sur le port %s (données : %s)%s", __version__, port, dossier.resolve(),
                  " — clé d'API activée" if api_key else "")
     threading.Thread(target=annoncer_a_home_assistant, args=(port, api_key), daemon=True).start()
@@ -59,6 +61,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        application.planificateur.arreter()
         serveur.server_close()
         db.close()
 

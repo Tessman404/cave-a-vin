@@ -1,5 +1,17 @@
 # Journal des modifications
 
+## 1.3.0
+
+- **Garde estimée par l'IA de Home Assistant** : pour chaque vin en cave, l'IA estime la fenêtre de dégustation
+  (début, apogée, fin) en tenant compte du producteur, de l'appellation, de la qualité du millésime, du prix et du
+  format, avec une courte justification et un niveau de confiance. Premier passage au démarrage du module, puis
+  **chaque mois** ; les nouveaux vins sont estimés dès leur ajout. Bouton « 🤖 Demander la garde à l'IA » sur la fiche,
+  et « Réestimer toute la cave » dans les réglages.
+- Une garde **corrigée à la main n'est jamais modifiée** par l'IA : sa suggestion reste affichée sur la fiche.
+- **Statuts plus justes** : l'apogée est un plateau limité (environ 40 % du temps entre l'apogée et la fin de garde),
+  suivi d'un nouveau statut « Après l'apogée ». Avant, un vin restait « À l'apogée » jusqu'à la fin de sa garde.
+- « Apogée dépassée » devient « Garde dépassée ».
+
 ## 1.2.1
 
 - Garde des vins **sans millésime** : elle n'est plus « à boire dès maintenant » d'office. Elle est comptée à

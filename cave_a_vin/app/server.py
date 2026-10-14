@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, cave, ha, ia, photo, scan
+from . import __version__, cave, garde_ia, ha, ia, photo, scan
 from .cave import ErreurAPI
 from .db import maintenant
 
@@ -85,6 +85,8 @@ def _creer_vin(app, req):
         _enregistrer_photos(app, vin["id"], original, rendu)
         app.brouillons.supprimer(ident)
         vin = cave.lire_vin(app.db, vin["id"])
+    if vin["garde_source"] != "manuel":
+        app.planificateur.estimer_en_arriere_plan(vin["id"])
     return vin, 201
 
 
@@ -234,6 +236,7 @@ def _capacites(app, req):
         "fonds": [{"id": k, "label": v} for k, v in photo.FONDS.items()],
         "fond_defaut": reglages.get("fond_defaut") or "cave-voutee",
         "ia": ia.etat(reglages),
+        "ia_texte": ia.etat(reglages, image=False),
     }
 
 
@@ -278,6 +281,29 @@ def _image_brouillon(app, req, ident):
 @route("POST", r"api/brouillons/(\w+)/lire")
 def _lire_brouillon(app, req, ident):
     return {"champs": ia.lire_etiquette(app.reglages(), app.brouillons.original(ident).read_bytes())}
+
+
+@route("POST", r"api/vins/(\d+)/garde-ia")
+def _garde_ia(app, req, vin_id):
+    """Demande explicite : l'estimation de l'IA remplace la garde actuelle (sauf « appliquer »: false)."""
+    appliquer = "forcer" if req.json().get("appliquer", True) is not False else False
+    return garde_ia.estimer_vin(app.db, app.reglages(), int(vin_id), appliquer=appliquer)
+
+
+@route("GET", "api/ia/gardes")
+def _etat_gardes(app, req):
+    reglages = app.reglages()
+    return {**app.planificateur.etat, "auto": reglages.get("ia_garde_auto") == "1",
+            "derniere": reglages.get("ia_garde_derniere") or None, "ia": ia.etat(reglages, image=False)}
+
+
+@route("POST", "api/ia/gardes")
+def _lancer_gardes(app, req):
+    possible = ia.etat(app.reglages(), image=False)
+    if not possible["possible"]:
+        raise ErreurAPI(possible["raison"], 409)
+    app.planificateur.lancer()
+    return _etat_gardes(app, req), 202
 
 
 @route("GET", "api/ia/entites")
@@ -551,6 +577,12 @@ class Application:
         self.atelier = photo.Atelier(dossier_donnees, STATIC / "fonds",
                                      qualite=lambda: self.reglages().get("detourage_qualite") or "standard")
         self.brouillons = photo.Brouillons(Path(dossier_donnees) / "brouillons", self.atelier)
+        self.planificateur = garde_ia.Planificateur(self)
+
+    def ecrire_reglage(self, cle, valeur):
+        with self.db.transaction() as conn:
+            conn.execute("INSERT INTO reglages (cle, valeur) VALUES (?, ?) "
+                         "ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur", (cle, str(valeur)))
 
     def reglages(self):
         r = dict(ha.REGLAGES_DEFAUT)

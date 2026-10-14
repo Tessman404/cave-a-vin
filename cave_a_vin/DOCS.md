@@ -16,6 +16,8 @@ Bouton **+ Ajouter** : scannez le code-barres ; si le vin est inconnu, photograp
   avec une IA qui comprend les images : OpenAI, Google Gemini, Anthropic, Ollama avec un modèle de vision…).
   La photo est déposée un instant dans le dossier `media/cave_a_vin` de Home Assistant, puis supprimée.
   Choix de l'IA : **Réglages → Photos & lecture d'étiquette** dans la cave.
+- **Garde** : la même IA estime la fenêtre de dégustation de chaque vin, au démarrage puis chaque mois
+  (désactivable dans les réglages). Une garde corrigée à la main n'est jamais modifiée.
 - **Détourage** : fait par le module lui-même. Le modèle (45 Mo) est téléchargé au premier usage, puis conservé.
 - **Scan en direct** : demande une adresse `https://`. Sinon, l'application photographie le code-barres pour le lire.
 

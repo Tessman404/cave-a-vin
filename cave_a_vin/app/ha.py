@@ -19,6 +19,8 @@ REGLAGES_DEFAUT = {
     "ia_entite": "",
     "detourage_qualite": "standard",
     "fond_defaut": "cave-voutee",
+    "ia_garde_auto": "1",
+    "ia_garde_derniere": "",
 }
 
 _cache = {"cle": None, "quand": 0, "valeur": None}

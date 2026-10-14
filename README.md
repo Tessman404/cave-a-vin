@@ -15,7 +15,7 @@ Ce qu'il fait :
 - **ajout en un geste** : **scannez le code-barres** avec le téléphone ; si le vin est inconnu, **photographiez la bouteille** : l'**IA de Home Assistant lit l'étiquette** et remplit la fiche, et la bouteille est **détourée et posée sur un fond de cave** (cave voûtée, casier en bois, studio, pierre claire) ;
 - **inventaire complet** : cuvée, domaine, appellation, région, couleur, millésime, cépages, format, prix d'achat, valeur estimée, fournisseur, accords, notes, code-barres, photo ;
 - **plan de cave visuel** : décrivez vos casiers ou votre armoire à vin (rangées × colonnes), chaque bouteille a sa case ; un clic pour la sortir ou la déplacer. Plusieurs caves possibles, et rangement « en vrac » pour les cartons ;
-- **garde** : « à boire à partir de », « apogée », « à boire avant », avec **estimation automatique** selon la couleur, l'appellation, le prix et le millésime. Les vins à boire vite sont signalés partout ;
+- **garde** : « à boire à partir de », « apogée », « à boire avant », **estimée par l'IA de Home Assistant** (producteur, appellation, qualité du millésime, prix) et réévaluée chaque mois, ou par une règle générale sans IA. Une garde corrigée à la main est toujours respectée. Les vins à boire vite sont signalés partout ;
 - **dégustations** : chaque bouteille sortie peut recevoir une note sur 5 et un commentaire, conservés dans l'historique ;
 - **« Que boire ce soir ? »** : choisissez le plat, la cave propose les meilleures bouteilles, en privilégiant celles à boire en priorité ;
 - **statistiques** : bouteilles, valeur de la cave, répartition par couleur, région, millésime, garde et cave ;
@@ -165,6 +165,8 @@ Bouton **+ Ajouter**, puis :
    - l'**IA lit l'étiquette** : nom, domaine, appellation, millésime, couleur, cépages, degré ;
    - la bouteille est **détourée** et posée sur le **fond de cave** choisi dans les réglages ; **🎨 Changer de fond** pour essayer les autres. La photo d'origine est conservée : vous pourrez changer de fond plus tard depuis la fiche.
 3. Vérifiez la fiche pré-remplie, indiquez le nombre de bouteilles et la cave, **Ajouter à ma cave**. Le code-barres est enregistré : au prochain scan, le vin est retrouvé tout de suite.
+
+**Garde estimée par l'IA** : la même IA estime la fenêtre de dégustation de chaque vin en cave, au démarrage du module puis chaque mois, et chaque nouveau vin dès son ajout. La fiche indique l'origine de la garde (« 🤖 estimée par l'IA », avec sa justification et sa confiance, ou « ✎ saisie à la main »). Si vous corrigez une garde, l'IA ne la touche plus et affiche seulement sa suggestion ; le bouton **🤖 Demander la garde à l'IA** la remplace à votre demande. Statuts : *À garder* → *Prêt à boire* → *À l'apogée* (plateau) → *Après l'apogée* → *À boire vite* (dernière année) → *Garde dépassée*.
 
 **Ce qu'il faut pour la lecture d'étiquette** : Home Assistant 2025.8 ou plus récent, avec une intégration d'IA qui fournit une entité **« AI Task »** et qui comprend les images : OpenAI, Google Gemini, Anthropic (Claude), ou Ollama avec un modèle de vision (par exemple `qwen2.5vl`). Dans la cave, **Réglages → Photos & lecture d'étiquette** indique si tout est prêt et permet de choisir l'IA. La photo est alors envoyée à cette IA (et donc à son fournisseur si elle est en ligne).
 
@@ -319,7 +321,8 @@ cave-a-vin/
 │   │   ├── ha.py               lecture des capteurs Home Assistant
 │   │   ├── scan.py             recherche par code-barres (Open Food Facts)
 │   │   ├── photo.py            détourage (onnxruntime) et mise en scène sur fond
-│   │   ├── ia.py               lecture d'étiquette par l'IA de Home Assistant (ai_task)
+│   │   ├── ia.py               lecture d'étiquette et garde par l'IA de Home Assistant (ai_task)
+│   │   ├── garde_ia.py         estimation de la garde : à l'ajout, à la demande et chaque mois
 │   │   └── static/             interface web (HTML/CSS/JS, sans étape de compilation ; vendor/ : lecteur ZXing)
 │   └── tests/                  tests de l'API
 ├── custom_components/cave_a_vin/   intégration Home Assistant
@@ -340,6 +343,7 @@ Principales routes (toutes en JSON, préfixe `api/`) :
 | `GET scan/{code}` | Vin de la cave ou d'Open Food Facts correspondant au code-barres |
 | `POST brouillons` · `POST brouillons/{id}/rendu` · `POST brouillons/{id}/lire` | Photo en cours d'ajout : détourage sur fond, lecture par l'IA |
 | `GET capacites` | Détourage, fonds et IA disponibles |
+| `POST vins/{id}/garde-ia` · `GET/POST ia/gardes` | Garde d'un vin par l'IA · état / lancement du passage sur toute la cave |
 | `GET/POST caves` · `GET/PUT/DELETE caves/{id}` | Caves et plan |
 | `PUT bouteilles/{id}` | Déplacer une bouteille |
 | `GET suggestion?plat=&couleur=` | Accords |

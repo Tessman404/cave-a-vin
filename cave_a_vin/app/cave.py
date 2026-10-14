@@ -20,10 +20,15 @@ STATUTS = {
     "trop_jeune": "À garder",
     "a_boire": "Prêt à boire",
     "apogee": "À l'apogée",
+    "declin": "Après l'apogée",
     "urgent": "À boire vite",
-    "depasse": "Apogée dépassée",
+    "depasse": "Garde dépassée",
     "inconnu": "Garde non renseignée",
 }
+# Origine de la fenêtre de garde : l'IA ne remplace jamais une garde saisie à la main.
+SOURCES_GARDE = {"": "Non estimée", "estimation": "Estimation automatique", "ia": "Estimée par l'IA",
+                 "manuel": "Saisie à la main"}
+CHAMPS_GARDE = ("garde_debut", "garde_apogee", "garde_fin")
 
 RAISONS_ENTREE = {"achat": "Achat", "cadeau": "Cadeau", "inventaire": "Inventaire", "autre": "Autre"}
 RAISONS_SORTIE = {"bue": "Bue", "offerte": "Offerte", "cassee": "Cassée / bouchonnée", "vendue": "Vendue", "autre": "Autre"}
@@ -108,7 +113,7 @@ PLATS = {
     "vegetarien": {"label": "Végétarien", "couleurs": {"blanc": 2, "rose": 2, "rouge": 1},
                    "mots": ["loire", "gamay", "pinot"]},
 }
-BONUS_MATURITE = {"urgent": 8, "depasse": 5, "apogee": 6, "a_boire": 4, "inconnu": 1}
+BONUS_MATURITE = {"urgent": 8, "declin": 7, "apogee": 6, "depasse": 5, "a_boire": 4, "inconnu": 1}
 
 
 class ErreurAPI(Exception):
@@ -170,6 +175,14 @@ def nettoyer_vin(data, partiel=False):
     return propre
 
 
+def plateau_apogee(apogee, fin):
+    """Années où le vin est à son sommet : de l'apogée jusqu'à environ 40 % du temps restant avant la fin."""
+    if not apogee:
+        return None
+    duree = max(1, round(((fin or apogee) - apogee) * 0.4))
+    return apogee, apogee + duree - 1
+
+
 def statut_garde(vin, annee=None):
     annee = annee or annee_courante()
     debut, apogee, fin = vin.get("garde_debut"), vin.get("garde_apogee"), vin.get("garde_fin")
@@ -181,7 +194,10 @@ def statut_garde(vin, annee=None):
         return "depasse"
     if fin and annee == fin:
         return "urgent"
-    if apogee and annee >= apogee:
+    plateau = plateau_apogee(apogee, fin)
+    if plateau and annee > plateau[1]:
+        return "declin"
+    if plateau and annee >= plateau[0]:
         return "apogee"
     return "a_boire"
 
@@ -294,8 +310,14 @@ def vin_par_code_barre(db, code):
     return _enrichir(vin) if vin else None
 
 
+def _source_garde(data, defaut):
+    source = data.get("garde_source")
+    return source if source in SOURCES_GARDE else defaut
+
+
 def creer_vin(db, data):
     vin = nettoyer_vin(data)
+    vin["garde_source"] = _source_garde(data, "manuel" if any(vin.get(c) for c in CHAMPS_GARDE) else "")
     quantite = _entier(data.get("quantite"), "quantite") or 0
     if quantite < 0:
         raise ErreurAPI("La quantité doit être positive")
@@ -314,8 +336,12 @@ def creer_vin(db, data):
 
 
 def modifier_vin(db, vin_id, data):
-    lire_vin(db, vin_id, details=False)
+    actuel = lire_vin(db, vin_id, details=False)
     vin = nettoyer_vin(data, partiel=True)
+    if "garde_source" in data and data["garde_source"] in SOURCES_GARDE:
+        vin["garde_source"] = data["garde_source"]
+    elif any(c in vin and vin[c] != actuel[c] for c in CHAMPS_GARDE):
+        vin["garde_source"] = "manuel"  # fenêtre corrigée à la main : l'IA n'y touchera plus
     if vin:
         vin["updated_at"] = maintenant()
         with db.transaction() as conn:
@@ -618,7 +644,7 @@ def statistiques(db):
 
     urgents = sorted([v for v in vins if v["statut"] in ("urgent", "depasse")],
                      key=lambda v: v["garde_fin"] or 0)
-    a_boire = sorted([v for v in vins if v["statut"] in ("apogee", "a_boire")],
+    a_boire = sorted([v for v in vins if v["statut"] in ("declin", "apogee", "a_boire")],
                      key=lambda v: (v["garde_fin"] or 9999, v["nom"].lower()))
     debut_mois = date.today().replace(day=1).isoformat()
     debut_annee = date(annee, 1, 1).isoformat()
@@ -702,7 +728,7 @@ def importer_csv(db, texte):
         if not ligne.get("nom"):
             continue
         try:
-            creer_vin(db, {**ligne, "raison": "inventaire"})
+            creer_vin(db, {**ligne, "raison": "inventaire", "garde_source": ""})  # l'IA pourra affiner
             crees += 1
         except ErreurAPI as e:
             erreurs.append(f"Ligne {i} : {e.message}")
