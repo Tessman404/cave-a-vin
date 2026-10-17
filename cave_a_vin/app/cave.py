@@ -331,7 +331,8 @@ def creer_vin(db, data):
         vin_id = cur.lastrowid
         if quantite:
             _entree(conn, vin_id, quantite, cave_id, data.get("raison") or "achat",
-                    data.get("date") or now[:10], data.get("commentaire") or "")
+                    data.get("date") or now[:10], data.get("commentaire") or "",
+                    _entier(data.get("rangee"), "rangee"), _entier(data.get("colonne"), "colonne"))
     return lire_vin(db, vin_id)
 
 
@@ -382,10 +383,11 @@ def _entree(conn, vin_id, quantite, cave_id, raison, jour, commentaire="", range
     if not vin:
         raise ErreurAPI("Vin introuvable", 404)
     if cave_id and rangee and colonne:
-        if quantite != 1:
-            raise ErreurAPI("Un emplacement précis ne peut recevoir qu'une bouteille")
+        # la première bouteille va dans la case choisie, les suivantes dans les premières cases libres
         _verifier_case(conn, cave_id, rangee, colonne)
         cases = [(rangee, colonne)]
+        if quantite > 1:
+            cases += [c for c in _cases_libres(conn, cave_id, quantite) if c != (rangee, colonne)][:quantite - 1]
     elif cave_id:
         cases = _cases_libres(conn, cave_id, quantite)
     else:

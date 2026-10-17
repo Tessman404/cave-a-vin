@@ -1,5 +1,17 @@
 # Journal des modifications
 
+## 1.3.4
+
+- **Scan du code-barres beaucoup plus fiable** :
+  - codes **verticaux** reconnus (c'est le cas de la plupart des contre-étiquettes sur une bouteille debout) ;
+  - photo du code lue à plusieurs tailles, et en recadrant le centre quand le code est petit ;
+  - caméra en direct en haute définition avec mise au point continue ;
+  - si la caméra en direct est bloquée (fréquent dans le panneau Home Assistant), la fenêtre de scan propose
+    directement de **photographier le code-barres** ou de **taper ses chiffres**, avec la raison du blocage.
+- **Plan de cave** : dans une case vide, « ➕ Nouveau vin dans cette case » ouvre l'ajout (scan, photo, IA ou saisie)
+  et range la bouteille dans cette case. Pour un vin déjà connu trouvé par le scan, « Ajouter des bouteilles » la range
+  aussi dans la case. Plusieurs bouteilles : la première dans la case choisie, les suivantes dans les cases libres.
+
 ## 1.3.3
 
 - **Photo détourée : gros plan sur l'étiquette** par défaut. Le corps de la bouteille remplit l'image (le col sort du

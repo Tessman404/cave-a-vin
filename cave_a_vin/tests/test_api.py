@@ -91,6 +91,14 @@ class TestCave(BaseTest):
         self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 2, "cave_id": c["id"]}, attendu=409)
         self.appel("POST", f"api/vins/{vin['id']}/entree",
                    {"quantite": 1, "cave_id": c["id"], "rangee": 1, "colonne": 1}, attendu=409)
+        # un vin créé depuis une case du plan y est rangé ; les bouteilles suivantes vont dans les cases libres
+        neuf = self.creer_vin(nom="Depuis le plan", quantite=1, cave_id=c["id"], rangee=2, colonne=2)
+        self.assertEqual([(b["rangee"], b["colonne"]) for b in neuf["bouteilles"]], [(2, 2)])
+        self.appel("DELETE", f"api/vins/{neuf['id']}", attendu=200)
+        grand = self.appel("POST", "api/caves", {"nom": "Grande", "rangees": 3, "colonnes": 3}, attendu=201)
+        trois = self.creer_vin(nom="Trois", quantite=3, cave_id=grand["id"], rangee=3, colonne=3)
+        self.assertEqual(sorted((b["rangee"], b["colonne"]) for b in trois["bouteilles"]), [(1, 1), (1, 2), (3, 3)])
+        self.appel("DELETE", f"api/caves/{grand['id']}", attendu=200)
         b = vin["bouteilles"][0]
         self.appel("PUT", f"api/bouteilles/{b['id']}", {"cave_id": c["id"], "rangee": 2, "colonne": 2}, attendu=200)
         self.appel("PUT", f"api/caves/{c['id']}", {"nom": "Cave", "rangees": 1, "colonnes": 2}, attendu=409)

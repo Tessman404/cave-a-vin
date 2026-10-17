@@ -15,6 +15,7 @@ const ICONES_STATUT = { trop_jeune: "⏳", a_boire: "✓", apogee: "★", declin
 let REF = null;          // référentiel (couleurs, statuts, plats, autocomplétion…)
 let CAPACITES = null;    // détourage, fonds, IA disponibles
 let ajout = null;        // ajout en cours : { champs, code_barre, brouillon, fond, source }
+let rangement = null;    // case du plan où ranger le vin en cours d'ajout : { cave_id, cave_nom, rangee, colonne }
 let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", stock: "1", tri: "nom" };
 
 /* ------------------------------------------------------------------ API */
@@ -175,20 +176,23 @@ async function dialogueSortie(vin, bouteilleId, apres) {
 
 async function dialogueEntree(vin, apres) {
   const caves = await api("GET", "caves");
+  const place = rangement;
   dialogue(`<h2>Ajouter des bouteilles</h2><p class="muted">${titreVin(vin)}</p>
     <div class="form">
       <label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="500" value="1" required></label>
       <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
-      <label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.map((c) =>
-        `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
+      ${place ? `<p class="large" style="margin:0">📍 Rangée ${place.rangee}, colonne ${place.colonne} de <b>${esc(place.cave_nom)}</b> (les bouteilles suivantes dans les cases libres)</p>`
+        : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.map((c) =>
+        `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>`}
       <label>Date<input type="date" name="date" value="${aujourdhui()}"></label>
       <label class="large">Commentaire<input name="commentaire" placeholder="Caviste, salon, prix payé…"></label>
     </div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Ajouter</button></div>`,
   {
     onSubmit: async (data) => {
+      if (place) Object.assign(data, { cave_id: place.cave_id, rangee: place.rangee, colonne: place.colonne });
       await api("POST", `vins/${vin.id}/entree`, data);
-      toast("Bouteilles ajoutées");
+      toast(place ? "Bouteille rangée dans le plan" : "Bouteilles ajoutées");
       apres && apres();
     },
   });
@@ -498,7 +502,10 @@ async function pageFormulaire(main, id) {
       </fieldset>
       ${id ? "" : `<fieldset><legend>Bouteilles</legend>
         <label>Nombre de bouteilles<input type="number" name="quantite" min="0" max="500" value="1"></label>
-        <label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.map((c) => `<option value="${c.id}">${esc(c.nom)}</option>`).join("")}</select></label>
+        ${rangement ? `<p style="margin:0;align-self:end">📍 ${esc(rangement.cave_nom)}, rangée ${rangement.rangee}, colonne ${rangement.colonne}</p>
+          <input type="hidden" name="cave_id" value="${rangement.cave_id}"><input type="hidden" name="rangee" value="${rangement.rangee}">
+          <input type="hidden" name="colonne" value="${rangement.colonne}">`
+        : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.map((c) => `<option value="${c.id}">${esc(c.nom)}</option>`).join("")}</select></label>`}
         <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
       </fieldset>`}
       <label class="large">Accords mets & vins<input name="accords" value="${esc(v.accords)}" placeholder="Agneau, fromages affinés…"></label>
@@ -544,8 +551,8 @@ async function pageFormulaire(main, id) {
       const vin = id ? await api("PUT", `vins/${id}`, data) : await api("POST", "vins", data);
       ajout = null;
       REF = await api("GET", "referentiel");
-      toast(id ? "Modifications enregistrées" : "Vin ajouté à la cave");
-      location.hash = `#/vins/${vin.id}`;
+      toast(id ? "Modifications enregistrées" : rangement ? "Vin ajouté et rangé dans le plan" : "Vin ajouté à la cave");
+      if (id) location.hash = `#/vins/${vin.id}`; else apresAjout(vin.id);
     } catch (err) { toast(err.message, true); }
   };
 }
@@ -598,69 +605,171 @@ function chargerScript(src) {
   });
 }
 
-async function lecteurZXing() {
+/* Lecture des codes-barres : BarcodeDetector natif quand il existe (Android), sinon ZXing.
+   L'image est essayée telle quelle puis tournée d'un quart de tour : sur une bouteille debout,
+   le code-barres de la contre-étiquette est souvent vertical. */
+const FORMATS_NATIFS = ["ean_13", "ean_8", "upc_a", "upc_e"];
+let lecteurZX = null;
+let detecteurNatif;
+
+async function zxing() {
   await chargerScript("vendor/zxing-0.21.3.min.js");
   const Z = window.ZXing;
-  const indices = new Map([[Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]],
-    [Z.DecodeHintType.TRY_HARDER, true]]);
-  return new Z.BrowserMultiFormatReader(indices, 300);
+  if (!lecteurZX) {
+    lecteurZX = new Z.MultiFormatReader();
+    lecteurZX.setHints(new Map([[Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8,
+      Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]], [Z.DecodeHintType.TRY_HARDER, true]]));
+  }
+  return Z;
 }
 
-const FORMATS_NATIFS = ["ean_13", "ean_8", "upc_a", "upc_e"];
+async function natif() {
+  if (detecteurNatif !== undefined) return detecteurNatif;
+  detecteurNatif = null;
+  try {
+    if ("BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats()).includes("ean_13")) {
+      detecteurNatif = new BarcodeDetector({ formats: FORMATS_NATIFS });
+    }
+  } catch { /* non pris en charge */ }
+  return detecteurNatif;
+}
 
+function quartDeTour(source) {
+  const c = document.createElement("canvas");
+  c.width = source.height;
+  c.height = source.width;
+  const ctx = c.getContext("2d");
+  ctx.translate(c.width / 2, c.height / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(source, -source.width / 2, -source.height / 2);
+  return c;
+}
+
+/** Cherche un code-barres dans un canvas ; renvoie ses chiffres ou null. */
+async function lireCanvas(canvas) {
+  const detecteur = await natif();
+  if (detecteur) {
+    try {
+      const codes = await detecteur.detect(canvas);
+      if (codes.length) return codes[0].rawValue;
+    } catch { /* on tente ZXing */ }
+  }
+  const Z = await zxing();
+  for (const c of [canvas, quartDeTour(canvas)]) {
+    try {
+      return lecteurZX.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(c)))).getText();
+    } catch { /* pas de code dans ce sens */ } finally { lecteurZX.reset(); }
+  }
+  return null;
+}
+
+function versCanvas(source, largeurSource, hauteurSource, max) {
+  const r = Math.min(1, max / Math.max(largeurSource, hauteurSource));
+  const c = document.createElement("canvas");
+  c.width = Math.round(largeurSource * r);
+  c.height = Math.round(hauteurSource * r);
+  c.getContext("2d").drawImage(source, 0, 0, c.width, c.height);
+  return c;
+}
+
+/** Lit le code-barres d'une photo : plusieurs tailles et un recadrage central, dans les deux sens. */
 async function decoderImage(fichier) {
   const img = new Image();
   img.src = URL.createObjectURL(fichier);
-  await img.decode();
   try {
-    if ("BarcodeDetector" in window) {
-      const codes = await new BarcodeDetector({ formats: FORMATS_NATIFS }).detect(img);
-      if (codes.length) return codes[0].rawValue;
+    await img.decode();
+    for (const max of [1600, 1000, 2400]) {
+      const code = await lireCanvas(versCanvas(img, img.naturalWidth, img.naturalHeight, max));
+      if (code) return code;
     }
-    const lecteur = await lecteurZXing();
-    return (await lecteur.decodeFromImageElement(img)).getText();
-  } catch { return null; } finally { URL.revokeObjectURL(img.src); }
+    // code-barres petit au milieu de la photo : on recadre le centre
+    const [w, h] = [img.naturalWidth, img.naturalHeight];
+    const centre = document.createElement("canvas");
+    centre.width = Math.round(w * 0.6);
+    centre.height = Math.round(h * 0.6);
+    centre.getContext("2d").drawImage(img, w * 0.2, h * 0.2, centre.width, centre.height, 0, 0, centre.width, centre.height);
+    return await lireCanvas(versCanvas(centre, centre.width, centre.height, 1600));
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(img.src);
+  }
 }
 
-/** Ouvre la caméra et renvoie le premier code-barres lu (ou null si l'on annule). */
-function scannerEnDirect() {
+/** Fenêtre de scan : caméra en direct si possible, sinon (ou en plus) photo du code ou saisie des chiffres.
+    Renvoie le code lu, ou null si l'on annule. */
+function scanner() {
   return new Promise((resolve) => {
     const d = dialogue(`<h2>Scanner le code-barres</h2>
-      <div class="viseur"><video playsinline muted></video><div class="cadre"></div></div>
-      <p class="muted petit-texte">Placez le code-barres de la contre-étiquette dans le cadre.</p>
+      <div class="viseur" hidden><video playsinline muted></video><div class="cadre"></div></div>
+      <p class="petit-texte" id="scan-etat">Ouverture de la caméra…</p>
+      <div class="actions" style="justify-content:flex-start;margin-top:8px">
+        <label class="bouton primaire">📷 Photographier le code-barres<input type="file" accept="image/*" capture="environment" hidden id="scan-photo"></label>
+      </div>
+      <div class="filtres" style="margin:12px 0 0">
+        <input id="scan-chiffres" inputmode="numeric" placeholder="… ou tapez les chiffres" aria-label="Chiffres du code-barres">
+        <button class="bouton" type="button" id="scan-ok">OK</button>
+      </div>
       <div class="actions"><button class="bouton" data-fermer>Annuler</button></div>`);
     const video = $("video", d);
-    let fini = false, flux = null, lecteur = null;
+    const etat = $("#scan-etat", d);
+    let fini = false, flux = null;
     const terminer = (code) => {
       if (fini) return;
       fini = true;
       flux?.getTracks().forEach((t) => t.stop());
-      lecteur?.reset();
       if (d.open) d.close();
       resolve(code);
     };
     d.addEventListener("close", () => terminer(null), { once: true });
+    $("#scan-ok", d).onclick = () => { const c = $("#scan-chiffres", d).value.replace(/\D/g, ""); if (c) terminer(c); };
+    $("#scan-chiffres", d).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#scan-ok", d).click(); } });
+    $("#scan-photo", d).onchange = async (e) => {
+      const f = e.target.files[0];
+      e.target.value = "";
+      if (!f) return;
+      etat.textContent = "Lecture de la photo…";
+      const code = await decoderImage(f);
+      if (code) terminer(code);
+      else etat.textContent = "Aucun code-barres lisible sur cette photo. Rapprochez-vous (le code doit remplir une bonne partie de l'image), évitez les reflets, puis réessayez.";
+    };
     (async () => {
+      if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
+        etat.textContent = "La caméra en direct n'est pas disponible sur cette connexion : photographiez le code-barres ou tapez ses chiffres.";
+        return;
+      }
       try {
-        if ("BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats()).includes("ean_13")) {
-          flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-          video.srcObject = flux;
-          await video.play();
-          const detecteur = new BarcodeDetector({ formats: FORMATS_NATIFS });
-          while (!fini) {
-            const codes = await detecteur.detect(video).catch(() => []);
-            if (codes.length) return terminer(codes[0].rawValue);
-            await new Promise((r) => setTimeout(r, 200));
-          }
-        } else {
-          lecteur = await lecteurZXing();
-          await lecteur.decodeFromConstraints({ video: { facingMode: "environment" } }, video, (resultat) => {
-            if (resultat) terminer(resultat.getText());
-          });
-        }
+        flux = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
       } catch (err) {
-        toast("Caméra inaccessible : " + (err.message || err), true);
-        terminer(null);
+        const raisons = { NotAllowedError: "accès refusé, ou bloqué dans le panneau Home Assistant", SecurityError: "bloquée par le navigateur",
+          NotFoundError: "aucune caméra trouvée", NotReadableError: "caméra déjà utilisée par une autre application",
+          OverconstrainedError: "caméra non compatible" };
+        etat.textContent = `Caméra en direct indisponible (${raisons[err.name] || err.message || err.name}) : photographiez le code-barres ou tapez ses chiffres.`;
+        return;
+      }
+      if (fini) return flux.getTracks().forEach((t) => t.stop());
+      const piste = flux.getVideoTracks()[0];
+      try { await piste.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch { /* mise au point non réglable */ }
+      video.srcObject = flux;
+      $(".viseur", d).hidden = false;
+      await video.play().catch(() => {});
+      etat.textContent = "Visez le code-barres, de près, sans reflet (horizontal ou vertical).";
+      const canvas = document.createElement("canvas");
+      while (!fini) {
+        if (video.videoWidth) {
+          const max = 1280;
+          const r = Math.min(1, max / Math.max(video.videoWidth, video.videoHeight));
+          canvas.width = Math.round(video.videoWidth * r);
+          canvas.height = Math.round(video.videoHeight * r);
+          canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+          const code = await lireCanvas(canvas);
+          if (code) {
+            navigator.vibrate?.(80);
+            return terminer(code);
+          }
+        }
+        await new Promise((r) => setTimeout(r, 250));
       }
     })();
   });
@@ -668,9 +777,10 @@ function scannerEnDirect() {
 
 async function pageAjouter(main) {
   CAPACITES = await api("GET", "capacites");
-  const direct = !!(navigator.mediaDevices?.getUserMedia && window.isSecureContext);
   main.innerHTML = `
     <div class="entete"><h1>Ajouter un vin</h1></div>
+    ${rangement ? `<div class="carte bandeau-rangement">📍 La bouteille sera rangée dans <b>${esc(rangement.cave_nom)}</b>, rangée ${rangement.rangee}, colonne ${rangement.colonne}.
+      <button class="bouton petit" id="annuler-rangement">Ne pas la ranger</button></div>` : ""}
     <div class="tuiles-ajout">
       <button class="carte tuile-ajout" id="t-scan"><span class="icone">▥</span><b>Scanner le code-barres</b><span class="muted">La fiche se remplit toute seule si le vin est connu</span></button>
       <label class="carte tuile-ajout"><span class="icone">📷</span><b>Photographier la bouteille</b>
@@ -682,11 +792,12 @@ async function pageAjouter(main) {
       <input name="code" inputmode="numeric" placeholder="… ou tapez le code-barres (13 chiffres)" aria-label="Code-barres">
       <button class="bouton" type="submit">Chercher</button>
     </form>
-    <input type="file" accept="image/*" capture="environment" hidden id="photo-code">
     <div id="resultat"></div>`;
   ajout = null;
   const resultat = $("#resultat", main);
   $("#t-main", main).onclick = () => { ajout = null; };
+  const annulerRangement = $("#annuler-rangement", main);
+  if (annulerRangement) annulerRangement.onclick = () => { rangement = null; route(); };
 
   const montrer = () => resultat.scrollIntoView({ behavior: "smooth", block: "start" });
   const chercher = async (code) => {
@@ -700,7 +811,7 @@ async function pageAjouter(main) {
       resultat.innerHTML = `<div class="carte resultat-scan">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="">` : bouteilleSVG(v.couleur)}
         <div><p class="muted">Déjà dans votre cave</p><h2>${titreVin(v)}</h2><p class="muted">${sousTitre(v)}</p><p>${badgeStatut(v.statut)} · ${pluriel(v.stock, "bouteille")}</p>
         <div class="actions"><button class="bouton primaire" id="r-entree">📥 Ajouter des bouteilles</button><a class="bouton" href="#/vins/${v.id}">Voir la fiche</a></div></div></div>`;
-      $("#r-entree", resultat).onclick = () => dialogueEntree(v, () => (location.hash = `#/vins/${v.id}`));
+      $("#r-entree", resultat).onclick = () => dialogueEntree(v, () => apresAjout(v.id));
       return;
     }
     if (r.externe) {
@@ -780,21 +891,21 @@ async function pageAjouter(main) {
 
   $("#t-photo", main).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0]);
   $("#code-manuel", main).onsubmit = (e) => { e.preventDefault(); const c = e.target.code.value.replace(/\D/g, ""); if (c) chercher(c); };
-  $("#photo-code", main).onchange = async (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const code = await decoderImage(f);
-    e.target.value = "";
-    if (code) chercher(code); else toast("Aucun code-barres lisible sur la photo : réessayez de plus près", true);
-  };
   $("#t-scan", main).onclick = async () => {
-    if (!direct) return $("#photo-code", main).click();  // pas de caméra en direct (connexion non sécurisée) : photo du code
-    const code = await scannerEnDirect();
+    const code = await scanner();
     if (code) chercher(code);
   };
 }
 
+/** Après un ajout : retour au plan si la bouteille vient d'y être rangée, sinon à la fiche. */
+function apresAjout(vinId) {
+  const r = rangement;
+  rangement = null;
+  location.hash = r ? `#/caves/${r.cave_id}?vin=${vinId}` : `#/vins/${vinId}`;
+}
+
 async function pageCaves(main, id, params) {
+  rangement = null;  // retour au plan : on abandonne un rangement commencé
   const caves = await api("GET", "caves");
   if (!id && caves.length) { location.replace(`#/caves/${caves[0].id}`); return; }
   const onglets = `<nav class="onglets">${caves.map((c) => `<a href="#/caves/${c.id}" class="${c.id === id ? "actif" : ""}">${esc(c.nom)} <span class="muted">${c.bouteilles}</span></a>`).join("")}</nav>`;
@@ -897,7 +1008,11 @@ async function dialogueRanger(cave, rangee, colonne) {
         <p class="large muted petit-texte" style="margin:0">… ou bien :</p>` : ""}
       <label class="large">Ajouter une nouvelle bouteille de
         <select name="vin_id"><option value="">—</option>${vins.map((v) => `<option value="${v.id}">${titreVin(v)}</option>`).join("")}</select></label>
-      <p class="large muted petit-texte" style="margin:0">Vin absent de la liste ? <a href="#/vins/nouveau" data-fermer-lien>Créez-le d'abord</a>.</p>
+    </div>
+    <div class="carte nouveau-vin-case">
+      <b>Vin absent de la liste ?</b>
+      <p class="muted petit-texte" style="margin:4px 0 8px">Scannez son code-barres ou photographiez la bouteille : il sera ajouté à la cave et rangé dans cette case.</p>
+      <button type="button" class="bouton primaire" id="case-nouveau">➕ Nouveau vin dans cette case</button>
     </div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Ranger ici</button></div>`,
   {
@@ -909,7 +1024,11 @@ async function dialogueRanger(cave, rangee, colonne) {
       route();
     },
   });
-  $("[data-fermer-lien]")?.addEventListener("click", () => $("#dialogue").close());
+  $("#case-nouveau").onclick = () => {
+    rangement = { cave_id: cave.id, cave_nom: cave.nom, rangee, colonne };
+    $("#dialogue").close();
+    location.hash = "#/ajouter";
+  };
 }
 
 function dialogueCave(c) {
