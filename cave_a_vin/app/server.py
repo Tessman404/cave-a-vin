@@ -81,7 +81,8 @@ def _creer_vin(app, req):
         original = app.brouillons.original(ident).read_bytes()
         rendu = None
         if photo_demandee.get("fond"):
-            rendu = app.brouillons.rendu(ident, photo_demandee["fond"]).read_bytes()
+            rendu = app.brouillons.rendu(ident, photo_demandee["fond"],
+                                         _cadrage(app, photo_demandee.get("cadrage"))).read_bytes()
         _enregistrer_photos(app, vin["id"], original, rendu)
         app.brouillons.supprimer(ident)
         vin = cave.lire_vin(app.db, vin["id"])
@@ -115,6 +116,14 @@ def _supprimer_vin(app, req, vin_id):
     for nom in cave.supprimer_vin(app.db, int(vin_id)):
         _effacer_photo(app, nom)
     return {"ok": True}
+
+
+def _cadrage(app, demande):
+    """Cadrage demandé, sinon celui des réglages (gros plan sur l'étiquette par défaut)."""
+    if demande in photo.CADRAGES:
+        return demande
+    defaut = app.reglages().get("cadrage_defaut")
+    return defaut if defaut in photo.CADRAGES else "etiquette"
 
 
 def _decoder_image(image):
@@ -170,7 +179,8 @@ def _envoyer_photo(app, req, vin_id):
     rendu, avertissement = None, None
     if data.get("fond"):
         try:
-            rendu = photo.jpeg(app.atelier.composer(app.atelier.detourer(photo.ouvrir(original)), data["fond"]))
+            rendu = photo.jpeg(app.atelier.composer(app.atelier.detourer(photo.ouvrir(original)), data["fond"],
+                                                    _cadrage(app, data.get("cadrage"))))
         except photo.PhotoErreur as e:
             avertissement = f"Photo enregistrée sans détourage : {e}"
     _enregistrer_photos(app, vin_id, original, rendu)
@@ -193,6 +203,7 @@ def _changer_fond(app, req, vin_id):
     if not original or not original.exists():
         raise ErreurAPI("Ce vin n'a pas de photo : prenez-en une d'abord", 409)
     fond = req.json().get("fond") or ""
+    cadrage = _cadrage(app, req.json().get("cadrage"))
     if fond:
         cache = original.with_name(original.name + ".detour.png")
         if cache.exists():
@@ -200,7 +211,7 @@ def _changer_fond(app, req, vin_id):
         else:
             sujet = app.atelier.detourer(photo.ouvrir(original.read_bytes()))
             sujet.save(cache)
-        contenu = photo.jpeg(app.atelier.composer(sujet, fond))
+        contenu = photo.jpeg(app.atelier.composer(sujet, fond, cadrage))
     else:
         contenu = original.read_bytes()
     nom = f"vin-{vin_id}-{os.urandom(4).hex()}.jpg"
@@ -235,6 +246,8 @@ def _capacites(app, req):
         "qualite_detourage": reglages.get("detourage_qualite"),
         "fonds": [{"id": k, "label": v} for k, v in photo.FONDS.items()],
         "fond_defaut": reglages.get("fond_defaut") or "cave-voutee",
+        "cadrages": [{"id": k, "label": v} for k, v in photo.CADRAGES.items()],
+        "cadrage_defaut": _cadrage(app, None),
         "ia": ia.etat(reglages),
         "ia_texte": ia.etat(reglages, image=False),
     }
@@ -268,13 +281,14 @@ def _creer_brouillon(app, req):
 @route("POST", r"api/brouillons/(\w+)/rendu")
 def _rendu_brouillon(app, req, ident):
     fond = req.json().get("fond") or ""
-    app.brouillons.rendu(ident, fond)
-    return {"ok": True, "fond": fond}
+    cadrage = _cadrage(app, req.json().get("cadrage"))
+    app.brouillons.rendu(ident, fond, cadrage)
+    return {"ok": True, "fond": fond, "cadrage": cadrage}
 
 
 @route("GET", r"api/brouillons/(\w+)/image")
 def _image_brouillon(app, req, ident):
-    chemin = app.brouillons.rendu(ident, req.query.get("fond") or "")
+    chemin = app.brouillons.rendu(ident, req.query.get("fond") or "", _cadrage(app, req.query.get("cadrage")))
     return Reponse(chemin.read_bytes(), "image/jpeg", entetes={"Cache-Control": "no-cache"})
 
 

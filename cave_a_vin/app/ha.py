@@ -19,6 +19,7 @@ REGLAGES_DEFAUT = {
     "ia_entite": "",
     "detourage_qualite": "standard",
     "fond_defaut": "cave-voutee",
+    "cadrage_defaut": "etiquette",
     "ia_garde_auto": "1",
     "ia_garde_derniere": "",
 }

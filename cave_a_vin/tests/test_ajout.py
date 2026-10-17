@@ -178,11 +178,13 @@ class TestPhotos(BaseTest):
         ident = self.appel("POST", "api/brouillons", {"image": self.image}, attendu=201)["id"]
         self.appel("POST", f"api/brouillons/{ident}/rendu", {"fond": "cave-voutee"}, attendu=200)
         rendu = Image.open(io.BytesIO(self.appel("GET", f"api/brouillons/{ident}/image?fond=cave-voutee", attendu=200)))
-        self.assertEqual(rendu.size, (900, 1200))
+        self.assertEqual(rendu.size, (1200, 1600))
         # le centre de l'image est la bouteille (sombre), les côtés le fond de cave (pas le mur clair d'origine)
-        self.assertLess(sum(rendu.getpixel((450, 1000))), 200)
-        self.assertNotEqual(rendu.getpixel((40, 300)), (215, 205, 190))
+        self.assertLess(sum(rendu.getpixel((600, 1200))), 200)
+        self.assertNotEqual(rendu.getpixel((40, 400)), (215, 205, 190))
         self.appel("POST", f"api/brouillons/{ident}/rendu", {"fond": "inexistant"}, attendu=422)
+        self.appel("POST", f"api/brouillons/{ident}/rendu", {"fond": "studio", "cadrage": "entiere"}, attendu=200)
+        self.appel("GET", f"api/brouillons/{ident}/image?fond=studio&cadrage=entiere", attendu=200)
 
         vin = self.appel("POST", "api/vins", {"nom": "Photo test", "quantite": 1,
                                               "photo": {"brouillon": ident, "fond": "studio"}}, attendu=201)
@@ -193,7 +195,8 @@ class TestPhotos(BaseTest):
 
         # changer de fond, puis revenir à la photo d'origine
         self.appel("POST", f"api/vins/{vin['id']}/photo/fond", {"fond": "casier-bois"}, attendu=200)
-        self.assertEqual(Image.open(io.BytesIO(self.appel("GET", f"api/vins/{vin['id']}/photo"))).size, (900, 1200))
+        self.assertEqual(Image.open(io.BytesIO(self.appel("GET", f"api/vins/{vin['id']}/photo"))).size, (1200, 1600))
+        self.appel("POST", f"api/vins/{vin['id']}/photo/fond", {"fond": "studio", "cadrage": "entiere"}, attendu=200)
         self.appel("POST", f"api/vins/{vin['id']}/photo/fond", {"fond": ""}, attendu=200)
         self.assertEqual(Image.open(io.BytesIO(self.appel("GET", f"api/vins/{vin['id']}/photo"))).size, (600, 800))
 
@@ -206,7 +209,23 @@ class TestPhotos(BaseTest):
         vin = self.appel("POST", "api/vins", {"nom": "Fiche"}, attendu=201)
         r = self.appel("PUT", f"api/vins/{vin['id']}/photo", {"image": self.image, "fond": "pierre-claire"}, attendu=200)
         self.assertIsNone(r["avertissement"])
-        self.assertEqual(Image.open(io.BytesIO(self.appel("GET", f"api/vins/{vin['id']}/photo"))).size, (900, 1200))
+        self.assertEqual(Image.open(io.BytesIO(self.appel("GET", f"api/vins/{vin['id']}/photo"))).size, (1200, 1600))
+
+    def test_gros_plan_agrandit_l_etiquette(self):
+        """Le cadrage « etiquette » rend l'étiquette (rectangle clair) bien plus grande que « entiere »."""
+        ident = self.appel("POST", "api/brouillons", {"image": self.image}, attendu=201)["id"]
+
+        def hauteur_etiquette(cadrage):
+            img = Image.open(io.BytesIO(self.appel("GET", f"api/brouillons/{ident}/image?fond=studio&cadrage={cadrage}")))
+            colonne = [img.getpixel((600, y)) for y in range(img.height)]
+            return sum(1 for p in colonne if min(p) > 200)  # pixels de l'étiquette claire sur la colonne centrale
+
+        entiere, gros_plan = hauteur_etiquette("entiere"), hauteur_etiquette("etiquette")
+        self.assertGreater(entiere, 100)
+        self.assertGreater(gros_plan, 1.7 * entiere)
+        self.assertEqual(self.appel("GET", "api/capacites")["cadrage_defaut"], "etiquette")
+        self.appel("PUT", "api/reglages", {"cadrage_defaut": "entiere"})
+        self.assertEqual(self.appel("GET", "api/capacites")["cadrage_defaut"], "entiere")
 
     def test_aucune_bouteille(self):
         vide = Image.new("RGB", (300, 400), (230, 230, 230))

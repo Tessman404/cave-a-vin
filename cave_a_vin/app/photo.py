@@ -38,7 +38,9 @@ FONDS = {
     "studio": "Studio bordeaux",
     "pierre-claire": "Pierre claire",
 }
-TAILLE_MAX = 1800  # côté le plus long conservé pour l'original
+CADRAGES = {"etiquette": "Gros plan sur l'étiquette", "entiere": "Bouteille entière"}
+TAILLE_MAX = 2000  # côté le plus long conservé pour l'original
+TAILLE_RENDU = (1200, 1600)  # image finale (portrait 3:4), assez fine pour lire l'étiquette en plein écran
 
 
 class PhotoErreur(Exception):
@@ -144,31 +146,52 @@ class Atelier:
         sujet.putalpha(masque)
         return sujet.crop(boite)
 
-    def composer(self, sujet, fond):
-        """Pose la bouteille détourée sur un fond, avec ombre de contact et léger reflet."""
+    def composer(self, sujet, fond, cadrage="etiquette"):
+        """Pose la bouteille détourée sur un fond, avec ombre de contact et léger reflet.
+
+        « etiquette » : le corps de la bouteille remplit la hauteur, le col sort du cadre (l'étiquette est deux
+        fois plus grande). « entiere » : toute la bouteille est visible.
+        """
         if fond not in FONDS:
             raise PhotoErreur("Fond inconnu")
-        toile = Image.open(self.dossier_fonds / f"{fond}.jpg").convert("RGBA")
+        toile = Image.open(self.dossier_fonds / f"{fond}.jpg").convert("RGB").resize(TAILLE_RENDU, Image.LANCZOS)
+        toile = toile.convert("RGBA")
         W, H = toile.size
-        sol = int(H * 0.86)
-        h = int(H * 0.74)
-        w = max(1, int(sujet.width * h / sujet.height))
-        if w > W * 0.8:  # bouteille couchée ou photo très large
-            w = int(W * 0.8)
-            h = max(1, int(sujet.height * w / sujet.width))
+        allongee = sujet.height > 2.6 * sujet.width  # bouteille entière sur la photo (sinon : déjà un gros plan)
+        if cadrage == "etiquette" and allongee:
+            sujet = sujet.crop((0, int(sujet.height * 0.36), sujet.width, sujet.height))  # sous l'épaule
+            sol = int(H * 0.95)
+            h = int(sol + H * 0.03)  # le haut coupé dépasse du cadre : pas de bord net visible
+            w = int(sujet.width * h / sujet.height)
+            if w > W * 0.78:  # bouteille très large : on garde tout le corps visible
+                w = int(W * 0.78)
+                h = int(sujet.height * w / sujet.width)
+        else:
+            sol = int(H * (0.95 if not allongee else 0.93))
+            h = int(H * (0.88 if not allongee else 0.86))
+            w = int(sujet.width * h / sujet.height)
+            if w > W * 0.86:  # photo très large (bouteille couchée, gros plan)
+                w = int(W * 0.86)
+                h = int(sujet.height * w / sujet.width)
+        w, h = max(1, w), max(1, h)
         sujet = sujet.resize((w, h), Image.LANCZOS)
         x, y = (W - w) // 2, sol - h
 
         ombre = Image.new("L", (W, H), 0)
-        ImageDraw.Draw(ombre).ellipse((x + w * 0.05, sol - h * 0.025, x + w * 0.95, sol + h * 0.03), fill=170)
+        ImageDraw.Draw(ombre).ellipse((x + w * 0.05, sol - w * 0.07, x + w * 0.95, sol + w * 0.09), fill=170)
         noir = Image.new("RGBA", (W, H), (0, 0, 0, 255))
-        noir.putalpha(ombre.filter(ImageFilter.GaussianBlur(max(2, h * 0.02))))
+        noir.putalpha(ombre.filter(ImageFilter.GaussianBlur(max(2, w * 0.06))))
         toile.alpha_composite(noir)
 
-        reflet = ImageOps.flip(sujet).crop((0, 0, w, max(1, int(h * 0.25))))
+        hauteur_reflet = max(1, min(int(h * 0.25), H - sol))
+        reflet = ImageOps.flip(sujet).crop((0, 0, w, hauteur_reflet))
         degrade = Image.linear_gradient("L").resize(reflet.size).point(lambda v: int((255 - v) * 0.22))
         reflet.putalpha(Image.fromarray(np.minimum(np.asarray(reflet.getchannel("A")), np.asarray(degrade))))
         toile.alpha_composite(reflet, (x, sol))
+        # alpha_composite n'accepte pas de position négative : on découpe ce qui dépasse en haut
+        if y < 0:
+            sujet = sujet.crop((0, -y, w, h))
+            y = 0
         toile.alpha_composite(sujet, (x, y))
         return toile.convert("RGB")
 
@@ -202,13 +225,15 @@ class Brouillons:
             raise PhotoErreur("Brouillon introuvable ou expiré")
         return chemin
 
-    def rendu(self, ident, fond):
+    def rendu(self, ident, fond, cadrage="etiquette"):
         """Chemin de l'image composée (détourage mis en cache pour changer de fond instantanément)."""
         if not fond:
             return self.original(ident)
-        cible = self._chemin(ident, f"{fond}.jpg")
+        if fond not in FONDS or cadrage not in CADRAGES:
+            raise PhotoErreur("Fond ou cadrage inconnu")
+        cible = self._chemin(ident, f"{fond}-{cadrage}.jpg")
         if not cible.exists():
-            cible.write_bytes(jpeg(self.atelier.composer(self.sujet(ident), fond)))
+            cible.write_bytes(jpeg(self.atelier.composer(self.sujet(ident), fond, cadrage)))
         return cible
 
     def sujet(self, ident):

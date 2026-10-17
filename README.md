@@ -163,7 +163,7 @@ Bouton **+ Ajouter**, puis :
    - vin **inconnu** → l'application vous propose de photographier la bouteille.
 2. **Photographier la bouteille** (de face, étiquette lisible, la bouteille entière dans l'image) :
    - l'**IA lit l'étiquette** : nom, domaine, appellation, millésime, couleur, cépages, degré ;
-   - la bouteille est **détourée** et posée sur le **fond de cave** choisi dans les réglages ; **🎨 Changer de fond** pour essayer les autres. La photo d'origine est conservée : vous pourrez changer de fond plus tard depuis la fiche.
+   - la bouteille est **détourée** et posée sur le **fond de cave** choisi dans les réglages, en **gros plan sur l'étiquette** (ou bouteille entière) ; **🎨 Changer de fond** pour essayer les autres fonds et cadrages. Sur la fiche, touchez la photo pour l'agrandir. La photo d'origine est conservée : vous pourrez changer de fond plus tard depuis la fiche.
 3. Vérifiez la fiche pré-remplie, indiquez le nombre de bouteilles et la cave, **Ajouter à ma cave**. Le code-barres est enregistré : au prochain scan, le vin est retrouvé tout de suite.
 
 **Garde estimée par l'IA** : la même IA estime la fenêtre de dégustation de chaque vin en cave, au démarrage du module puis chaque mois, et chaque nouveau vin dès son ajout. La fiche indique l'origine de la garde (« 🤖 estimée par l'IA », avec sa justification et sa confiance, ou « ✎ saisie à la main »). Si vous corrigez une garde, l'IA ne la touche plus et affiche seulement sa suggestion ; le bouton **🤖 Demander la garde à l'IA** la remplace à votre demande. Statuts : *À garder* → *Prêt à boire* → *À l'apogée* (plateau) → *Après l'apogée* → *À boire vite* (dernière année) → *Garde dépassée*.

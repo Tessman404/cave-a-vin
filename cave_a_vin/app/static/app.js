@@ -335,7 +335,7 @@ async function pageVin(main, id) {
     <p><a href="#/vins">← Mes vins</a></p>
     <div class="fiche">
       <div>
-        <div class="photo">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="Étiquette de ${esc(v.nom)}">` : bouteilleSVG(v.couleur)}</div>
+        <div class="photo">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="Étiquette de ${esc(v.nom)}" id="photo-vin" title="Agrandir">` : bouteilleSVG(v.couleur)}</div>
         <div class="actions" style="margin-top:8px">
           <label class="bouton petit" style="color:var(--texte)">📷 ${v.a_photo ? "Changer" : "Photo de l'étiquette"}
             <input type="file" accept="image/*" capture="environment" hidden id="photo"></label>
@@ -417,14 +417,17 @@ async function pageVin(main, id) {
     if (!fichier) return;
     toast(CAPACITES.detourage ? "Détourage de la bouteille…" : "Envoi de la photo…", false, 60000);
     try {
-      const r = await api("PUT", `vins/${v.id}/photo`, { image: await redimensionner(fichier, 1600), fond: CAPACITES.detourage ? CAPACITES.fond_defaut : "" });
+      const r = await api("PUT", `vins/${v.id}/photo`, { image: await redimensionner(fichier, 1600), fond: CAPACITES.detourage ? CAPACITES.fond_defaut : "", cadrage: CAPACITES.cadrage_defaut });
       toast(r.avertissement || "Photo enregistrée", !!r.avertissement);
       recharger();
     } catch (err) { toast(err.message, true); }
   };
+  const photoVin = $("#photo-vin", main);
+  if (photoVin) photoVin.onclick = () => plein_ecran(urlPhoto(v),
+    v.a_photo_originale ? avecCle(`api/vins/${v.id}/photo?original=1&v=${encodeURIComponent(v.updated_at)}`) : null, titreVin(v));
   const fond = $("#changer-fond", main);
-  if (fond) fond.onclick = () => dialogueFond(async (choix) => {
-    await api("POST", `vins/${v.id}/photo/fond`, { fond: choix });
+  if (fond) fond.onclick = () => dialogueFond(async (choix, cadrage) => {
+    await api("POST", `vins/${v.id}/photo/fond`, { fond: choix, cadrage });
     recharger();
   }, avecCle(`api/vins/${v.id}/photo?original=1&v=${encodeURIComponent(v.updated_at)}`));
   const suppr = $("#suppr-photo", main);
@@ -464,7 +467,7 @@ async function pageFormulaire(main, id) {
     <p><a href="${id ? `#/vins/${id}` : "#/vins"}">← Retour</a></p>
     <div class="carte"><h1>${id ? "Modifier le vin" : "Ajouter un vin"}</h1>
     ${!id && ajout?.source ? `<p class="muted">${{ off: "📦 Fiche pré-remplie depuis Open Food Facts", ia: "🔎 Fiche pré-remplie par l'IA à partir de l'étiquette", photo: "📷 Complétez la fiche de la bouteille photographiée" }[ajout.source] || ""} : vérifiez et complétez.</p>` : ""}
-    ${brouillon ? `<div class="apercu-ajout"><img id="apercu" src="${avecCle(`api/brouillons/${brouillon.brouillon}/image?fond=${brouillon.fond || ""}`)}" alt="Photo de la bouteille">
+    ${brouillon ? `<div class="apercu-ajout"><img id="apercu" src="${avecCle(`api/brouillons/${brouillon.brouillon}/image?fond=${brouillon.fond || ""}&cadrage=${brouillon.cadrage || ""}`)}" alt="Photo de la bouteille">
       ${CAPACITES.detourage ? `<button class="bouton petit" type="button" id="fond-ajout">🎨 Changer de fond</button>` : ""}</div>` : ""}
     <form class="form" id="formulaire" autocomplete="off">
       <fieldset><legend>Identité</legend>
@@ -524,18 +527,19 @@ async function pageFormulaire(main, id) {
   $("#annuler", main).onclick = () => { ajout = null; };
   ["garde_debut", "garde_apogee", "garde_fin"].forEach((c) => form[c].addEventListener("input", () => (form.garde_source.value = "manuel")));
   const boutonFond = $("#fond-ajout", main);
-  if (boutonFond) boutonFond.onclick = () => dialogueFond(async (choix) => {
-    if (choix) await api("POST", `brouillons/${brouillon.brouillon}/rendu`, { fond: choix });
+  if (boutonFond) boutonFond.onclick = () => dialogueFond(async (choix, cadrage) => {
+    if (choix) await api("POST", `brouillons/${brouillon.brouillon}/rendu`, { fond: choix, cadrage });
     brouillon.fond = choix;
-    $("#apercu", main).src = avecCle(`api/brouillons/${brouillon.brouillon}/image?fond=${choix}`);
-  }, avecCle(`api/brouillons/${brouillon.brouillon}/image`));
+    brouillon.cadrage = cadrage;
+    $("#apercu", main).src = avecCle(`api/brouillons/${brouillon.brouillon}/image?fond=${choix}&cadrage=${cadrage}`);
+  }, avecCle(`api/brouillons/${brouillon.brouillon}/image`), brouillon.cadrage);
   // fiche pré-remplie sans garde : on propose tout de suite une estimation
   if (!id && ajout?.champs && !v.garde_fin) $("#estimer", main).click();
   form.onsubmit = async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form));
     data.favori = !!data.favori;
-    if (brouillon) data.photo = { brouillon: brouillon.brouillon, fond: brouillon.fond || "" };
+    if (brouillon) data.photo = { brouillon: brouillon.brouillon, fond: brouillon.fond || "", cadrage: brouillon.cadrage || "" };
     try {
       const vin = id ? await api("PUT", `vins/${id}`, data) : await api("POST", "vins", data);
       ajout = null;
@@ -548,17 +552,39 @@ async function pageFormulaire(main, id) {
 
 /* ------------------------------------------------------------------ ajout assisté : scan, photo, IA */
 
-function dialogueFond(choisir, urlOriginal) {
+/** Photo en grand (pour lire l'étiquette), avec bascule vers la photo d'origine. */
+function plein_ecran(url, urlOriginal, titre) {
+  const d = dialogue(`<div class="plein-ecran"><img src="${url}" alt="${titre}" id="pe-image"></div>
+    <div class="actions">${urlOriginal ? `<button type="button" class="bouton" id="pe-original">Photo d'origine</button>` : ""}
+    <button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
+  const bascule = $("#pe-original", d);
+  if (bascule) bascule.onclick = () => {
+    const img = $("#pe-image", d);
+    const original = img.src.includes("original=1");
+    img.src = original ? url : urlOriginal;
+    bascule.textContent = original ? "Photo d'origine" : "Photo mise en scène";
+  };
+}
+
+function dialogueFond(choisir, urlOriginal, cadrageActuel) {
+  let cadrage = cadrageActuel || CAPACITES.cadrage_defaut || "etiquette";
   const vignettes = CAPACITES.fonds.map((f) => `<button type="button" class="vignette-fond" data-fond="${esc(f.id)}">
       <img src="fonds/${esc(f.id)}.jpg" alt=""><span>${esc(f.label)}</span></button>`).join("");
   const d = dialogue(`<h2>Choisir le fond</h2>
+    <div class="plats cadrages" role="radiogroup" aria-label="Cadrage">${(CAPACITES.cadrages || []).map((c) =>
+      `<button type="button" class="bouton petit${c.id === cadrage ? " actif" : ""}" data-cadrage="${esc(c.id)}">${c.id === "etiquette" ? "🔍" : "🍾"} ${esc(c.label)}</button>`).join("")}</div>
     <div class="fonds">${vignettes}<button type="button" class="vignette-fond" data-fond=""><img src="${urlOriginal}" alt=""><span>Photo d'origine</span></button></div>
     <p class="muted petit-texte" id="etat-fond"></p>
     <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
+  $$("[data-cadrage]", d).forEach((b) => (b.onclick = () => {
+    cadrage = b.dataset.cadrage;
+    $$("[data-cadrage]", d).forEach((x) => x.classList.toggle("actif", x === b));
+    $("#etat-fond", d).textContent = "Choisissez maintenant un fond.";
+  }));
   $$("[data-fond]", d).forEach((b) => (b.onclick = async () => {
     $$("[data-fond]", d).forEach((x) => (x.disabled = true));
     $("#etat-fond", d).textContent = "Détourage et mise en scène…";
-    try { await choisir(b.dataset.fond); d.close(); toast("Fond appliqué"); }
+    try { await choisir(b.dataset.fond, cadrage); d.close(); toast("Photo mise à jour"); }
     catch (err) { $("#etat-fond", d).textContent = err.message; $$("[data-fond]", d).forEach((x) => (x.disabled = false)); }
   }));
 }
@@ -717,8 +743,13 @@ async function pageAjouter(main) {
     ajout = { ...base, champs: { ...(base.champs || {}) }, brouillon: ident, fond: "", source: "photo" };
     const lent = setTimeout(() => etape("e-detour", "⏳ Détourage… (la première fois, le modèle de détourage est téléchargé : patientez une minute)"), 6000);
     await Promise.all([
-      CAPACITES.detourage && api("POST", `brouillons/${ident}/rendu`, { fond: CAPACITES.fond_defaut })
-        .then(() => { ajout.fond = CAPACITES.fond_defaut; $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${ajout.fond}`); etape("e-detour", "✓ Bouteille détourée"); })
+      CAPACITES.detourage && api("POST", `brouillons/${ident}/rendu`, { fond: CAPACITES.fond_defaut, cadrage: CAPACITES.cadrage_defaut })
+        .then(() => {
+          ajout.fond = CAPACITES.fond_defaut;
+          ajout.cadrage = CAPACITES.cadrage_defaut;
+          $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${ajout.fond}&cadrage=${ajout.cadrage}`);
+          etape("e-detour", "✓ Bouteille détourée");
+        })
         .catch((err) => etape("e-detour", "✕ Détourage impossible : " + err.message))
         .finally(() => clearTimeout(lent)),
       CAPACITES.ia.possible && api("POST", `brouillons/${ident}/lire`)
@@ -739,11 +770,12 @@ async function pageAjouter(main) {
     $("#e-actions", resultat).hidden = false;
     $("#e-suite", resultat).onclick = () => (location.hash = "#/vins/nouveau");
     const bf = $("#e-fond", resultat);
-    if (bf) bf.onclick = () => dialogueFond(async (choix) => {
-      if (choix) await api("POST", `brouillons/${ident}/rendu`, { fond: choix });
+    if (bf) bf.onclick = () => dialogueFond(async (choix, cadrage) => {
+      if (choix) await api("POST", `brouillons/${ident}/rendu`, { fond: choix, cadrage });
       ajout.fond = choix;
-      $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${choix}`);
-    }, avecCle(`api/brouillons/${ident}/image`));
+      ajout.cadrage = cadrage;
+      $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${choix}&cadrage=${cadrage}`);
+    }, avecCle(`api/brouillons/${ident}/image`), ajout.cadrage);
   };
 
   $("#t-photo", main).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0]);
@@ -1015,6 +1047,8 @@ async function pageReglages(main) {
             <select name="detourage_qualite">${options({ rapide: "Rapide (modèle de 5 Mo)", standard: "Standard (45 Mo, recommandé)", precis: "Précis (180 Mo, plus lent, 2 Go de mémoire conseillés)" }, r.detourage_qualite)}</select></label>
           <label class="large">Fond par défaut
             <select name="fond_defaut">${options(Object.fromEntries(CAPACITES.fonds.map((f) => [f.id, f.label])), r.fond_defaut)}</select></label>
+          <label class="large">Cadrage par défaut
+            <select name="cadrage_defaut">${options(Object.fromEntries((CAPACITES.cadrages || []).map((c) => [c.id, c.label])), r.cadrage_defaut)}</select></label>
           ${CAPACITES.detourage ? "" : `<p class="large petit-texte muted" style="margin:0">Le détourage n'est pas disponible sur cette installation (bibliothèques de traitement d'image absentes) : les photos sont gardées telles quelles.</p>`}
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form>

@@ -317,3 +317,9 @@ dialog .actions { justify-content: flex-end; margin-top: 18px; }
 .vignette-fond:hover { border-color: var(--accent); }
 .vignette-fond img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; }
 .vignette-fond:disabled { opacity: .5; cursor: wait; }
+
+.cadrages { margin-bottom: 12px; }
+.cadrages .actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+#photo-vin { cursor: zoom-in; }
+.plein-ecran { display: grid; place-items: center; }
+.plein-ecran img { max-width: 100%; max-height: 78vh; border-radius: 10px; object-fit: contain; }

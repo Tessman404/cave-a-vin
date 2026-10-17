@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.3.3
+
+- **Photo détourée : gros plan sur l'étiquette** par défaut. Le corps de la bouteille remplit l'image (le col sort du
+  cadre), l'étiquette est environ deux fois plus grande et se lit sur la fiche. Le cadrage « Bouteille entière »
+  reste disponible dans la fenêtre « 🎨 Fond » et comme réglage par défaut.
+- Images mises en scène plus détaillées (1200 × 1600).
+- Sur la fiche, toucher la photo l'ouvre en grand, avec un bouton pour voir la photo d'origine.
+
 ## 1.3.2
 
 - **Lecture d'étiquette bien plus complète** : l'IA recopie ce qui est écrit (y compris le producteur indiqué dans
