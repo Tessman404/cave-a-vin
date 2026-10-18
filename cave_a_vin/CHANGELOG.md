@@ -1,5 +1,18 @@
 # Journal des modifications
 
+## 1.7.0
+
+- **Plan de cave redessiné** : un casier de bouteilles couchées vues par le goulot, colorées selon le vin, posées sur
+  une tablette. Seule la bouteille dessinée réagit au toucher, plus de clic à côté.
+- **Étagères** : bouton « + Étagère » pour ajouter un casier en haut, en bas, à gauche ou à droite d'un autre, avec
+  ses propres rangées et colonnes. Chaque étagère se modifie ou se supprime (ses bouteilles restent dans la cave).
+- **Localiser une bouteille** : bouton sur la fiche (Emplacements) et petit bouton 📍 sur chaque carte de « Mes vins ».
+  Le plan s'ouvre et toutes les bouteilles du vin clignotent.
+- **Ranger en touchant le plan** : en enregistrant un vin ou en ajoutant des bouteilles, le plan de la cave choisie
+  s'affiche ; on touche les emplacements, les bouteilles y sont rangées.
+- **Nom de la cave** modifiable dans Réglages → Ma cave.
+- « Ce soir ? » devient **« Mets & Vins »**.
+
 ## 1.6.1
 
 - L'appellation (Fitou, Chablis…) s'affiche en premier sous le nom du vin, dans les listes et sur l'accueil : on
