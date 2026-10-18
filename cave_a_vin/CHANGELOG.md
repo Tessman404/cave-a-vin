@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.9.1
+
+- **Bouteilles en 3D** sur le plan de cave : vues par le goulot comme dans un vrai casier (corps qui s'enfonce,
+  épaule bombée et éclairée, capsule métallisée), plus grandes et qui se chevauchent. Champagnes avec collerette
+  dorée, bouchon et muselet.
+- Le nom d'un casier, son ❄ et son ✎ sont alignés sur une même ligne.
+
 ## 1.9.0
 
 - **Bouteilles réalistes** sur le plan : bouteilles de vin couchées (verre teinté, reflets, capsule métallisée) et
