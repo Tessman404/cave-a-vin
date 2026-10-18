@@ -183,6 +183,25 @@ class TestCave(BaseTest):
         self.assertEqual(noms[:2], ["Grand de garde", "Blanc frais"])  # la garde restante prime sur la valeur
         self.assertNotIn("Trop tard", noms)  # garde dépassée : à boire, pas à ranger
 
+    def test_annuler_une_sortie(self):
+        cave = self.appel("POST", "api/caves", {"nom": "Casier", "rangees": 2, "colonnes": 2}, attendu=201)
+        vin = self.creer_vin(quantite=1, emplacements=[{"cave_id": cave["id"], "rangee": 2, "colonne": 1}],
+                             note_perso="Anniversaire de Leïna", note_date="2027-03-12")
+        r = self.appel("POST", f"api/vins/{vin['id']}/sortie", {"quantite": 1, "raison": "bue", "effacer_note": True}, attendu=200)
+        self.assertEqual((r["stock"], r["note_perso"]), (0, ""))
+        r = self.appel("POST", f"api/mouvements/{r['mouvement_id']}/annuler", attendu=200)
+        self.assertEqual((r["stock"], r["note_perso"], r["note_date"]), (1, "Anniversaire de Leïna", "2027-03-12"))
+        self.assertEqual([(b["cave_id"], b["rangee"], b["colonne"]) for b in r["bouteilles"]], [(cave["id"], 2, 1)])
+        self.assertFalse([m for m in r["mouvements"] if m["type"] == "sortie"])  # la sortie a disparu de l'historique
+        self.appel("POST", f"api/mouvements/999/annuler", attendu=404)
+        self.appel("PUT", f"api/vins/{vin['id']}", {"note_date": "12/03/2027"}, attendu=400)
+
+    def test_valeur_payee(self):
+        self.creer_vin(nom="A", quantite=2, prix_achat=10, valeur=25)
+        self.creer_vin(nom="B", quantite=1, prix_achat=None, valeur=40)
+        s = self.appel("GET", "api/stats")
+        self.assertEqual((s["valeur"], s["valeur_payee"], s["sans_prix_achat"]), (90, 20, 1))
+
     def test_garde_et_statuts(self):
         self.assertEqual(cave.statut_garde({"garde_debut": 2030, "garde_fin": 2040}, 2026), "trop_jeune")
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2030}, 2026), "a_boire")

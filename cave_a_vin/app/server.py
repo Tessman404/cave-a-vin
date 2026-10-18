@@ -109,6 +109,11 @@ def _entree(app, req, vin_id):
     return cave.ajouter_bouteilles(app.db, int(vin_id), req.json())
 
 
+@route("POST", r"api/mouvements/(\d+)/annuler")
+def _annuler_sortie(app, req, mouvement_id):
+    return cave.annuler_sortie(app.db, int(mouvement_id))
+
+
 @route("POST", r"api/vins/(\d+)/sortie")
 def _sortie(app, req, vin_id):
     return cave.sortir_bouteilles(app.db, int(vin_id), req.json())

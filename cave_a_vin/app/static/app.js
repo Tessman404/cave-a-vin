@@ -48,12 +48,21 @@ const urlPhoto = (vin) => avecCle(`api/vins/${vin.id}/photo?v=${encodeURICompone
 
 /* ------------------------------------------------------------------ petits composants */
 
-function toast(message, erreur = false, duree) {
+function toast(message, erreur = false, duree, action) {
   const t = $("#toast");
   t.textContent = message;
-  t.className = "visible" + (erreur ? " erreur" : "");
+  if (action) {
+    // un bouton dans le message (« Annuler ») : le message reste un peu plus longtemps
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "toast-action";
+    b.textContent = action.libelle;
+    b.onclick = () => { clearTimeout(toast.minuteur); t.className = ""; action.faire(); };
+    t.append(" ", b);
+  }
+  t.className = "visible" + (erreur ? " erreur" : "") + (action ? " avec-action" : "");
   clearTimeout(toast.minuteur);
-  toast.minuteur = setTimeout(() => (t.className = ""), duree || (erreur ? 5000 : 2500));
+  toast.minuteur = setTimeout(() => (t.className = ""), duree || (action ? 8000 : erreur ? 5000 : 2500));
 }
 
 const pastille = (couleur) => `<span class="pastille ${esc(couleur)}" title="${esc(REF.couleurs[couleur] || couleur)}"></span>`;
@@ -130,6 +139,18 @@ function dialogue(html, { onSubmit, large } = {}) {
   return d;
 }
 
+/** Question avec plusieurs réponses ; renvoie la clé choisie, ou null si on annule. */
+function choisir(message, reponses) {
+  return new Promise((resolve) => {
+    let choix = null;
+    const d = dialogue(`<p style="white-space:pre-line">${esc(message)}</p><div class="actions choix-multiple">
+      <button class="bouton" data-fermer>Annuler</button>
+      ${reponses.map((r) => `<button type="button" class="bouton${r.primaire ? " primaire" : ""}" data-choix="${esc(r.cle)}">${esc(r.libelle)}</button>`).join("")}</div>`);
+    $$("[data-choix]", d).forEach((b) => (b.onclick = () => { choix = b.dataset.choix; d.close(); }));
+    d.addEventListener("close", () => setTimeout(() => resolve(choix)), { once: true });
+  });
+}
+
 function confirmer(message, libelle = "Confirmer") {
   // la réponse n'est donnée qu'une fois la fenêtre fermée : la suite peut ouvrir sa propre fenêtre sans conflit
   return new Promise((resolve) => {
@@ -160,8 +181,17 @@ function activerEtoiles(form) {
 
 async function dialogueSortie(vin, bouteilleId, apres) {
   // un vin réservé pour une occasion : on demande confirmation en rappelant la note
-  if (vin.note_perso === undefined) vin = { ...vin, note_perso: (await api("GET", `vins/${vin.id}`).catch(() => ({}))).note_perso || "" };
-  if (vin.note_perso && !(await confirmer(`Êtes-vous sûr de vouloir consommer ce vin ?\n\n📌 ${vin.note_perso}`, "Oui, le sortir"))) return;
+  if (vin.note_perso === undefined) {
+    const complet = await api("GET", `vins/${vin.id}`).catch(() => ({}));
+    vin = { ...vin, note_perso: complet.note_perso || "", note_date: complet.note_date || "" };
+  }
+  let effacerNote = false;
+  if (vin.note_perso) {
+    const choix = await choisir(`Êtes-vous sûr de vouloir consommer ce vin ?\n\n📌 ${vin.note_perso}${vin.note_date ? ` (${dateFr(vin.note_date)})` : ""}`,
+      [{ cle: "effacer", libelle: "Oui, et effacer la note", primaire: true }, { cle: "garder", libelle: "Oui, garder la note" }]);
+    if (!choix) return;
+    effacerNote = choix === "effacer";
+  }
   const d = dialogue(`<h2>Sortir ${titreVin(vin)}</h2>
     <div class="form">
       ${bouteilleId ? "" : `<label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="${vin.stock}" value="1" required></label>`}
@@ -174,8 +204,16 @@ async function dialogueSortie(vin, bouteilleId, apres) {
   {
     onSubmit: async (data) => {
       if (bouteilleId) data.bouteille_id = bouteilleId;
-      await api("POST", `vins/${vin.id}/sortie`, data);
-      toast("Bouteille sortie — santé ! 🍷");
+      if (effacerNote) data.effacer_note = true;
+      const r = await api("POST", `vins/${vin.id}/sortie`, data);
+      toast(`${+data.quantite > 1 ? "Bouteilles sorties" : "Bouteille sortie"}, santé ! 🍷`, false, null, r.mouvement_id ? {
+        libelle: "Annuler",
+        faire: async () => {
+          try { await api("POST", `mouvements/${r.mouvement_id}/annuler`); toast("Sortie annulée : la bouteille est revenue à sa place"); }
+          catch (err) { toast(err.message, true); }
+          apres && apres();
+        },
+      } : null);
       apres && apres();
     },
   });
@@ -234,7 +272,8 @@ function casierVivant(s) {
       <div class="sous-total">${s.bouteilles > 1 ? "bouteilles dans votre cave" : "bouteille dans votre cave"}</div>
       <div class="chiffres">
         <div><strong>${nombre(s.references)}</strong><span>${s.references > 1 ? "références" : "référence"}</span></div>
-        <div><strong>${euros(s.valeur)}</strong><span>valeur estimée</span></div>
+        <div title="Valeur de marché indicative, souvent estimée par l'IA"><strong>${euros(s.valeur)}</strong><span>valeur estimée</span></div>
+        ${s.valeur_payee ? `<div title="${s.sans_prix_achat ? `${pluriel(s.sans_prix_achat, "bouteille")} sans prix d'achat renseigné` : "Prix d'achat de toutes les bouteilles"}"><strong>${euros(s.valeur_payee)}</strong><span>payé${s.sans_prix_achat ? " (prix connus)" : ""}</span></div>` : ""}
         <div><strong>${nombre(s.bues_annee)}</strong><span>${s.bues_annee > 1 ? "bues" : "bue"} en ${s.annee}</span></div>
         ${s.sans_emplacement ? `<a class="a-ranger" href="#/caves?ranger=1"><strong>${nombre(s.sans_emplacement)}</strong><span>à ranger ›</span></a>` : ""}
       </div>
@@ -479,7 +518,7 @@ async function pageVin(main, id) {
         <div class="carte">
           <div class="entete" style="align-items:flex-start">
             <div><h1>${v.favori ? "♥ " : ""}${titreVin(v)}</h1>
-              ${v.note_perso ? `<p class="note-perso" role="note">📌 ${esc(v.note_perso)}</p>` : ""}
+              ${v.note_perso ? `<p class="note-perso" role="note">📌 ${esc(v.note_perso)}${v.note_date ? ` · ${dateFr(v.note_date)}` : ""}</p>` : ""}
               <div class="muted">${sousTitre(v)}</div>
               <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${pastille(v.couleur)} ${esc(v.couleur_label)} ${badgeStatut(v.statut)} ${v.note_moyenne != null ? etoiles(v.note_moyenne) : ""}</div></div>
             <div class="compteur">
@@ -643,6 +682,8 @@ async function pageFormulaire(main, id) {
       </fieldset>`}
       <label class="large">Accords mets & vins<input name="accords" value="${esc(v.accords)}" placeholder="Agneau, fromages affinés…"></label>
       <label class="large">Note personnelle<input name="note_perso" maxlength="200" value="${esc(v.note_perso || "")}" placeholder="À boire à l'anniversaire de Leïna…"></label>
+      <label>Date de l'occasion (facultatif)<input type="date" name="note_date" value="${esc(v.note_date || "")}"></label>
+      <p class="muted petit-texte" style="margin:0;align-self:end">Avec une date, Home Assistant vous le rappelle 7 jours avant.</p>
       <label class="large">Notes<textarea name="notes">${esc(v.notes)}</textarea></label>
       <label class="case large"><input type="checkbox" name="favori" value="1" ${v.favori ? "checked" : ""}> ♥ Favori</label>
       <div class="actions large"><button class="bouton primaire" type="submit">${id ? "Enregistrer" : "Ajouter à ma cave"}</button>

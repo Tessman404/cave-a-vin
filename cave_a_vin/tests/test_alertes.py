@@ -43,6 +43,15 @@ class TestAlertes(unittest.TestCase):
         self.assertEqual(alertes.verifier(self.app, j0 + timedelta(days=60)), 0)  # plus jamais
         self.assertEqual(len(self.envois), 2)
 
+    def test_rappel_d_occasion_une_seule_fois(self):
+        self.app.ecrire_reglage("notif_service", "notify.mobile_app_iphone")
+        jour = date(cave.annee_courante() + 1, 3, 12)
+        cave.modifier_vin(self.db, self.urgent["id"], {"note_perso": "Anniversaire de Leïna", "note_date": jour.isoformat()})
+        self.assertEqual(alertes.verifier_occasions(self.app, jour - timedelta(days=8)), 0)  # trop tôt
+        self.assertEqual(alertes.verifier_occasions(self.app, jour - timedelta(days=7)), 1)
+        self.assertIn("Anniversaire de Leïna : dans 7 jours", self.envois[-1][1])
+        self.assertEqual(alertes.verifier_occasions(self.app, jour - timedelta(days=2)), 0)  # déjà prévenu
+
     def test_vin_sorti_n_est_plus_rappele(self):
         self.app.ecrire_reglage("notif_service", "notify.mobile_app_iphone")
         cave.sortir_bouteilles(self.db, self.urgent["id"], {"quantite": 2, "raison": "bue"})

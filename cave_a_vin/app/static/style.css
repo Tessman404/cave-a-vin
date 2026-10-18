@@ -788,3 +788,10 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .alerte-place .actions { gap: 8px; }
 .alerte-place .secondaire-clair { background: transparent; color: #f4efe6; border: 1px solid rgba(255, 255, 255, .45); }
 .a-ranger-liste .statut { margin-right: 4px; }
+
+/* message avec bouton (« Annuler ») */
+#toast.avec-action { pointer-events: auto; display: flex; align-items: center; gap: 12px; }
+.toast-action { border: 0; border-radius: 999px; padding: 6px 14px; font: 700 .9rem var(--sans); cursor: pointer;
+  background: var(--accent); color: var(--accent-texte); }
+.choix-multiple { flex-wrap: wrap; }
+#toast.avec-action { width: max-content; max-width: calc(100% - 24px); white-space: nowrap; }

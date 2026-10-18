@@ -2,8 +2,9 @@
 
 import csv
 import io
+import json
 import re
-from datetime import date
+from datetime import datetime, date
 
 from .db import maintenant
 
@@ -34,7 +35,7 @@ RAISONS_ENTREE = {"achat": "Achat", "cadeau": "Cadeau", "inventaire": "Inventair
 RAISONS_SORTIE = {"bue": "Bue", "offerte": "Offerte", "cassee": "Cassée / bouchonnée", "vendue": "Vendue", "autre": "Autre"}
 
 CHAMPS_TEXTE = ["nom", "domaine", "appellation", "region", "pays", "couleur", "cepages",
-                "format", "fournisseur", "accords", "notes", "code_barre", "note_perso"]
+                "format", "fournisseur", "accords", "notes", "code_barre", "note_perso", "note_date"]
 CHAMPS_ENTIERS = ["millesime", "garde_debut", "garde_apogee", "garde_fin"]
 CHAMPS_REELS = ["degre", "prix_achat", "valeur"]
 CHAMPS_VIN = CHAMPS_TEXTE + CHAMPS_ENTIERS + CHAMPS_REELS + ["favori"]
@@ -200,6 +201,8 @@ def nettoyer_vin(data, partiel=False):
             propre[champ] = 1 if v in (True, 1, "1", "true", "oui") else 0
     if propre.get("code_barre"):
         propre["code_barre"] = re.sub(r"\D", "", propre["code_barre"])
+    if propre.get("note_date") and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", propre["note_date"]):
+        raise ErreurAPI("Date de la note invalide")
     if "nom" in propre and not propre["nom"]:
         raise ErreurAPI("Le nom du vin est obligatoire")
     if "couleur" in propre:
@@ -533,12 +536,56 @@ def sortir_bouteilles(db, vin_id, data):
                    ORDER BY (rangee IS NOT NULL), id DESC LIMIT ?""", (vin_id, quantite))]
             if len(ids) < quantite or quantite < 1:
                 raise ErreurAPI(f"Stock insuffisant ({len(ids)} bouteille(s) en cave)", 409)
+        retirees = [dict(r) for r in conn.execute(
+            f"SELECT id, cave_id, rangee, colonne, date_entree FROM bouteilles WHERE id IN ({','.join('?' * len(ids))})", ids)]
+        annulation = {"bouteilles": retirees}
+        if data.get("effacer_note"):
+            ancienne = conn.execute("SELECT note_perso, note_date FROM vins WHERE id = ?", (vin_id,)).fetchone()
+            annulation["note"] = {"note_perso": ancienne["note_perso"], "note_date": ancienne["note_date"]}
+            conn.execute("UPDATE vins SET note_perso = '', note_date = '', note_rappel = '' WHERE id = ?", (vin_id,))
         conn.executemany("DELETE FROM bouteilles WHERE id = ?", [(i,) for i in ids])
-        conn.execute("""INSERT INTO mouvements (vin_id, vin_nom, millesime, type, quantite, raison, note, commentaire, date)
-                        VALUES (?, ?, ?, 'sortie', ?, ?, ?, ?, ?)""",
-                     (vin_id, vin["nom"], vin["millesime"], quantite, raison, note,
-                      (data.get("commentaire") or "").strip(), data.get("date") or maintenant()[:10]))
-    return lire_vin(db, vin_id)
+        cur = conn.execute("""INSERT INTO mouvements (vin_id, vin_nom, millesime, type, quantite, raison, note, commentaire, date,
+                                                      annulation, cree_le)
+                              VALUES (?, ?, ?, 'sortie', ?, ?, ?, ?, ?, ?, ?)""",
+                           (vin_id, vin["nom"], vin["millesime"], quantite, raison, note,
+                            (data.get("commentaire") or "").strip(), data.get("date") or maintenant()[:10],
+                            json.dumps(annulation), maintenant()))
+    resultat = lire_vin(db, vin_id)
+    resultat["mouvement_id"] = cur.lastrowid
+    return resultat
+
+
+DELAI_ANNULATION = 30 * 60  # secondes pendant lesquelles une sortie peut être annulée
+
+
+def annuler_sortie(db, mouvement_id):
+    """Remet les bouteilles sorties à leur place exacte (ou en vrac dans la même cave si la place a été reprise),
+    rétablit la note personnelle si elle avait été effacée, et retire la sortie de l'historique."""
+    with db.transaction() as conn:
+        m = conn.execute("SELECT * FROM mouvements WHERE id = ?", (mouvement_id,)).fetchone()
+        if not m or m["type"] != "sortie" or not m["annulation"]:
+            raise ErreurAPI("Cette sortie ne peut pas être annulée", 404)
+        try:
+            ecart = (datetime.fromisoformat(maintenant()) - datetime.fromisoformat(m["cree_le"])).total_seconds()
+        except (TypeError, ValueError):
+            ecart = DELAI_ANNULATION + 1
+        if ecart > DELAI_ANNULATION:
+            raise ErreurAPI("Trop tard pour annuler cette sortie : ajoutez la bouteille à la main", 409)
+        infos = json.loads(m["annulation"])
+        for b in infos["bouteilles"]:
+            libre = b["rangee"] is None or not conn.execute(
+                "SELECT 1 FROM bouteilles WHERE cave_id = ? AND rangee = ? AND colonne = ?",
+                (b["cave_id"], b["rangee"], b["colonne"])).fetchone()
+            existe_cave = b["cave_id"] is None or conn.execute("SELECT 1 FROM caves WHERE id = ?", (b["cave_id"],)).fetchone()
+            conn.execute("INSERT INTO bouteilles (vin_id, cave_id, rangee, colonne, date_entree) VALUES (?, ?, ?, ?, ?)",
+                         (m["vin_id"], b["cave_id"] if existe_cave else None,
+                          b["rangee"] if libre and existe_cave else None, b["colonne"] if libre and existe_cave else None,
+                          b["date_entree"]))
+        if infos.get("note"):
+            conn.execute("UPDATE vins SET note_perso = ?, note_date = ? WHERE id = ?",
+                         (infos["note"]["note_perso"], infos["note"]["note_date"], m["vin_id"]))
+        conn.execute("DELETE FROM mouvements WHERE id = ?", (mouvement_id,))
+    return lire_vin(db, m["vin_id"])
 
 
 def deplacer_bouteille(db, bouteille_id, data):
@@ -879,6 +926,8 @@ def statistiques(db):
     vins = lister_vins(db, {"stock": "1"})
     total = sum(v["stock"] for v in vins)
     valeur = sum((v["valeur_unitaire"] or 0) * v["stock"] for v in vins)
+    paye = sum((v["prix_achat"] or 0) * v["stock"] for v in vins)
+    sans_prix = sum(v["stock"] for v in vins if v["prix_achat"] is None)
 
     def repartition(cle, libelles=None):
         compte = {}
@@ -912,6 +961,8 @@ def statistiques(db):
         "sans_emplacement": sans_emplacement,
         "place_libre": place_libre(db),
         "valeur": round(valeur, 2),
+        "valeur_payee": round(paye, 2),
+        "sans_prix_achat": sans_prix,
         "par_couleur": repartition("couleur", COULEURS),
         "par_region": repartition("region")[:12],
         "par_millesime": sorted(repartition("millesime"), key=lambda l: str(l["cle"])),

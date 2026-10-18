@@ -111,10 +111,17 @@ class Database:
                                 ("garde_source", "TEXT NOT NULL DEFAULT ''"), ("garde_ia_debut", "INTEGER"),
                                 ("garde_ia_apogee", "INTEGER"), ("garde_ia_fin", "INTEGER"), ("garde_ia_date", "TEXT"),
                                 ("garde_ia_note", "TEXT NOT NULL DEFAULT ''"),
-                                ("note_perso", "TEXT NOT NULL DEFAULT ''")):  # rappel personnel (1.7.1)
+                                ("note_perso", "TEXT NOT NULL DEFAULT ''"),  # rappel personnel (1.7.1)
+                                ("note_date", "TEXT NOT NULL DEFAULT ''"),  # date de l'occasion (1.12)
+                                ("note_rappel", "TEXT NOT NULL DEFAULT ''")):  # date pour laquelle on a déjà prévenu
             if nom not in colonnes:
                 self.conn.execute(f"ALTER TABLE vins ADD COLUMN {nom} {definition}")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_vins_code_barre ON vins(code_barre)")
+        # 1.12 : de quoi annuler une sortie (bouteilles retirées et note effacée), avec l'heure de la sortie
+        colonnes_mvt = {r[1] for r in self.conn.execute("PRAGMA table_info(mouvements)")}
+        for nom, definition in (("annulation", "TEXT"), ("cree_le", "TEXT")):
+            if nom not in colonnes_mvt:
+                self.conn.execute(f"ALTER TABLE mouvements ADD COLUMN {nom} {definition}")
         # étagères (1.7) : une étagère est une cave rattachée à une cave principale (parent_id),
         # posée en haut, en bas, à gauche ou à droite (position) d'un casier de référence (ref_id)
         colonnes_caves = {r[1] for r in self.conn.execute("PRAGMA table_info(caves)")}

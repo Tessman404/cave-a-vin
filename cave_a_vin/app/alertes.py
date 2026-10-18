@@ -93,6 +93,41 @@ def verifier(app, aujourdhui=None):
     return len(choisis)
 
 
+JOURS_AVANT_OCCASION = 7
+
+
+def verifier_occasions(app, aujourdhui=None):
+    """Note personnelle datée (« À boire à l'anniversaire de Leïna », le 12 mars) : une notification 7 jours avant.
+    Un seul rappel par date. Renvoie le nombre de vins signalés."""
+    reglages = app.reglages()
+    service = reglages.get("notif_service") or ""
+    if not service:
+        return 0
+    aujourdhui = aujourdhui or date.today()
+    choisis = []
+    for v in cave.lister_vins(app.db, {"stock": "1"}):
+        if not v.get("note_perso") or not v.get("note_date") or v.get("note_rappel") == v["note_date"]:
+            continue
+        try:
+            jour = date.fromisoformat(v["note_date"])
+        except ValueError:
+            continue
+        if 0 <= (jour - aujourdhui).days <= JOURS_AVANT_OCCASION:
+            choisis.append((v, jour))
+    for v, jour in choisis:
+        dans = (jour - aujourdhui).days
+        quand = "aujourd'hui" if dans == 0 else "demain" if dans == 1 else f"dans {dans} jours"
+        titre = f"📌 {v['note_perso']} : {quand}"
+        message = (f"Pensez à sortir {v['nom']}{' ' + str(v['millesime']) if v['millesime'] else ''} "
+                   f"pour le {jour.strftime('%d/%m')}.")
+        envoyer(reglages, service, titre, message)
+        with app.db.transaction() as conn:
+            conn.execute("UPDATE vins SET note_rappel = ? WHERE id = ?", (v["note_date"], v["id"]))
+    if choisis:
+        log.info("Rappel d'occasion envoyé pour %d vin(s)", len(choisis))
+    return len(choisis)
+
+
 class Surveillance:
     """Tâche de fond : vérifie toutes les 6 heures s'il faut prévenir d'un vin en fin de garde."""
 
@@ -110,8 +145,9 @@ class Surveillance:
     def _boucle(self):
         self._arret.wait(60)
         while not self._arret.is_set():
-            try:
-                verifier(self.app)
-            except Exception as e:  # noqa: BLE001 - on réessaiera au prochain passage
-                log.warning("Notification de fin de garde impossible : %s", e)
+            for tache, nom in ((verifier, "de fin de garde"), (verifier_occasions, "d'occasion")):
+                try:
+                    tache(self.app)
+                except Exception as e:  # noqa: BLE001 - on réessaiera au prochain passage
+                    log.warning("Notification %s impossible : %s", nom, e)
             self._arret.wait(self.intervalle)
