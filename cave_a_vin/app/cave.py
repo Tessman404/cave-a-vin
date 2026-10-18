@@ -91,28 +91,68 @@ def niveau_du_vin(appellation="", region="", prix=None):
     return "moyen" if (region or "").strip() else "courant"
 
 
+# Accords mets-vins. « couleurs » : poids de chaque type de vin (0 à 3) ; « mots » : appellations, régions et cépages
+# qui s'accordent ; « synonymes » : mots du plat recherchés dans les accords notés sur la fiche du vin (souvent par l'IA).
 PLATS = {
-    "viande_rouge": {"label": "Viande rouge / gibier", "couleurs": {"rouge": 3},
-                     "mots": ["bordeaux", "rhône", "rhone", "syrah", "cabernet", "madiran", "cahors", "malbec"]},
-    "viande_blanche": {"label": "Volaille / viande blanche", "couleurs": {"rouge": 2, "blanc": 2},
-                       "mots": ["bourgogne", "pinot", "chardonnay", "beaujolais", "gamay"]},
-    "poisson": {"label": "Poisson", "couleurs": {"blanc": 3, "rose": 1},
-                "mots": ["loire", "chablis", "sauvignon", "chardonnay", "bourgogne"]},
-    "fruits_de_mer": {"label": "Fruits de mer / crustacés", "couleurs": {"blanc": 3, "effervescent": 2},
-                      "mots": ["muscadet", "chablis", "picpoul", "riesling", "entre-deux-mers", "sancerre"]},
-    "fromage": {"label": "Fromages", "couleurs": {"rouge": 2, "blanc": 2, "liquoreux": 1},
-                "mots": ["jura", "savagnin", "bourgogne", "sauternes", "comté"]},
-    "dessert": {"label": "Dessert", "couleurs": {"liquoreux": 3, "effervescent": 2},
-                "mots": ["sauternes", "muscat", "banyuls", "maury", "champagne", "loupiac"]},
-    "aperitif": {"label": "Apéritif", "couleurs": {"effervescent": 3, "blanc": 1, "rose": 1},
-                 "mots": ["champagne", "crémant", "cremant"]},
-    "epice": {"label": "Cuisine épicée / exotique", "couleurs": {"blanc": 2, "rose": 2},
-              "mots": ["gewurztraminer", "alsace", "riesling", "pinot gris"]},
-    "barbecue": {"label": "Barbecue / grillades", "couleurs": {"rouge": 2, "rose": 3},
-                 "mots": ["provence", "rhône", "rhone", "grenache", "syrah", "languedoc"]},
-    "vegetarien": {"label": "Végétarien", "couleurs": {"blanc": 2, "rose": 2, "rouge": 1},
-                   "mots": ["loire", "gamay", "pinot"]},
+    "boeuf": {"label": "Bœuf", "icone": "🥩", "couleurs": {"rouge": 3},
+              "mots": ["médoc", "medoc", "pauillac", "saint-julien", "saint-estèphe", "margaux", "graves", "bordeaux",
+                       "cabernet", "syrah", "malbec", "cahors", "madiran", "côtes-du-rhône", "cotes-du-rhone"],
+              "synonymes": ["bœuf", "boeuf", "entrecôte", "entrecote", "steak", "côte de bœuf", "viande rouge", "rôti"]},
+    "agneau": {"label": "Agneau", "icone": "🐑", "couleurs": {"rouge": 3, "rose": 1},
+               "mots": ["pauillac", "saint-julien", "bordeaux", "grenache", "bandol", "rhône", "rhone", "languedoc",
+                        "rioja", "cabernet"],
+               "synonymes": ["agneau", "gigot", "souris d'agneau", "côtelettes"]},
+    "canard": {"label": "Canard", "icone": "🦆", "couleurs": {"rouge": 3},
+               "mots": ["madiran", "cahors", "saint-émilion", "saint-emilion", "pomerol", "merlot", "pinot noir", "bourgogne",
+                        "côtes-du-rhône", "gaillac", "fronton", "marcillac", "tannat"],
+               "synonymes": ["canard", "magret", "confit", "aiguillettes", "parmentier de canard"]},
+    "gibier": {"label": "Gibier", "icone": "🦌", "couleurs": {"rouge": 3},
+               "mots": ["pomerol", "saint-émilion", "côte-rôtie", "cote-rotie", "hermitage", "cornas", "syrah",
+                        "châteauneuf", "chateauneuf", "gevrey", "nuits", "pommard", "bandol", "mourvèdre"],
+               "synonymes": ["gibier", "chevreuil", "sanglier", "biche", "lièvre", "faisan", "civet"]},
+    "volaille": {"label": "Volaille", "icone": "🍗", "couleurs": {"rouge": 2, "blanc": 2},
+                 "mots": ["bourgogne", "pinot", "beaujolais", "gamay", "chardonnay", "morgon", "fleurie", "jura",
+                          "mâcon", "macon", "chinon", "saumur"],
+                 "synonymes": ["volaille", "poulet", "dinde", "chapon", "pintade", "viande blanche"]},
+    "porc": {"label": "Porc & charcuterie", "icone": "🥓", "couleurs": {"rouge": 2, "rose": 2, "blanc": 1},
+             "mots": ["beaujolais", "gamay", "morgon", "côtes-du-rhône", "alsace", "pinot", "chinon", "saumur", "savoie"],
+             "synonymes": ["porc", "charcuterie", "saucisse", "jambon", "filet mignon", "travers", "choucroute"]},
+    "poisson": {"label": "Poisson", "icone": "🐟", "couleurs": {"blanc": 3, "rose": 1},
+                "mots": ["chablis", "sancerre", "pouilly", "sauvignon", "chardonnay", "loire", "muscadet", "meursault",
+                         "graves", "entre-deux-mers"],
+                "synonymes": ["poisson", "saumon", "cabillaud", "sole", "bar", "dorade", "lotte", "truite"]},
+    "fruits_de_mer": {"label": "Fruits de mer", "icone": "🦐", "couleurs": {"blanc": 3, "effervescent": 2},
+                      "mots": ["muscadet", "chablis", "picpoul", "riesling", "entre-deux-mers", "sancerre", "champagne"],
+                      "synonymes": ["fruits de mer", "huîtres", "huitres", "crustacés", "homard", "crevettes", "moules",
+                                    "langoustines", "coquilles"]},
+    "foie_gras": {"label": "Foie gras", "icone": "🍯", "couleurs": {"liquoreux": 3, "effervescent": 1, "blanc": 1},
+                  "mots": ["sauternes", "loupiac", "barsac", "jurançon", "jurancon", "monbazillac", "gewurztraminer",
+                           "vendanges tardives", "coteaux du layon"],
+                  "synonymes": ["foie gras"]},
+    "fromage": {"label": "Fromages", "icone": "🧀", "couleurs": {"rouge": 2, "blanc": 2, "liquoreux": 1},
+                "mots": ["jura", "savagnin", "bourgogne", "sauternes", "comté", "vin jaune", "chinon", "saint-joseph"],
+                "synonymes": ["fromage", "comté", "camembert", "roquefort", "chèvre", "plateau de fromages"]},
+    "pates_pizza": {"label": "Pâtes & pizza", "icone": "🍕", "couleurs": {"rouge": 2, "rose": 2},
+                    "mots": ["chianti", "sangiovese", "italie", "côtes-du-rhône", "languedoc", "provence", "grenache"],
+                    "synonymes": ["pâtes", "pates", "pizza", "lasagnes", "bolognaise", "risotto"]},
+    "barbecue": {"label": "Barbecue", "icone": "🔥", "couleurs": {"rouge": 2, "rose": 3},
+                 "mots": ["provence", "rhône", "rhone", "grenache", "syrah", "languedoc", "malbec", "zinfandel"],
+                 "synonymes": ["barbecue", "grillades", "brochettes", "merguez", "plancha"]},
+    "epice": {"label": "Épicé & exotique", "icone": "🌶️", "couleurs": {"blanc": 2, "rose": 2},
+              "mots": ["gewurztraminer", "alsace", "riesling", "pinot gris", "vouvray"],
+              "synonymes": ["épicé", "epice", "curry", "asiatique", "exotique", "thaï", "indien"]},
+    "vegetarien": {"label": "Végétarien", "icone": "🥗", "couleurs": {"blanc": 2, "rose": 2, "rouge": 1},
+                   "mots": ["loire", "gamay", "pinot", "sauvignon"],
+                   "synonymes": ["légumes", "legumes", "végétarien", "salade", "tarte salée"]},
+    "dessert": {"label": "Dessert", "icone": "🍰", "couleurs": {"liquoreux": 3, "effervescent": 2},
+                "mots": ["sauternes", "muscat", "banyuls", "maury", "champagne", "loupiac", "rivesaltes"],
+                "synonymes": ["dessert", "chocolat", "tarte", "fruits", "gâteau"]},
+    "aperitif": {"label": "Apéritif", "icone": "🥂", "couleurs": {"effervescent": 3, "blanc": 1, "rose": 1},
+                 "mots": ["champagne", "crémant", "cremant", "prosecco", "blanquette"],
+                 "synonymes": ["apéritif", "aperitif", "amuse-bouche"]},
 }
+# anciens noms (scripts Home Assistant existants)
+PLATS_ALIAS = {"viande_rouge": "boeuf", "viande_blanche": "volaille"}
 BONUS_MATURITE = {"urgent": 8, "declin": 7, "apogee": 6, "depasse": 5, "a_boire": 4, "inconnu": 1}
 
 
@@ -722,7 +762,24 @@ def supprimer_envie(db, envie_id):
 
 # --------------------------------------------------------------------------- accords & suggestions
 
+def _accord(regle, vin):
+    """Note de l'accord entre un plat et un vin (0 à 100) et ce qui la justifie."""
+    poids = regle["couleurs"].get(vin["couleur"], 0)
+    texte = " ".join(str(vin.get(c) or "") for c in ("region", "appellation", "cepages", "nom", "domaine")).lower()
+    accords = (vin.get("accords") or "").lower()
+    mots = [m for m in regle["mots"] if m in texte]
+    cites = [m for m in regle["synonymes"] if m in accords]
+    note = poids * 15 + min(len(mots), 2) * 12 + (31 if cites else 0)
+    raisons = []
+    if cites:
+        raisons.append(f"conseillé avec : {cites[0]}")
+    if mots:
+        raisons.append("accord : " + ", ".join(dict.fromkeys(mots)))
+    return min(note, 100), raisons
+
+
 def suggerer(db, plat=None, couleur=None, limite=5):
+    plat = PLATS_ALIAS.get(plat, plat)
     if plat and plat not in PLATS:
         raise ErreurAPI("Plat inconnu")
     regle = PLATS.get(plat) if plat else None
@@ -730,18 +787,17 @@ def suggerer(db, plat=None, couleur=None, limite=5):
     for vin in lister_vins(db, {"stock": "1", "couleur": couleur or ""}):
         if vin["statut"] == "trop_jeune":
             continue
-        score = BONUS_MATURITE.get(vin["statut"], 0) + (1 if vin["favori"] else 0)
-        raisons = [vin["statut_label"]]
+        maturite = BONUS_MATURITE.get(vin["statut"], 0) + (1 if vin["favori"] else 0)
+        raisons = []
+        note = None
         if regle:
-            poids = regle["couleurs"].get(vin["couleur"], 0)
-            texte = " ".join([vin["region"], vin["appellation"], vin["cepages"], vin["nom"], vin["accords"]]).lower()
-            mots = [m for m in regle["mots"] if m in texte]
-            if not poids and not mots:
+            note, raisons = _accord(regle, vin)
+            if note < 15:  # couleur qui ne convient pas et aucun indice d'accord
                 continue
-            score += poids * 10 + 4 * len(mots)
-            if mots:
-                raisons.append("accord : " + ", ".join(mots))
-        resultats.append({"score": score, "raisons": raisons, "vin": vin})
+        raisons.append(vin["statut_label"])
+        # l'accord d'abord ; la maturité départage les vins aussi bien accordés
+        score = (note or 0) * 10 + maturite
+        resultats.append({"score": score, "accord": note, "raisons": raisons, "vin": vin})
     resultats.sort(key=lambda r: (-r["score"], r["vin"]["garde_fin"] or 9999))
     return resultats[:max(1, min(int(limite or 5), 50))]
 

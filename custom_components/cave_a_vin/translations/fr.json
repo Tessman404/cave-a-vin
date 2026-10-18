@@ -102,7 +102,15 @@
         "aperitif": "Apéritif",
         "epice": "Cuisine épicée / exotique",
         "barbecue": "Barbecue",
-        "vegetarien": "Végétarien"
+        "vegetarien": "Végétarien",
+        "boeuf": "Bœuf",
+        "agneau": "Agneau",
+        "canard": "Canard",
+        "gibier": "Gibier",
+        "volaille": "Volaille",
+        "porc": "Porc & charcuterie",
+        "foie_gras": "Foie gras",
+        "pates_pizza": "Pâtes & pizza"
       }
     },
     "couleur": {

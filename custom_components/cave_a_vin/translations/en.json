@@ -102,7 +102,15 @@
         "aperitif": "Aperitif",
         "epice": "Spicy food",
         "barbecue": "Barbecue",
-        "vegetarien": "Vegetarian"
+        "vegetarien": "Vegetarian",
+        "boeuf": "Beef",
+        "agneau": "Lamb",
+        "canard": "Duck",
+        "gibier": "Game",
+        "volaille": "Poultry",
+        "porc": "Pork & cold cuts",
+        "foie_gras": "Foie gras",
+        "pates_pizza": "Pasta & pizza"
       }
     },
     "couleur": {

@@ -1377,29 +1377,43 @@ function dialogueCave(c) {
   });
 }
 
+const PLATS_CHAUDS = ["boeuf", "agneau", "canard", "gibier", "volaille", "porc", "poisson", "pates_pizza", "barbecue", "epice"];
+const niveauAccord = (n) => n >= 75 ? "Accord parfait" : n >= 55 ? "Très bon accord" : n >= 35 ? "Bon accord" : "Accord possible";
+
 async function pageCeSoir(main) {
   let plat = "", couleur = "";
+  const icones = REF.plats_icones || {};
   main.innerHTML = `<div class="entete"><h1>Mets &amp; Vins</h1></div>
-    <div class="carte"><p class="muted">Choisissez ce que vous mangez : la cave propose les bouteilles qui s'accordent le mieux, en privilégiant celles à boire en priorité.</p>
-    <div class="plats" id="plats"><button class="bouton actif" data-plat="">Peu importe</button>${Object.entries(REF.plats).map(([k, l]) => `<button class="bouton" data-plat="${k}">${esc(l)}</button>`).join("")}</div>
-    <div class="filtres" style="margin:14px 0 0;max-width:280px"><select id="couleur" aria-label="Couleur">${options(REF.couleurs, "", "Toutes couleurs")}</select></div></div>
-    <div id="suggestions" class="grille" style="margin-top:16px"></div>`;
+    <p class="muted" style="margin-top:-8px">Que mangez-vous ? La cave classe ses bouteilles de la mieux accordée à la moins accordée, et à accord égal, celles à boire en priorité.</p>
+    <div class="plats-tuiles" id="plats" role="group" aria-label="Plat">
+      ${Object.entries(REF.plats).map(([k, l]) => `<button type="button" class="tuile-plat${PLATS_CHAUDS.includes(k) ? " chaud" : ""}" data-plat="${k}" aria-pressed="false">
+        <span class="fumee" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="emoji" aria-hidden="true">${icones[k] || "🍽️"}</span><span class="nom">${esc(l)}</span></button>`).join("")}
+    </div>
+    <div class="filtres" style="margin:14px 0 0;max-width:280px"><select id="couleur" aria-label="Couleur">${options(REF.couleurs, "", "Toutes couleurs")}</select></div>
+    <div id="suggestions" class="suggestions-liste"></div>`;
   const charger = async () => {
-    const res = await api("GET", "suggestion?" + new URLSearchParams({ plat, couleur, limite: 8 }));
+    const res = await api("GET", "suggestion?" + new URLSearchParams({ plat, couleur, limite: 10 }));
     $("#suggestions", main).innerHTML = res.length ? res.map((s, i) => `
-      <div class="carte suggestion"><span class="rang">${i + 1}</span>${pastille(s.vin.couleur)}
-        <div class="grandit" style="flex:1;min-width:0"><a class="titre" href="#/vins/${s.vin.id}"><b>${titreVin(s.vin)}</b></a>
-          <div class="muted petit-texte">${sousTitre(s.vin)}</div><div class="petit-texte">${s.raisons.map(esc).join(" · ")}</div></div>
-        <span class="muted">×${s.vin.stock}</span><button class="bouton petit primaire" data-i="${i}">Ouvrir</button></div>`).join("")
-      : `<div class="carte vide">Aucune bouteille prête à boire ne correspond. Essayez une autre couleur ou un autre plat.</div>`;
+      <div class="carte suggestion-vin${i === 0 && plat ? " meilleure" : ""}">
+        <a class="photo-vin" href="#/vins/${s.vin.id}" aria-hidden="true" tabindex="-1">${s.vin.a_photo ? `<img src="${urlPhoto(s.vin)}" alt="" loading="lazy">` : bouteilleSVG(s.vin.couleur)}</a>
+        <div class="grandit">
+          ${s.accord != null ? `<div class="accord"><span class="jauge"><span style="width:${s.accord}%"></span></span>${niveauAccord(s.accord)}</div>` : ""}
+          <a class="titre" href="#/vins/${s.vin.id}">${titreVin(s.vin)}</a>
+          <div class="muted petit-texte">${sousTitre(s.vin)}</div>
+          <div class="petit-texte raisons">${s.raisons.map(esc).join(" · ")}</div>
+        </div>
+        <div class="cote"><span class="muted">×${s.vin.stock}</span><button class="bouton petit primaire" data-i="${i}">Déguster</button></div>
+      </div>`).join("")
+      : `<div class="carte vide">Aucune bouteille prête à boire ne s'accorde avec ce plat. Essayez une autre couleur ou un autre plat.</div>`;
     $$("[data-i]", main).forEach((b) => (b.onclick = () => dialogueSortie(res[+b.dataset.i].vin, null, charger)));
   };
   $("#plats", main).addEventListener("click", (e) => {
     const b = e.target.closest("[data-plat]");
     if (!b) return;
-    plat = b.dataset.plat;
-    $$("#plats button", main).forEach((x) => x.classList.toggle("actif", x === b));
-    charger();
+    plat = b.classList.contains("actif") ? "" : b.dataset.plat;  // retoucher le plat le désélectionne
+    $$("#plats .tuile-plat", main).forEach((x) => { const on = x.dataset.plat === plat; x.classList.toggle("actif", on); x.setAttribute("aria-pressed", on); });
+    charger().then(() => { if (plat && window.innerWidth < 761) $("#suggestions", main).scrollIntoView({ behavior: "smooth", block: "start" }); });
   });
   $("#couleur", main).onchange = (e) => { couleur = e.target.value; charger(); };
   await charger();

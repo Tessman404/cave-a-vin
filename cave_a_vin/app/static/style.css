@@ -707,3 +707,42 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 @media (prefers-color-scheme: dark) {
   .plan .case-cave.pleine.rouge, .plan .case-cave.choisie.rouge { color: #5a1424; }
 }
+
+/* ---------- Mets & Vins ---------- */
+.plats-tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.tuile-plat {
+  position: relative; display: grid; justify-items: center; gap: 4px; padding: 16px 6px 12px; border-radius: 18px;
+  border: 1px solid var(--bord); background: var(--surface); color: var(--texte); font: 500 .85rem var(--sans); cursor: pointer;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.tuile-plat .emoji { font-size: 2.2rem; line-height: 1; display: block; }
+.tuile-plat:hover .emoji { animation: penche .6s ease-in-out; }
+.tuile-plat.actif { border-color: var(--accent); background: var(--accent-doux); transform: translateY(-2px); box-shadow: var(--ombre); }
+.tuile-plat.actif .emoji { animation: saute .5s cubic-bezier(.3, 1.6, .5, 1), flotte 2.4s ease-in-out .5s infinite; }
+.tuile-plat.actif .nom { color: var(--accent); font-weight: 650; }
+/* fumée au-dessus d'un plat chaud sélectionné */
+.fumee { position: absolute; top: 2px; left: 50%; width: 30px; height: 18px; transform: translateX(-50%); pointer-events: none; }
+.fumee i { position: absolute; bottom: 0; width: 4px; height: 12px; border-radius: 4px; background: color-mix(in srgb, var(--texte-3) 70%, transparent); opacity: 0; }
+.fumee i:nth-child(1) { left: 4px; } .fumee i:nth-child(2) { left: 13px; } .fumee i:nth-child(3) { left: 22px; }
+.tuile-plat.chaud.actif .fumee i { animation: fumee 1.8s ease-out infinite; }
+.tuile-plat.chaud.actif .fumee i:nth-child(2) { animation-delay: .6s; } .tuile-plat.chaud.actif .fumee i:nth-child(3) { animation-delay: 1.2s; }
+@keyframes saute { 0% { transform: scale(.6); } 60% { transform: scale(1.25) rotate(-6deg); } 100% { transform: scale(1); } }
+@keyframes flotte { 50% { transform: translateY(-3px); } }
+@keyframes penche { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes fumee { 0% { opacity: 0; transform: translateY(6px) scaleY(.6); } 30% { opacity: .7; } 100% { opacity: 0; transform: translateY(-12px) translateX(3px) scaleY(1.2); } }
+@media (prefers-reduced-motion: reduce) { .tuile-plat .emoji, .fumee i { animation: none !important; } }
+
+.suggestions-liste { display: grid; gap: 12px; margin-top: 16px; }
+.suggestion-vin { display: flex; gap: 14px; align-items: center; padding: 12px; }
+.suggestion-vin.meilleure { border-color: color-mix(in srgb, var(--or) 60%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--or) 40%, transparent), var(--ombre); }
+.suggestion-vin .photo-vin { width: 74px; height: 98px; flex: none; border-radius: 12px; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 70%, var(--bord))); }
+.suggestion-vin .photo-vin img { width: 100%; height: 100%; object-fit: cover; }
+.suggestion-vin .photo-vin svg { width: 26px; height: 62px; }
+.suggestion-vin .grandit { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.suggestion-vin .titre { font: 620 1.05rem/1.25 var(--serif); color: var(--texte); }
+.suggestion-vin .raisons { color: var(--texte-2); }
+.suggestion-vin .cote { display: grid; justify-items: end; gap: 8px; }
+.accord { display: flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 650; color: var(--or); }
+.accord .jauge { width: 60px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.accord .jauge span { display: block; height: 100%; border-radius: 3px; background: var(--or); }

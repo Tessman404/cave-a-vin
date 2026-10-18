@@ -61,6 +61,7 @@ def _stats(app, req):
 def _referentiel(app, req):
     return {
         "couleurs": cave.COULEURS, "statuts": cave.STATUTS, "plats": {k: v["label"] for k, v in cave.PLATS.items()},
+        "plats_icones": {k: v["icone"] for k, v in cave.PLATS.items()},
         "raisons_entree": cave.RAISONS_ENTREE, "raisons_sortie": cave.RAISONS_SORTIE,
         "autocompletion": cave.autocompletion(app.db), "annee": cave.annee_courante(),
         "addon": ha.mode_addon(), "version": __version__,
