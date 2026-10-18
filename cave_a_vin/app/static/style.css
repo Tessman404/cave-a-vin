@@ -784,3 +784,7 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .histogramme .col.cliquable:hover div { filter: brightness(1.25); }
 .barre-ligne.cliquable:focus-visible, .histogramme .col.cliquable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lien-stats { margin: 22px 0 0; text-align: center; }
+
+.alerte-place .actions { gap: 8px; }
+.alerte-place .secondaire-clair { background: transparent; color: #f4efe6; border: 1px solid rgba(255, 255, 255, .45); }
+.a-ranger-liste .statut { margin-right: 4px; }

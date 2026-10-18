@@ -807,23 +807,54 @@ def suggerer(db, plat=None, couleur=None, limite=5):
 
 # --------------------------------------------------------------------------- statistiques
 
+def candidats_cave(db, limite=None):
+    """Bouteilles à mettre en priorité dans une cave électrique, une par vin.
+    Candidates : les bouteilles non rangées et celles des casiers non réfrigérés (jamais celles d'un réfrigérateur,
+    qu'on va boire, ni celles déjà en cave électrique). Priorité : les vins qui profitent le plus d'une garde stable,
+    c'est-à-dire ceux qui ont le plus d'années de garde devant eux, puis les plus précieux. La température de service
+    (un blanc ou un champagne se boit frais) n'entre pas en compte."""
+    annee = annee_courante()
+    lignes = db.all(f"""SELECT b.id AS bouteille_id, b.rangee IS NOT NULL AS a_deplacer,
+                               CASE WHEN c.id IS NULL THEN '' ELSE {NOM_COMPLET} END AS depuis,
+                               v.id AS vin_id, v.nom, v.millesime, v.appellation, v.domaine, v.couleur, v.updated_at,
+                               COALESCE(v.photo, '') <> '' AS a_photo, v.garde_debut, v.garde_apogee, v.garde_fin,
+                               COALESCE(v.valeur, v.prix_achat) AS valeur
+                        FROM bouteilles b JOIN vins v ON v.id = b.vin_id
+                        LEFT JOIN caves c ON c.id = b.cave_id LEFT JOIN caves p ON p.id = c.parent_id
+                        WHERE b.rangee IS NULL
+                           OR (COALESCE(c.refrigere, 0) = 0
+                               AND LOWER(COALESCE(c.nom, '') || ' ' || COALESCE(c.nom_casier, '')) NOT LIKE '%frig%')
+                        ORDER BY b.rangee IS NOT NULL, b.id""")
+    par_vin = {}
+    for l in lignes:
+        par_vin.setdefault(l["vin_id"], {**l, "nombre": 0})["nombre"] += 1
+    candidats = []
+    for c in par_vin.values():
+        c["a_deplacer"], c["a_photo"] = bool(c["a_deplacer"]), bool(c["a_photo"])
+        c["statut"] = statut_garde(c, annee)
+        if c["statut"] == "depasse":
+            continue  # à boire tout de suite, inutile de le mettre en cave
+        reste = max(0, min((c["garde_fin"] or annee + 3) - annee, 30))  # sans garde connue : 3 ans par défaut
+        valeur = c["valeur"] or 0
+        c["priorite"] = round(reste * 4 + min(valeur, 200) / 5, 1)
+        raisons = []
+        if c["garde_fin"]:
+            raisons.append(f"se garde jusqu'en {c['garde_fin']}" if reste >= 3 else f"à boire d'ici {c['garde_fin']}")
+        if valeur:
+            raisons.append(f"{valeur:.0f} €")
+        c["raisons"] = raisons
+        candidats.append(c)
+    candidats.sort(key=lambda c: (-c["priorite"], c["a_deplacer"], c["nom"].lower()))  # à prix égal, les non rangées d'abord
+    return candidats[:limite] if limite else candidats
+
+
 def place_libre(db):
-    """Première cave électrique (casier réfrigéré) qui a des places libres (casier principal d'abord), et la bouteille non rangée la plus
-    prestigieuse (valeur estimée, sinon prix d'achat) à y mettre. None s'il n'y a rien à proposer."""
-    # candidates : d'abord les bouteilles non rangées, sinon celles des casiers non réfrigérés (étagères).
-    # Un réfrigérateur n'est pas concerné : on y met les bouteilles qu'on va boire.
-    suggestion = db.one(f"""SELECT b.id AS bouteille_id, v.id AS vin_id, v.nom, v.millesime, v.appellation, v.couleur,
-                                   COALESCE(v.valeur, v.prix_achat) AS valeur, b.rangee IS NOT NULL AS a_deplacer,
-                                   CASE WHEN c.id IS NULL THEN '' ELSE {NOM_COMPLET} END AS depuis
-                            FROM bouteilles b JOIN vins v ON v.id = b.vin_id
-                            LEFT JOIN caves c ON c.id = b.cave_id LEFT JOIN caves p ON p.id = c.parent_id
-                            WHERE b.rangee IS NULL
-                               OR (COALESCE(c.refrigere, 0) = 0
-                                   AND LOWER(COALESCE(c.nom, '') || ' ' || COALESCE(c.nom_casier, '')) NOT LIKE '%frig%')
-                            ORDER BY b.rangee IS NOT NULL, COALESCE(v.valeur, v.prix_achat, 0) DESC, v.millesime, b.id LIMIT 1""")
-    if not suggestion:
+    """Première cave électrique (casier réfrigéré) qui a des places libres, et la bouteille la plus prioritaire à y
+    mettre (voir candidats_cave). None s'il n'y a rien à proposer."""
+    candidats = candidats_cave(db, 1)
+    if not candidats:
         return None
-    suggestion["a_deplacer"] = bool(suggestion["a_deplacer"])
+    suggestion = candidats[0]
     casiers = db.all("""SELECT c.id, c.nom, c.nom_casier, c.parent_id, c.position, c.rangees * c.colonnes AS capacite,
                                COALESCE(p.nom, c.nom) AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_id,
                                (SELECT COUNT(*) FROM bouteilles b WHERE b.cave_id = c.id AND b.rangee IS NOT NULL) AS occupees

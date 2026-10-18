@@ -174,6 +174,15 @@ class TestCave(BaseTest):
         self.assertEqual((p["libres"], p["suggestion"]["nom"], p["suggestion"]["a_deplacer"]), (1, "Sur l'étagère", True))
         self.assertIn("étagère", p["suggestion"]["depuis"])
 
+    def test_candidats_cave_par_priorite_de_garde(self):
+        annee = self.appel("GET", "api/referentiel")["annee"]
+        self.creer_vin(nom="Blanc frais", couleur="blanc", quantite=1, valeur=40, garde_debut=annee - 1, garde_fin=annee + 1)
+        self.creer_vin(nom="Grand de garde", couleur="rouge", quantite=1, valeur=30, garde_debut=annee - 2, garde_fin=annee + 15)
+        self.creer_vin(nom="Trop tard", couleur="rouge", quantite=1, valeur=90, garde_debut=annee - 9, garde_fin=annee - 1)
+        noms = [c["nom"] for c in self.appel("GET", "api/candidats-cave")]
+        self.assertEqual(noms[:2], ["Grand de garde", "Blanc frais"])  # la garde restante prime sur la valeur
+        self.assertNotIn("Trop tard", noms)  # garde dépassée : à boire, pas à ranger
+
     def test_garde_et_statuts(self):
         self.assertEqual(cave.statut_garde({"garde_debut": 2030, "garde_fin": 2040}, 2026), "trop_jeune")
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2030}, 2026), "a_boire")

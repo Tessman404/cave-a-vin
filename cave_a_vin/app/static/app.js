@@ -243,7 +243,8 @@ function casierVivant(s) {
         return `<div class="alerte-place" role="status">
           <div><b>${p.libres > 1 ? `${nombre(p.libres)} places libres` : "Une place libre"} dans ${esc(p.casier_nom)}</b>
             <span>${v.a_deplacer ? "À y mettre" : "Suggestion"} : ${titreVin(v)}${v.appellation ? ` · ${esc(v.appellation)}` : ""}${v.valeur ? ` · ${euros(v.valeur)}` : ""}${v.a_deplacer && v.depuis ? `, actuellement sur ${esc(v.depuis)}` : ""}</span></div>
-          <a class="bouton petit" href="#/caves/${p.cave_id}?placer=${v.bouteille_id}">Choisir l'emplacement</a></div>`;
+          <div class="actions"><a class="bouton petit" href="#/caves/${p.cave_id}?placer=${v.bouteille_id}">Ranger celle-ci</a>
+            <button type="button" class="bouton petit secondaire-clair" id="choisir-vin" data-cave="${p.cave_id}">Choisir un autre vin</button></div></div>`;
       })() : ""}
     </div>
     <div class="alveoles" aria-hidden="true" style="--colonnes:${colonnes};--colonnes-mobile:${Math.min(colonnes, 10)}">
@@ -251,6 +252,23 @@ function casierVivant(s) {
       ${pastilles.length > MAX ? `<span class="reste">et ${nombre(pastilles.length - MAX)} de plus</span>` : ""}
     </div>
   </section>`;
+}
+
+/** Choisir quel vin mettre dans une place libre de la cave électrique : liste par ordre de priorité, avec étiquettes. */
+async function dialogueCandidats(caveId) {
+  const liste = await api("GET", "candidats-cave");
+  const d = dialogue(`<h2>Quel vin ranger dans la cave ?</h2>
+    <p class="muted petit-texte">Par ordre de priorité : d'abord les vins qui ont le plus d'années de garde devant eux, puis les plus précieux.</p>
+    ${liste.length ? `<ul class="a-ranger-liste">${liste.map((c, i) => `<li>
+      <div class="etiquette">${c.a_photo ? `<img src="${urlPhoto({ id: c.vin_id, updated_at: c.updated_at })}" alt="Étiquette de ${esc(c.nom)}" loading="lazy">` : bouteilleSVG(c.couleur)}</div>
+      <div class="grandit"><b>${i === 0 ? "★ " : ""}${titreVin(c)}</b>
+        <div class="muted petit-texte">${esc([c.appellation, c.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
+        <div class="petit-texte">${badgeStatut(c.statut)} ${esc(c.raisons.join(" · "))}</div>
+        <div class="muted petit-texte">${c.a_deplacer ? `Sur ${esc(c.depuis)}` : c.depuis ? `En vrac dans ${esc(c.depuis)}` : "Non rangé"}${c.nombre > 1 ? ` · ×${c.nombre}` : ""}</div></div>
+      <a class="bouton petit primaire" href="#/caves/${caveId}?placer=${c.bouteille_id}" data-fermer-lien>Ranger</a></li>`).join("")}</ul>`
+      : `<p class="muted">Aucune bouteille à proposer : tout est déjà en cave électrique ou au réfrigérateur.</p>`}
+    <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
+  $$("[data-fermer-lien]", d).forEach((a) => a.addEventListener("click", () => d.close()));
 }
 
 function feuillePlus() {
@@ -300,6 +318,8 @@ async function pageAccueil(main) {
     <p class="lien-stats"><a href="#/stats">Voir les statistiques de la cave ›</a></p>
   `;
   $("#sortie-scan", main).onclick = sortirParCodeBarres;
+  const choisirVin = $("#choisir-vin", main);
+  if (choisirVin) choisirVin.onclick = () => dialogueCandidats(+choisirVin.dataset.cave);
   $$("[data-filtre-statut]", main).forEach((a) => a.addEventListener("click", () => {
     filtresVins = { ...filtresVins, statut: a.dataset.filtreStatut, stock: "1" };
   }));

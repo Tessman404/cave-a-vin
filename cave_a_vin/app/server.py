@@ -350,6 +350,11 @@ def _garde(app, req):
                               q.get("appellation", ""), prix, annee_achat)
 
 
+@route("GET", "api/candidats-cave")
+def _candidats_cave(app, req):
+    return cave.candidats_cave(app.db)
+
+
 @route("GET", "api/bouteilles/non-rangees")
 def _non_rangees(app, req):
     return cave.bouteilles_sans_emplacement(app.db)
