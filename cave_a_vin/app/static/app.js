@@ -206,7 +206,7 @@ async function dialogueSortie(vin, bouteilleId, apres) {
     if (!choix) return;
     effacerNote = choix === "effacer";
   }
-  const d = dialogue(`<h2>Sortir ${titreVin(vin)}</h2>
+  const d = dialogue(`<span class="surtitre">Déguster / sortir</span><h2>${titreVin(vin)}</h2>
     <div class="form">
       ${bouteilleId ? "" : `<label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="${vin.stock}" value="1" required></label>`}
       <label>Raison<select name="raison">${options(REF.raisons_sortie, "bue")}</select></label>
@@ -237,7 +237,7 @@ async function dialogueSortie(vin, bouteilleId, apres) {
 async function dialogueEntree(vin, apres) {
   const caves = await api("GET", "caves");
   const place = rangement;
-  dialogue(`<h2>Ajouter des bouteilles</h2><p class="muted">${titreVin(vin)}</p>
+  dialogue(`<span class="surtitre">Ajouter des bouteilles</span><h2>${titreVin(vin)}</h2>
     <div class="form">
       <label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="500" value="1" required></label>
       <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
@@ -311,7 +311,7 @@ function casierVivant(s) {
 /** Choisir quel vin mettre dans une place libre de la cave électrique : liste par ordre de priorité, avec étiquettes. */
 async function dialogueCandidats(caveId) {
   const liste = await api("GET", "candidats-cave");
-  const d = dialogue(`<h2>Quel vin ranger dans la cave ?</h2>
+  const d = dialogue(`<span class="surtitre">Place libre</span><h2>Quel vin ranger dans la cave ?</h2>
     <p class="muted petit-texte">Par ordre de priorité : d'abord les vins qui ont le plus d'années de garde devant eux, puis les plus précieux.</p>
     ${liste.length ? `<ul class="a-ranger-liste">${liste.map((c, i) => `<li>
       <div class="etiquette">${vignetteVin(c, "mini", `Étiquette de ${c.nom}`)}</div>
@@ -327,7 +327,7 @@ async function dialogueCandidats(caveId) {
 
 function feuillePlus() {
   const lien = (page, icone, titre) => `<a href="#/${page}"><svg><use href="#i-${icone}"/></svg>${titre}</a>`;
-  dialogue(`<h2>Plus</h2><nav class="feuille-plus">
+  dialogue(`<span class="surtitre">Tessvine</span><h2>Plus</h2><nav class="feuille-plus">
     ${lien("stats", "stats", "Statistiques")}${lien("envies", "envies", "Envies")}${lien("historique", "historique", "Historique")}${lien("reglages", "reglages", "Réglages")}</nav>
     <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
 }
@@ -800,7 +800,7 @@ function dialogueFond(choisir, urlOriginal, cadrageActuel) {
   let cadrage = cadrageActuel || CAPACITES.cadrage_defaut || "etiquette";
   const vignettes = CAPACITES.fonds.map((f) => `<button type="button" class="vignette-fond" data-fond="${esc(f.id)}">
       <img src="fonds/${esc(f.id)}.jpg" alt=""><span>${esc(f.label)}</span></button>`).join("");
-  const d = dialogue(`<h2>Choisir le fond</h2>
+  const d = dialogue(`<span class="surtitre">Photo</span><h2>Choisir le fond</h2>
     <div class="plats cadrages" role="radiogroup" aria-label="Cadrage">${(CAPACITES.cadrages || []).map((c) =>
       `<button type="button" class="bouton petit${c.id === cadrage ? " actif" : ""}" data-cadrage="${esc(c.id)}">${esc(c.label)}</button>`).join("")}</div>
     <div class="fonds">${vignettes}<button type="button" class="vignette-fond" data-fond=""><img src="${urlOriginal}" alt=""><span>Photo d'origine</span></button></div>
@@ -923,7 +923,7 @@ async function decoderImage(fichier) {
     Renvoie le code lu, ou null si l'on annule. */
 function scanner() {
   return new Promise((resolve) => {
-    const d = dialogue(`<h2>Scanner le code-barres</h2>
+    const d = dialogue(`<span class="surtitre">Code-barres</span><h2>Scanner la bouteille</h2>
       <div class="viseur" hidden><video playsinline muted></video><div class="cadre"></div></div>
       <p class="petit-texte" id="scan-etat">Ouverture de la caméra…</p>
       <div class="actions" style="justify-content:flex-start;margin-top:8px">
@@ -1028,10 +1028,10 @@ async function pageAjouter(main) {
 
   const traiterPhoto = async (fichier) => {
     resultat.innerHTML = `<div class="carte traitement"><div class="apercu-ajout"><img id="apercu" alt="Photo de la bouteille"></div>
-      <ul class="liste etapes"><li id="e-envoi">⏳ Envoi de la photo…</li>
-      ${CAPACITES.detourage ? `<li id="e-detour">⏳ Détourage de la bouteille…</li>` : ""}
-      <li id="e-verso">↻ Verso de la bouteille</li>
-      ${CAPACITES.ia.possible ? `<li id="e-ia">⏳ Lecture de l'étiquette par l'IA…</li>` : ""}</ul>
+      <ul class="liste etapes"><li id="e-envoi">◌ Envoi de la photo…</li>
+      ${CAPACITES.detourage ? `<li id="e-detour">◌ Détourage de la bouteille…</li>` : ""}
+      <li id="e-verso">◌ Verso de la bouteille</li>
+      ${CAPACITES.ia.possible ? `<li id="e-ia">◌ Lecture de l'étiquette par l'IA…</li>` : ""}</ul>
       <div class="carte verso-choix" id="e-verso-choix" hidden>
         <b>Photographiez maintenant le verso</b>
         <p class="muted petit-texte">La contre-étiquette donne plus d'informations (cépages, degré…) et le code-barres, qui servira à sortir la bouteille d'un simple scan.</p>
@@ -1049,7 +1049,7 @@ async function pageAjouter(main) {
     try { ident = (await api("POST", "brouillons", { image })).id; etape("e-envoi", "✓ Photo reçue"); }
     catch (err) { etape("e-envoi", "✕ " + err.message); return; }
     ajout = { champs: {}, brouillon: ident, fond: "", source: "photo" };
-    const lent = setTimeout(() => etape("e-detour", "⏳ Détourage… (la première fois, le modèle de détourage est téléchargé : patientez une minute)"), 6000);
+    const lent = setTimeout(() => etape("e-detour", "◌ Détourage… (la première fois, le modèle de détourage est téléchargé : patientez une minute)"), 6000);
     const detourage = CAPACITES.detourage && api("POST", `brouillons/${ident}/rendu`, { fond: CAPACITES.fond_defaut, cadrage: CAPACITES.cadrage_defaut })
       .then(() => {
         ajout.fond = CAPACITES.fond_defaut;
@@ -1064,7 +1064,7 @@ async function pageAjouter(main) {
     const fichierVerso = await demanderVerso();
     let verso = null, codeVerso = null;
     if (fichierVerso) {
-      etape("e-verso", "⏳ Lecture du verso…");
+      etape("e-verso", "◌ Lecture du verso…");
       [verso, codeVerso] = await Promise.all([redimensionner(fichierVerso, 1600), decoderImage(fichierVerso).catch(() => null)]);
       etape("e-verso", codeVerso ? `✓ Verso reçu, code-barres ${codeVerso}` : "✓ Verso reçu");
     } else {
@@ -1395,7 +1395,7 @@ async function pageCaves(main, id, params) {
   const boutonEtagere = $("#etagere", main);
   if (boutonEtagere) boutonEtagere.onclick = () => dialogueEtagere(c);
   const boutonCasier = $("[data-modifier-casier]", main);
-  if (boutonCasier) boutonCasier.onclick = () => dialogue(`<h2>Casier principal</h2>
+  if (boutonCasier) boutonCasier.onclick = () => dialogue(`<span class="surtitre">Plan de cave</span><h2>${esc(nomCasier(c))}</h2>
     <div class="form"><label class="large">Nom (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
       <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p>
       <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${c.rangees}" required></label>
@@ -1666,7 +1666,7 @@ async function pageCaves(main, id, params) {
 function dialogueEtagere(cave, etagere) {
   const casiers = [{ id: cave.id, nom: "Casier principal" }, ...cave.etageres.filter((e) => e.id !== etagere?.id).map((e) => ({ id: e.id, nom: nomCasier(e) }))];
   const positions = { droite: "À droite", bas: "En dessous", haut: "Au-dessus", gauche: "À gauche" };
-  dialogue(`<h2>${etagere ? `Modifier : ${esc(nomCasier(etagere))}` : "Nouvelle étagère"}</h2>
+  dialogue(`<span class="surtitre">Plan de cave</span><h2>${etagere ? esc(nomCasier(etagere)) : "Nouvelle étagère"}</h2>
     <div class="form">
       <label class="large">Nom (facultatif)<input name="nom" value="${esc(etagere?.nom || "")}" placeholder="Sans nom : rien n'est affiché au-dessus de l'étagère"></label>
       <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${etagere?.rangees ?? 6}" required></label>
@@ -1735,7 +1735,7 @@ async function dialogueRanger(cave, rangee, colonne) {
 }
 
 function dialogueCave(c) {
-  dialogue(`<h2>${c ? "Modifier la cave" : "Nouvelle cave"}</h2>
+  dialogue(`<span class="surtitre">Plan de cave</span><h2>${c ? "Modifier la cave" : "Nouvelle cave"}</h2>
     <div class="form">
       <label class="large">Nom<input name="nom" required value="${esc(c?.nom)}" placeholder="Cave du sous-sol, armoire à vin…"></label>
       <label>Rangées<input type="number" name="rangees" min="0" max="100" value="${c?.rangees ?? 6}"></label>

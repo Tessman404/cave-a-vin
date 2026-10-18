@@ -1,5 +1,25 @@
 # Journal des modifications
 
+## Prochaine version (en préparation)
+
+- **Nouvelle identité visuelle « Chai de nuit »** : anthracite, bordeaux, ivoire et or patiné ; titres, noms de vins
+  et chiffres en Cormorant Garamond, interface en Instrument Sans. Thème clair (papier ivoire) et sombre (anthracite)
+  selon le réglage de l'appareil. Icônes au trait à la place des émojis dans les boutons. Nouvelle icône.
+- **Bouteilles dessinées** d'après chaque vin : bordelaise, bourguignonne, flûte d'Alsace, champagne ; verre teinté
+  ou blanc (on voit alors la couleur du vin), capsule, reflets et ombre. L'étiquette porte les vraies informations
+  (domaine, nom, appellation, millésime) et s'adapte à la taille d'affichage.
+- **Plan de cave** : vitrine sombre où les bouteilles ressortent, formes et couleurs selon le vin, places libres
+  discrètes. Zoom (boutons, pincement, Ctrl + molette), « Ajuster à l'écran », taille mémorisée. Recherche dans la
+  cave (nom, millésime ou position comme « B4 »), mise en évidence par couleur ou par garde, infobulle au survol,
+  vue « Liste » du contenu par casier, fenêtre de bouteille avec son dessin et sa position. Taux de remplissage de
+  chaque casier ; caves électriques signalées.
+- **Fiche d'un vin** : la bouteille en scène quand il n'y a pas de photo ; millésime mis en valeur.
+- **Mes vins** : cartes avec bouteille, appellation, garde ; filtres par couleur en un geste.
+- **Accueil** : vins réservés pour une occasion (note personnelle), les plus proches d'abord.
+- **Annuler une sortie** : « Annuler » dans le message qui suit la sortie (30 minutes), la bouteille revient à sa place.
+- **Note personnelle datée** : une date d'occasion facultative ; Home Assistant le rappelle 7 jours avant.
+- **Prix payé** à côté de la valeur estimée sur l'accueil.
+
 ## 1.11.0
 
 - **Place libre dans la cave électrique : choisir le vin à y mettre.** Bouton « Choisir un autre vin » dans l'alerte
