@@ -20,6 +20,7 @@ from .db import maintenant
 log = logging.getLogger("cave_a_vin")
 
 STATIC = Path(__file__).parent / "static"
+mimetypes.add_type("font/woff2", ".woff2")
 INGRESS_IP = "172.30.32.2"  # adresse du proxy « ingress » de Home Assistant
 TAILLE_MAX = 15 * 1024 * 1024
 ROUTES = []

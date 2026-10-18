@@ -2,6 +2,15 @@
    Cave à vin — thème « cave en pierre »
    Pierre gris-vert, encre vert bouteille, lie-de-vin, feuille d'or.
    ===================================================================== */
+@font-face {
+  font-family: "Fraunces"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("fonts/fraunces.woff2") format("woff2-variations");
+}
+@font-face {
+  font-family: "Fraunces"; font-style: italic; font-weight: 100 900; font-display: swap;
+  src: url("fonts/fraunces-italique.woff2") format("woff2-variations");
+}
+
 :root {
   --fond: #e9ece6;          /* pierre de cave */
   --surface: #fbfcf9;
@@ -29,7 +38,7 @@
   --ombre-haute: 0 18px 50px -12px rgba(29, 41, 36, .35);
   --rayon: 18px;
   --rayon-petit: 12px;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --serif: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --largeur-menu: 232px;
   --hauteur-onglets: 64px;
@@ -472,10 +481,21 @@ dialog::backdrop { background: rgba(10, 20, 16, .5); -webkit-backdrop-filter: bl
 }
 
 /* ---------- fiche vin ---------- */
-.fiche { grid-template-columns: 300px minmax(0, 1fr); gap: 24px; }
+@media (min-width: 761px) { .fiche { grid-template-columns: 300px minmax(0, 1fr); gap: 24px; } }
 .photo { border-radius: 24px; box-shadow: var(--ombre); background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 60%, var(--bord))); }
 .fiche > div:first-child { position: sticky; top: 24px; }
-@media (max-width: 760px) { .fiche > div:first-child { position: static; } .fiche .photo { width: 190px; } }
+@media (max-width: 760px) {
+  .fiche > div:first-child { position: static; }
+  .fiche .photo { width: 200px; }
+  /* en-tête de fiche : titre puis compteur sur sa propre ligne */
+  .fiche .entete { flex-direction: column; align-items: stretch !important; }
+  .fiche .compteur { align-self: flex-start; }
+  /* actions en grille de deux, l'action principale sur toute la largeur */
+  .fiche .carte .actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .fiche .carte .actions .bouton { white-space: normal; text-align: center; }
+  .fiche .carte .actions .primaire { grid-column: 1 / -1; }
+  .proprietes { grid-template-columns: 1fr 1fr; }
+}
 .compteur { background: var(--surface-2); border-radius: 999px; padding: 4px; }
 .compteur .bouton.rond { border: 0; background: var(--surface); box-shadow: var(--ombre); }
 .frise .zone { background: color-mix(in srgb, var(--ok) 45%, transparent); }
@@ -497,3 +517,31 @@ dialog::backdrop { background: rgba(10, 20, 16, .5); -webkit-backdrop-filter: bl
 .feuille-plus svg { width: 24px; height: 24px; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #menu button.actif { color: var(--accent); font-weight: 600; }
 @media (max-width: 760px) { .entete > .bouton.primaire[href="#/ajouter"] { display: none; } }
+
+/* ---------- typographie : Fraunces (titres) ---------- */
+h1, h2, .logo, .casier .total, .casier .chiffres strong, .vin .nom, .liste .titre, .tuile .valeur,
+.compteur .valeur, .vin .stock, .climat .mesure {
+  font-family: var(--serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 100, "WONK" 0;
+}
+h1 { font-weight: 640; font-size: 2.2rem; letter-spacing: -.02em; line-height: 1.05; }
+h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
+.casier .total { font-weight: 700; font-variation-settings: "SOFT" 100, "WONK" 1; }
+.logo { font-weight: 650; font-style: italic; font-size: 1.35rem; }
+.liste .titre { font-weight: 600; font-size: 1.02rem; }
+.vin .nom { font-weight: 620; font-size: 1.1rem; }
+/* sous-titres : italique de Fraunces */
+.casier .sous-total, .fiche .entete .muted, .vin .infos .muted.tronque, .entete + .muted, .titre-carte + .muted {
+  font-family: var(--serif); font-style: italic; font-variation-settings: "SOFT" 100; font-size: 1.02rem;
+}
+.fiche h1 { font-size: 2.1rem; }
+@media (max-width: 760px) { h1 { font-size: 1.9rem; } .fiche h1 { font-size: 1.75rem; } }
+@media (max-width: 760px) {
+  /* listes de l'accueil : le statut passe sous le nom pour laisser la place au titre */
+  .liste li { flex-wrap: wrap; row-gap: 2px; }
+  .liste li > .grandit { flex: 1 1 calc(100% - 80px); }
+  .liste li > .muted { order: 3; }
+  .liste li > .statut { order: 4; margin-left: 22px; }
+  .liste .titre.tronque { white-space: normal; }
+}

@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.4.1
+
+- **Fiche d'un vin sur iPhone corrigée** : elle gardait la mise en page sur deux colonnes de l'iPad et écrasait le
+  texte. Titre, compteur, frise de garde puis boutons en grille de deux.
+- **Nouvelle typographie** : titres en Fraunces (police intégrée, fonctionne sans internet), sous-titres en italique.
+- Accueil sur iPhone : le statut de garde passe sous le nom du vin, les noms ne sont plus coupés.
+
 ## 1.4.0
 
 - **Nouveau design « cave en pierre »** : tons pierre et vert bouteille, lie-de-vin et or pour l'apogée, mode sombre
