@@ -686,3 +686,5 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .note-perso { margin: 6px 0 4px; font-weight: 700; color: var(--danger); animation: clignote-note 1.2s ease-in-out infinite; }
 @keyframes clignote-note { 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .note-perso { animation: none; } }
+
+.froid { position: absolute; top: 2px; right: 26px; z-index: 50; font-size: .85rem; color: var(--info); }

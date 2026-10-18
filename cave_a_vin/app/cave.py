@@ -610,14 +610,15 @@ def creer_cave(db, data):
     nom, rangees, colonnes, description = _nettoyer_cave(data, etagere)
     if etagere and not (rangees and colonnes):
         raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
+    refrigere = 1 if data.get("refrigere") in (True, 1, "1", "true", "oui") else 0
     with db.transaction() as conn:
         if etagere:
-            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, parent_id, position, ref_id) "
-                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                               (nom, rangees, colonnes, description, maintenant(), parent_id, position, ref_id))
+            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, parent_id, position, ref_id, refrigere) "
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                               (nom, rangees, colonnes, description, maintenant(), parent_id, position, ref_id, refrigere))
         else:
-            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at) VALUES (?, ?, ?, ?, ?)",
-                               (nom, rangees, colonnes, description, maintenant()))
+            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, refrigere) VALUES (?, ?, ?, ?, ?, ?)",
+                               (nom, rangees, colonnes, description, maintenant(), refrigere))
     return lire_cave(db, cur.lastrowid)
 
 
@@ -636,6 +637,9 @@ def modifier_cave(db, cave_id, data):
             conn.execute("UPDATE bouteilles SET rangee = NULL, colonne = NULL WHERE cave_id = ?", (cave_id,))
         conn.execute("UPDATE caves SET nom = ?, rangees = ?, colonnes = ?, description = ? WHERE id = ?",
                      (nom, rangees, colonnes, description, cave_id))
+        if "refrigere" in data:
+            conn.execute("UPDATE caves SET refrigere = ? WHERE id = ?",
+                         (1 if data["refrigere"] in (True, 1, "1", "true", "oui") else 0, cave_id))
         if not actuelle["parent_id"] and "nom_casier" in data:
             conn.execute("UPDATE caves SET nom_casier = ? WHERE id = ?", ((data.get("nom_casier") or "").strip()[:60], cave_id))
         if actuelle["parent_id"] and data.get("position") in POSITIONS:
@@ -745,7 +749,7 @@ def suggerer(db, plat=None, couleur=None, limite=5):
 # --------------------------------------------------------------------------- statistiques
 
 def place_libre(db):
-    """Premier casier qui a des places libres (casier principal d'abord), et la bouteille non rangée la plus
+    """Première cave électrique (casier réfrigéré) qui a des places libres (casier principal d'abord), et la bouteille non rangée la plus
     prestigieuse (valeur estimée, sinon prix d'achat) à y mettre. None s'il n'y a rien à proposer."""
     suggestion = db.one("""SELECT b.id AS bouteille_id, v.id AS vin_id, v.nom, v.millesime, v.appellation, v.couleur,
                                   COALESCE(v.valeur, v.prix_achat) AS valeur
@@ -758,7 +762,7 @@ def place_libre(db):
                                COALESCE(p.nom, c.nom) AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_id,
                                (SELECT COUNT(*) FROM bouteilles b WHERE b.cave_id = c.id AND b.rangee IS NOT NULL) AS occupees
                         FROM caves c LEFT JOIN caves p ON p.id = c.parent_id
-                        WHERE c.rangees > 0 AND c.colonnes > 0
+                        WHERE c.rangees > 0 AND c.colonnes > 0 AND c.refrigere = 1  -- seules les caves électriques
                         ORDER BY COALESCE(c.parent_id, c.id), c.parent_id IS NOT NULL, c.id""")
     for k in casiers:
         libres = k["capacite"] - k["occupees"]

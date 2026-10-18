@@ -120,13 +120,19 @@ class Database:
         colonnes_caves = {r[1] for r in self.conn.execute("PRAGMA table_info(caves)")}
         for nom, definition in (("parent_id", "INTEGER REFERENCES caves(id) ON DELETE CASCADE"),
                                 ("position", "TEXT NOT NULL DEFAULT ''"), ("ref_id", "INTEGER"),
-                                ("nom_casier", "TEXT NOT NULL DEFAULT ''")):  # nom du casier principal (1.7.1)
+                                ("nom_casier", "TEXT NOT NULL DEFAULT ''"),  # nom du casier principal (1.7.1)
+                                ("refrigere", "INTEGER NOT NULL DEFAULT 0")):  # cave électrique (1.8.1)
             if nom not in colonnes_caves:
                 self.conn.execute(f"ALTER TABLE caves ADD COLUMN {nom} {definition}")
         # 1.7.1 : le nom d'une étagère devient facultatif ; on efface les noms donnés automatiquement (« Étagère 2 »)
         if self.conn.execute("PRAGMA user_version").fetchone()[0] < 2:
             self.conn.execute("UPDATE caves SET nom = '' WHERE parent_id IS NOT NULL AND nom GLOB 'Étagère [0-9]*'")
             self.conn.execute("PRAGMA user_version = 2")
+        # 1.8.1 : les casiers principaux déjà nommés « … électrique » sont des caves électriques
+        if self.conn.execute("PRAGMA user_version").fetchone()[0] < 3:
+            self.conn.execute("UPDATE caves SET refrigere = 1 WHERE parent_id IS NULL AND "
+                              "(LOWER(nom_casier) LIKE '%lectrique%' OR LOWER(nom) LIKE '%lectrique%')")
+            self.conn.execute("PRAGMA user_version = 3")
 
     def all(self, sql, params=()):
         with self.lock:

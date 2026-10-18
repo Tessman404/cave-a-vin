@@ -1147,6 +1147,7 @@ async function pageCaves(main, id, params) {
   const plan = disposition.length ? `<div class="plan-conteneur">${grilleCasiers(disposition, (k) => `
       <div class="casier-bloc">
         ${titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span></div>` : ""}
+        ${k.refrigere ? `<span class="froid" title="Cave électrique : places libres signalées" aria-label="Cave électrique">❄</span>` : ""}
         <button class="bouton petit modifier-etagere" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>
         ${planCasier(k)}</div>`)}</div>
     <div class="legende">${Object.entries(REF.couleurs).map(([k, l]) => `<span>${pastille(k)} ${esc(l)}</span>`).join("")}<span><b>!</b>&nbsp;à boire vite / dépassé</span><span>◌ emplacement libre</span></div>` : "";
@@ -1186,10 +1187,14 @@ async function pageCaves(main, id, params) {
   const boutonCasier = $("[data-modifier-casier]", main);
   if (boutonCasier) boutonCasier.onclick = () => dialogue(`<h2>Nom du casier principal</h2>
     <div class="form"><label class="large">Nom (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
-      <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p></div>
+      <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p>
+      <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
+        <option value=""${c.refrigere === undefined ? " selected" : ""} disabled>Choisir…</option>
+        <option value="1"${c.refrigere ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
+        <option value="0"${c.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label></div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
   { onSubmit: async (data) => {
-    await api("PUT", `caves/${c.id}`, { nom: c.nom, rangees: c.rangees, colonnes: c.colonnes, description: c.description, nom_casier: data.nom_casier });
+    await api("PUT", `caves/${c.id}`, { nom: c.nom, rangees: c.rangees, colonnes: c.colonnes, description: c.description, nom_casier: data.nom_casier, refrigere: data.refrigere });
     toast("Nom enregistré");
     route();
   } });
@@ -1282,6 +1287,10 @@ function dialogueEtagere(cave, etagere) {
       <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${etagere?.rangees ?? 6}" required></label>
       <label>Colonnes<input type="number" name="colonnes" min="1" max="100" value="${etagere?.colonnes ?? cave.colonnes}" required></label>
       <label>Position<select name="position">${options(positions, etagere?.position || "bas")}</select></label>
+      <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
+        <option value=""${etagere?.refrigere === undefined ? " selected" : ""} disabled>Choisir…</option>
+        <option value="1"${etagere?.refrigere ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
+        <option value="0"${etagere?.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label>
       <label>Par rapport à<select name="ref_id">${casiers.map((k) => `<option value="${k.id}"${k.id === (etagere?.ref_id || cave.id) ? " selected" : ""}>${esc(k.nom)}</option>`).join("")}</select></label>
     </div>
     <div class="actions">${etagere ? `<button class="bouton danger" type="button" id="suppr-etagere">Supprimer</button>` : ""}
@@ -1348,6 +1357,10 @@ function dialogueCave(c) {
       <label>Colonnes<input type="number" name="colonnes" min="0" max="100" value="${c?.colonnes ?? 8}"></label>
       <p class="large muted petit-texte" style="margin:0">Mettez 0 rangée ou 0 colonne pour un rangement libre, sans plan.</p>
       <label class="large">Description<input name="description" value="${esc(c?.description)}" placeholder="Température, emplacement…"></label>
+      ${c ? "" : `<label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
+        <option value=""${undefined === undefined ? " selected" : ""} disabled>Choisir…</option>
+        <option value="1"${undefined ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
+        <option value="0"${undefined === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label>`}
     </div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
   {

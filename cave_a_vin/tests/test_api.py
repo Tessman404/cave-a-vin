@@ -150,6 +150,17 @@ class TestCave(BaseTest):
         self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 2, "emplacements": libres}, attendu=200)
         self.assertEqual(self.appel("GET", f"api/vins/{vin['id']}")["stock"], 5)
 
+    def test_place_libre_seulement_dans_une_cave_electrique(self):
+        cave = self.appel("POST", "api/caves", {"nom": "Armoire", "rangees": 1, "colonnes": 2, "refrigere": "0"}, attendu=201)
+        etagere = self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "droite", "rangees": 1, "colonnes": 2,
+                                                   "refrigere": "1"}, attendu=201)
+        self.creer_vin(nom="Petit vin", quantite=1, valeur=8)
+        self.creer_vin(nom="Grand cru", quantite=1, valeur=120)
+        place = self.appel("GET", "api/stats")["place_libre"]
+        self.assertEqual((place["casier_id"], place["libres"], place["suggestion"]["nom"]), (etagere["id"], 2, "Grand cru"))
+        self.appel("PUT", f"api/caves/{etagere['id']}", {"nom": "", "rangees": 1, "colonnes": 2, "refrigere": "0"}, attendu=200)
+        self.assertIsNone(self.appel("GET", "api/stats")["place_libre"])  # plus aucune cave électrique
+
     def test_garde_et_statuts(self):
         self.assertEqual(cave.statut_garde({"garde_debut": 2030, "garde_fin": 2040}, 2026), "trop_jeune")
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2030}, 2026), "a_boire")
