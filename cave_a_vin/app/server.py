@@ -320,6 +320,11 @@ def _lancer_gardes(app, req):
     return _etat_gardes(app, req), 202
 
 
+@route("GET", "api/ia/diagnostic")
+def _diagnostic_ia(app, req):
+    return ia.diagnostic(app.reglages())
+
+
 @route("GET", "api/ia/entites")
 def _entites_ia(app, req):
     return ia.entites(app.reglages())

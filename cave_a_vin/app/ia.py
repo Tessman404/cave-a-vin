@@ -118,7 +118,7 @@ def _appeler(reglages, corps, timeout):
         detail = e.read().decode(errors="replace")[:300]
         if "entity" in detail.lower():
             if not entite:
-                raise IAErreur(AUCUNE_IA)
+                raise IAErreur(diagnostic(reglages)["conseil"] or AUCUNE_IA)
             raise IAErreur(f"L'IA « {entite} » de Home Assistant est introuvable ou indisponible : "
                            "choisissez-en une autre dans les Réglages de la cave")
         raise IAErreur(f"L'IA de Home Assistant a refusé la demande ({e.code}) : {detail}")
@@ -154,8 +154,30 @@ def entites(reglages, cache_secondes=60):
     valeur = [{"entity_id": e["entity_id"], "nom": e.get("attributes", {}).get("friendly_name", e["entity_id"]),
                "etat": e.get("state")}
               for e in etats if e["entity_id"].startswith("ai_task.")]
-    _cache_entites.update(cle=url, quand=time.time(), valeur=valeur)
+    # agents de conversation à base d'IA (hors l'agent intégré « Home Assistant ») : utiles pour le diagnostic
+    agents = [e.get("attributes", {}).get("friendly_name", e["entity_id"]) for e in etats
+              if e["entity_id"].startswith("conversation.") and e["entity_id"] != "conversation.home_assistant"]
+    _cache_entites.update(cle=url, quand=time.time(), valeur=valeur, agents=agents)
     return valeur
+
+
+def diagnostic(reglages):
+    """Ce que Home Assistant propose comme IA, pour guider l'utilisateur."""
+    taches = entites(reglages)
+    agents = _cache_entites.get("agents", []) if _cache_entites["cle"] else []
+    if taches:
+        conseil = ""
+    elif agents:
+        conseil = (f"Vous avez une IA de conversation ({', '.join(agents)}) mais pas de « tâche IA ». Dans Home Assistant : "
+                   "Paramètres → Appareils et services → ouvrez cette intégration d'IA → « Ajouter une tâche IA » "
+                   "(bouton ou menu ⋮). La cave l'utilisera automatiquement.")
+    else:
+        conseil = ("Home Assistant n'a aucune intégration d'IA. Ajoutez-en une : Paramètres → Appareils et services → "
+                   "Ajouter une intégration → Google Gemini (« Google Generative AI », offre gratuite), OpenAI, Anthropic "
+                   "ou Ollama (IA locale) ; puis, dans cette intégration, « Ajouter une tâche IA ». Un modèle qui "
+                   "comprend les images est nécessaire pour lire les étiquettes. Remarque : Claude ou une autre IA "
+                   "connectée À Home Assistant (serveur MCP, appli) ne peut pas être utilisée PAR Home Assistant.")
+    return {"taches_ia": taches, "agents_conversation": agents, "conseil": conseil}
 
 
 VIDES = ("", "inconnu", "inconnue", "non indiqué", "non indiquée", "n/a", "na", "null", "none", "-", "?")

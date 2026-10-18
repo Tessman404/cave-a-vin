@@ -327,3 +327,4 @@ dialog .actions { justify-content: flex-end; margin-top: 18px; }
 .bandeau-rangement { margin-bottom: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-color: var(--accent); }
 .nouveau-vin-case { margin-top: 14px; padding: 12px; box-shadow: none; background: var(--surface-2); }
 .nouveau-vin-case .bouton { white-space: normal; text-align: center; }
+.diagnostic-ia { border: 1px solid var(--bord); border-radius: 10px; padding: 10px 12px; background: var(--surface-2); line-height: 1.6; }

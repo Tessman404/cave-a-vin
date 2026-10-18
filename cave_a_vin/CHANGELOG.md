@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.3.6
+
+- Réglages → IA : diagnostic de ce que Home Assistant propose (tâches IA, agents de conversation) et marche à suivre
+  adaptée : ajouter une « tâche IA » à une intégration d'IA existante, ou installer une intégration d'IA.
+- Le message d'erreur de lecture d'étiquette donne cette même marche à suivre.
+
 ## 1.3.5
 
 - **IA choisie automatiquement** : si aucune IA n'est choisie dans les réglages de la cave et que Home Assistant n'a

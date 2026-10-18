@@ -317,8 +317,14 @@ class TestLectureEtiquette(BaseTest):
         image = "data:image/jpeg;base64," + base64.b64encode(photo_de_bouteille()).decode()
         ident = self.appel("POST", "api/brouillons", {"image": image})["id"]
         erreur = self.appel("POST", f"api/brouillons/{ident}/lire", attendu=422)["erreur"]
-        self.assertIn("aucune IA de type « tâche IA »", erreur)
+        self.assertIn("aucune intégration d'IA", erreur)
         self.assertNotIn("No entity_id", erreur)
+        # avec un agent de conversation IA mais sans tâche IA : on nomme l'intégration à compléter
+        ia._cache_entites["cle"] = None
+        self.entites_ha = [{"entity_id": "conversation.claude", "state": "x", "attributes": {"friendly_name": "Claude conversation"}}]
+        diag = self.appel("GET", "api/ia/diagnostic")
+        self.assertEqual((diag["taches_ia"], diag["agents_conversation"]), ([], ["Claude conversation"]))
+        self.assertIn("Ajouter une tâche IA", diag["conseil"])
 
     def test_ia_desactivee(self):
         self.appel("PUT", "api/reglages", {"ia_active": "0"})
