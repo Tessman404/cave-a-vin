@@ -573,7 +573,11 @@ class Handler(BaseHTTPRequestHandler):
         type_ = mimetypes.guess_type(cible.name)[0] or "application/octet-stream"
         if type_.startswith("text/") or type_ in ("application/javascript", "image/svg+xml"):
             type_ += "; charset=utf-8"
-        self._envoyer(Reponse(cible.read_bytes(), type_, entetes={"Cache-Control": "no-cache"}))
+        contenu = cible.read_bytes()
+        if cible.name == "index.html":
+            # force le navigateur (et l'appli Home Assistant) à recharger styles et script à chaque version
+            contenu = contenu.replace(b"__VERSION__", __version__.encode())
+        self._envoyer(Reponse(contenu, type_, entetes={"Cache-Control": "no-cache"}))
 
     def _envoyer(self, rep):
         try:

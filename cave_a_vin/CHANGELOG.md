@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.4.2
+
+- Après une mise à jour, l'iPhone (et l'appli Home Assistant) recharge forcément la nouvelle mise en page au lieu de
+  garder l'ancienne en mémoire.
+
 ## 1.4.1
 
 - **Fiche d'un vin sur iPhone corrigée** : elle gardait la mise en page sur deux colonnes de l'iPad et écrasait le
