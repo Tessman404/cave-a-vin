@@ -632,3 +632,18 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .casier-titre .bouton { min-height: 28px; padding: 2px 9px; }
 .plan-conteneur { padding-bottom: 14px; }
 .onglets a { gap: 6px; }
+
+/* ---------- choisir un emplacement dans un formulaire ---------- */
+.choix-emplacements:empty { display: none; }
+.choix-emplacements .choix-info { margin: 0 0 8px; color: var(--texte-2); }
+.choix-emplacements .plan-conteneur { overflow-x: auto; max-width: 100%; }
+.plan-choix .case-cave.pleine { cursor: default; }
+.plan-choix .case-cave.pleine svg { opacity: .35; filter: grayscale(.6); }
+.plan-choix .case-cave.pleine .forme, .plan-choix .case-cave.pleine use { pointer-events: none; }
+.plan .case-cave.choisie svg { opacity: 1; filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 1px var(--accent)); }
+.plan .case-cave.choisie.rouge { color: var(--c-rouge); --capsule: #241417; }
+.plan .case-cave.choisie.blanc { color: var(--c-blanc); --capsule: #2f5a46; }
+.plan .case-cave.choisie.rose { color: var(--c-rose); --capsule: #f2efe9; }
+.plan .case-cave.choisie.effervescent { color: var(--c-effervescent); --capsule: #d9b24c; }
+.plan .case-cave.choisie.liquoreux { color: var(--c-liquoreux); --capsule: #4b2a12; }
+.plan .case-cave.choisie.autre { color: var(--c-autre); --capsule: #2a2a2a; }

@@ -333,7 +333,7 @@ def creer_vin(db, data):
         if quantite:
             _entree(conn, vin_id, quantite, cave_id, data.get("raison") or "achat",
                     data.get("date") or now[:10], data.get("commentaire") or "",
-                    _entier(data.get("rangee"), "rangee"), _entier(data.get("colonne"), "colonne"))
+                    _entier(data.get("rangee"), "rangee"), _entier(data.get("colonne"), "colonne"), _emplacements(data))
     return lire_vin(db, vin_id)
 
 
@@ -379,10 +379,47 @@ def _cases_libres(conn, cave_id, n):
     return libres[:n]
 
 
-def _entree(conn, vin_id, quantite, cave_id, raison, jour, commentaire="", rangee=None, colonne=None):
+def _emplacements(data):
+    """Emplacements choisis sur le plan : [{cave_id, rangee, colonne}, …] (cave ou étagère)."""
+    liste = data.get("emplacements") or []
+    if not isinstance(liste, list):
+        raise ErreurAPI("Emplacements invalides")
+    propres = []
+    for e in liste:
+        if not isinstance(e, dict):
+            raise ErreurAPI("Emplacements invalides")
+        cle = (_entier(e.get("cave_id"), "cave_id"), _entier(e.get("rangee"), "rangee"), _entier(e.get("colonne"), "colonne"))
+        if not all(cle):
+            raise ErreurAPI("Emplacement incomplet")
+        if cle in propres:
+            raise ErreurAPI("Le même emplacement est choisi deux fois")
+        propres.append(cle)
+    return propres
+
+
+def _entree(conn, vin_id, quantite, cave_id, raison, jour, commentaire="", rangee=None, colonne=None, emplacements=()):
     vin = conn.execute("SELECT nom, millesime FROM vins WHERE id = ?", (vin_id,)).fetchone()
     if not vin:
         raise ErreurAPI("Vin introuvable", 404)
+    if emplacements:
+        # bouteilles posées sur les emplacements cliqués ; s'il en reste, dans les cases libres du premier casier
+        if len(emplacements) > quantite:
+            raise ErreurAPI(f"{len(emplacements)} emplacements choisis pour {quantite} bouteille(s)")
+        for c_id, r, c in emplacements:
+            _verifier_case(conn, c_id, r, c)
+        places = list(emplacements)
+        if quantite > len(places):
+            premier = places[0][0]
+            libres = [x for x in _cases_libres(conn, premier, quantite)
+                      if (premier, *x) not in places][:quantite - len(places)]
+            places += [(premier, r, c) for r, c in libres]
+        for c_id, r, c in places:
+            conn.execute("INSERT INTO bouteilles (vin_id, cave_id, rangee, colonne, date_entree) VALUES (?, ?, ?, ?, ?)",
+                         (vin_id, c_id, r, c, jour))
+        conn.execute("""INSERT INTO mouvements (vin_id, vin_nom, millesime, type, quantite, raison, commentaire, date)
+                        VALUES (?, ?, ?, 'entree', ?, ?, ?, ?)""",
+                     (vin_id, vin["nom"], vin["millesime"], quantite, raison, commentaire, jour))
+        return
     if cave_id and rangee and colonne:
         # la première bouteille va dans la case choisie, les suivantes dans les premières cases libres
         _verifier_case(conn, cave_id, rangee, colonne)
@@ -423,7 +460,7 @@ def ajouter_bouteilles(db, vin_id, data):
     with db.transaction() as conn:
         _entree(conn, vin_id, quantite, _entier(data.get("cave_id"), "cave_id"), raison,
                 data.get("date") or maintenant()[:10], data.get("commentaire") or "",
-                _entier(data.get("rangee"), "rangee"), _entier(data.get("colonne"), "colonne"))
+                _entier(data.get("rangee"), "rangee"), _entier(data.get("colonne"), "colonne"), _emplacements(data))
     return lire_vin(db, vin_id)
 
 

@@ -133,6 +133,23 @@ class TestCave(BaseTest):
         b = [x for x in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"] if x["cave_id"]]
         self.assertEqual([(x["cave_id"], x["rangee"]) for x in b], [(cave["id"], None)])
 
+    def test_ranger_sur_les_emplacements_choisis(self):
+        cave = self.appel("POST", "api/caves", {"nom": "Casier", "rangees": 2, "colonnes": 3}, attendu=201)
+        etagere = self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "droite", "rangees": 2, "colonnes": 2},
+                             attendu=201)
+        choix = [{"cave_id": cave["id"], "rangee": 2, "colonne": 3}, {"cave_id": etagere["id"], "rangee": 1, "colonne": 2}]
+        vin = self.creer_vin(quantite=3, cave_id=cave["id"], emplacements=choix)
+        places = sorted((b["cave_id"], b["rangee"], b["colonne"]) for b in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"])
+        # les deux choisies, et la troisième dans la première place libre du casier du premier choix
+        self.assertEqual(places, sorted([(cave["id"], 2, 3), (etagere["id"], 1, 2), (cave["id"], 1, 1)]))
+        # emplacement déjà occupé, trop d'emplacements, doublon
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "emplacements": choix[:1]}, attendu=409)
+        libres = [{"cave_id": etagere["id"], "rangee": 2, "colonne": c} for c in (1, 2)]
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "emplacements": libres}, attendu=400)
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 2, "emplacements": [libres[0], libres[0]]}, attendu=400)
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 2, "emplacements": libres}, attendu=200)
+        self.assertEqual(self.appel("GET", f"api/vins/{vin['id']}")["stock"], 5)
+
     def test_garde_et_statuts(self):
         self.assertEqual(cave.statut_garde({"garde_debut": 2030, "garde_fin": 2040}, 2026), "trop_jeune")
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2030}, 2026), "a_boire")
