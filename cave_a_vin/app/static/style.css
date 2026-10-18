@@ -746,3 +746,10 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .accord { display: flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 650; color: var(--or); }
 .accord .jauge { width: 60px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .accord .jauge span { display: block; height: 100%; border-radius: 3px; background: var(--or); }
+
+.froid-titre { color: var(--info); font-style: normal; font-size: .85rem; margin-left: 4px; }
+
+.casier-titre { display: flex; align-items: center; gap: 6px; }
+.casier-titre .modifier-etagere { position: static; margin-left: 2px; }
+.casier-coin { position: absolute; top: 0; right: -6px; z-index: 50; display: flex; align-items: center; gap: 4px; }
+.casier-coin .modifier-etagere { position: static; }

@@ -1149,9 +1149,13 @@ async function pageCaves(main, id, params) {
   const plusieurs = disposition.length > 1;
   const plan = disposition.length ? `<div class="plan-conteneur">${grilleCasiers(disposition, (k) => `
       <div class="casier-bloc">
-        ${titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span></div>` : ""}
-        ${k.refrigere ? `<span class="froid" title="Cave électrique : places libres signalées" aria-label="Cave électrique">❄</span>` : ""}
-        <button class="bouton petit modifier-etagere" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>
+        ${(() => {
+          const modifier = `<button class="bouton petit modifier-etagere" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>`;
+          const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave électrique">❄</span>` : "";
+          // casier nommé : nom, ❄ et ✎ sur la même ligne ; sinon ❄ et ✎ discrets dans le coin
+          return titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span>${froid}${modifier}</div>`
+            : `<div class="casier-coin">${froid}${modifier}</div>`;
+        })()}
         ${planCasier(k)}</div>`)}</div>
     <div class="legende">${Object.entries(REF.couleurs).map(([k, l]) => `<span>${pastille(k)} ${esc(l)}</span>`).join("")}<span><b>!</b>&nbsp;à boire vite / dépassé</span><span>◌ emplacement libre</span></div>` : "";
 

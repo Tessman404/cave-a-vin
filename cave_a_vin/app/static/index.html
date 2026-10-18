@@ -23,54 +23,24 @@
     <symbol id="i-envies" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
     <symbol id="i-historique" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
     <symbol id="i-reglages" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></symbol>
-    <defs>
-      <!-- verre cylindrique : bord sombre, reflet net en haut, reflet doux en bas -->
-      <linearGradient id="g-verre" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".12" stop-color="#000" stop-opacity=".15"/>
-        <stop offset=".2" stop-color="#fff" stop-opacity=".55"/><stop offset=".26" stop-color="#fff" stop-opacity=".12"/>
-        <stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity=".18"/>
-        <stop offset=".9" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".6"/>
-      </linearGradient>
-      <!-- capsule métallisée -->
-      <linearGradient id="g-metal" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset=".25" stop-color="#fff" stop-opacity=".7"/>
-        <stop offset=".4" stop-color="#fff" stop-opacity=".15"/><stop offset=".7" stop-color="#000" stop-opacity=".15"/>
-        <stop offset="1" stop-color="#000" stop-opacity=".55"/>
-      </linearGradient>
-      <linearGradient id="g-or" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#6e5317"/><stop offset=".22" stop-color="#f6e3a1"/><stop offset=".42" stop-color="#c9a646"/>
-        <stop offset=".75" stop-color="#9c7b25"/><stop offset="1" stop-color="#5a4210"/>
-      </linearGradient>
-    </defs>
-    <!-- bouteille de vin couchée, goulot vers l'avant-gauche : le verre prend currentColor, la capsule --capsule -->
-    <symbol id="bouteille-couchee" viewBox="0 0 64 64">
-      <g class="forme" transform="translate(30 31) rotate(-40) translate(-31 0)">
-        <path d="M61,-12.5 L27,-12.5 C20,-12.5 18.5,-4.6 12.5,-4.1 L3,-4.1 L3,4.1 L12.5,4.1 C18.5,4.6 20,12.5 27,12.5 L61,12.5 C63.5,12.5 64.5,11 64.5,8.5 L64.5,-8.5 C64.5,-11 63.5,-12.5 61,-12.5 Z" fill="currentColor"/>
-        <path d="M61,-12.5 L27,-12.5 C20,-12.5 18.5,-4.6 12.5,-4.1 L3,-4.1 L3,4.1 L12.5,4.1 C18.5,4.6 20,12.5 27,12.5 L61,12.5 C63.5,12.5 64.5,11 64.5,8.5 L64.5,-8.5 C64.5,-11 63.5,-12.5 61,-12.5 Z" fill="url(#g-verre)"/>
-        <path d="M27,-8.6 L61,-8.6" stroke="#fff" stroke-opacity=".45" stroke-width="1.1" stroke-linecap="round"/>
-        <path d="M19,-7.5 C21.5,-10.2 24,-10.6 27,-10.6" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width=".9" stroke-linecap="round"/>
-        <rect x="1.2" y="-4.6" width="13.3" height="9.2" rx="1.2" fill="var(--capsule, #3a0c18)"/>
-        <rect x="1.2" y="-4.6" width="13.3" height="9.2" rx="1.2" fill="url(#g-metal)"/>
-        <path d="M14.5,-4.6 L14.5,4.6" stroke="#000" stroke-opacity=".35" stroke-width=".7"/>
-        <ellipse cx="1.4" cy="0" rx="1.5" ry="4.6" fill="var(--capsule, #3a0c18)"/>
-        <ellipse cx="1.4" cy="0" rx="1.5" ry="4.6" fill="#000" fill-opacity=".25"/>
-        <ellipse cx="1.1" cy="-1.6" rx=".5" ry="1.6" fill="#fff" fill-opacity=".45"/>
-      </g>
-    </symbol>
-    <!-- bouteille de champagne : plus ronde, collerette dorée, bouchon champignon et muselet -->
-    <symbol id="bouteille-champagne" viewBox="0 0 64 64">
-      <g class="forme" transform="translate(30 31) rotate(-40) translate(-30 0)">
-        <path d="M61,-14 L31,-14 C23,-14 20.5,-6 14.5,-5 L4.5,-5 L4.5,5 L14.5,5 C20.5,6 23,14 31,14 L61,14 C63.8,14 64.8,12.3 64.8,9.5 L64.8,-9.5 C64.8,-12.3 63.8,-14 61,-14 Z" fill="currentColor"/>
-        <path d="M61,-14 L31,-14 C23,-14 20.5,-6 14.5,-5 L4.5,-5 L4.5,5 L14.5,5 C20.5,6 23,14 31,14 L61,14 C63.8,14 64.8,12.3 64.8,9.5 L64.8,-9.5 C64.8,-12.3 63.8,-14 61,-14 Z" fill="url(#g-verre)"/>
-        <path d="M31,-9.6 L61,-9.6" stroke="#fff" stroke-opacity=".4" stroke-width="1.2" stroke-linecap="round"/>
-        <path d="M3.5,-5.6 L15,-5.6 C18.5,-6.4 20.5,-9.5 23.5,-11.4 L25.5,-9.6 L23.8,-7.8 L25.6,-5.9 L23.9,-4 L25.7,-2 L23.9,0 L25.7,2 L23.9,4 L25.6,5.9 L23.8,7.8 L25.5,9.6 L23.5,11.4 C20.5,9.5 18.5,6.4 15,5.6 L3.5,5.6 Z" fill="url(#g-or)"/>
-        <path d="M5,-5.6 L5,5.6 M9,-5.6 L9,5.6" stroke="#5a4210" stroke-opacity=".55" stroke-width=".5"/>
-        <path d="M0.8,-3.6 L8.5,-5.4 M0.8,3.6 L8.5,5.4 M0.2,0 L8.5,0" stroke="#d8d8d8" stroke-width=".55"/>
-        <ellipse cx="2" cy="0" rx="2.4" ry="5.9" fill="url(#g-or)"/>
-        <ellipse cx="0.6" cy="0" rx="1.1" ry="3" fill="#f3e6b8"/>
-        <ellipse cx="0.6" cy="0" rx="1.1" ry="3" fill="none" stroke="#7a5d1a" stroke-width=".4"/>
-      </g>
-    </symbol>
+    <!-- bouteilles couchées vues de trois quarts avant (générées par outils/bouteilles.py) : verre = currentColor, capsule = --capsule -->
+    <defs><radialGradient id="epaule" cx=".5" cy=".5" r=".5" fx=".3" fy=".28">
+      <stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".08"/>
+      <stop offset=".75" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
+    <radialGradient id="bout" cx=".5" cy=".5" r=".5" fx=".32" fy=".3">
+      <stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>
+    <radialGradient id="or-sphere" cx=".5" cy=".5" r=".5" fx=".32" fy=".3">
+      <stop offset="0" stop-color="#fff6d2"/><stop offset=".35" stop-color="#e3c46a"/><stop offset=".75" stop-color="#a8852c"/>
+      <stop offset="1" stop-color="#5e4512"/></radialGradient>
+    <radialGradient id="or-collerette" cx=".5" cy=".5" r=".5" fx=".38" fy=".36">
+      <stop offset="0" stop-color="#8f6d20"/><stop offset=".45" stop-color="#d9b85a"/><stop offset=".7" stop-color="#f6e3a1"/>
+      <stop offset=".9" stop-color="#b08b2e"/><stop offset="1" stop-color="#5e4512"/></radialGradient>
+    <linearGradient id="or-plat" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6e5317"/><stop offset=".3" stop-color="#f3dc8f"/><stop offset=".55" stop-color="#c9a646"/>
+      <stop offset="1" stop-color="#5a4210"/></linearGradient><linearGradient id="bouteille-couchee-corps" gradientUnits="userSpaceOnUse" x1="18.25" y1="25.25" x2="38.75" y2="45.75"><stop offset="0" stop-color="#fff" stop-opacity="0.1"/><stop offset="0.12" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.2" stop-color="#fff" stop-opacity="0.18"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="0.78" stop-color="#000" stop-opacity="0.25"/><stop offset="0.9" stop-color="#fff" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></linearGradient><linearGradient id="bouteille-couchee-col" gradientUnits="userSpaceOnUse" x1="11.75" y1="45.75" x2="18.25" y2="52.25"><stop offset="0" stop-color="#fff" stop-opacity="0.1"/><stop offset="0.12" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.2" stop-color="#fff" stop-opacity="0.18"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="0.78" stop-color="#000" stop-opacity="0.25"/><stop offset="0.9" stop-color="#fff" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></linearGradient><linearGradient id="bouteille-couchee-cap" gradientUnits="userSpaceOnUse" x1="11.32" y1="45.32" x2="18.68" y2="52.68"><stop offset="0" stop-color="#fff" stop-opacity="0.25"/><stop offset="0.18" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.32" stop-color="#fff" stop-opacity="0.1"/><stop offset="0.65" stop-color="#000" stop-opacity="0.2"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></linearGradient><linearGradient id="bouteille-champagne-corps" gradientUnits="userSpaceOnUse" x1="17.19" y1="24.19" x2="39.81" y2="46.81"><stop offset="0" stop-color="#fff" stop-opacity="0.1"/><stop offset="0.12" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.2" stop-color="#fff" stop-opacity="0.18"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="0.78" stop-color="#000" stop-opacity="0.25"/><stop offset="0.9" stop-color="#fff" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></linearGradient><linearGradient id="bouteille-champagne-col" gradientUnits="userSpaceOnUse" x1="11.66" y1="44.42" x2="19.58" y2="52.34"><stop offset="0" stop-color="#fff" stop-opacity="0.1"/><stop offset="0.12" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.2" stop-color="#fff" stop-opacity="0.18"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="0.78" stop-color="#000" stop-opacity="0.25"/><stop offset="0.9" stop-color="#fff" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></linearGradient><linearGradient id="bouteille-champagne-cap" gradientUnits="userSpaceOnUse" x1="11.23" y1="44.00" x2="20.00" y2="52.77"><stop offset="0" stop-color="#fff" stop-opacity="0.25"/><stop offset="0.18" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.32" stop-color="#fff" stop-opacity="0.1"/><stop offset="0.65" stop-color="#000" stop-opacity="0.2"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></linearGradient></defs>
+    <symbol id="bouteille-couchee" viewBox="8 12 48 48" overflow="visible"><g class="forme"><path d="M38.75,45.75 L59.97,24.54 A14.50,14.50 0 0 0 39.46,4.03 L18.25,25.25 Z" fill="currentColor"/><path d="M38.75,45.75 L59.97,24.54 A14.50,14.50 0 0 0 39.46,4.03 L18.25,25.25 Z" fill="url(#bouteille-couchee-corps)"/><circle cx="28.5" cy="35.5" r="14.5" fill="currentColor"/><circle cx="28.5" cy="35.5" r="14.5" fill="url(#epaule)"/><ellipse cx="24.91" cy="29.86" rx="4.64" ry="1.89" transform="rotate(-45 24.91 29.86)" fill="#fff" fill-opacity=".55"/><path d="M18.25,52.25 L27.45,43.06 L20.94,36.55 L11.75,45.75 Z" fill="currentColor"/><path d="M18.25,52.25 L27.45,43.06 L20.94,36.55 L11.75,45.75 Z" fill="url(#bouteille-couchee-col)"/><path d="M18.50,52.50 L23.80,47.20 L16.80,40.20 L11.50,45.50 Z" fill="var(--capsule, #5a0f20)"/><path d="M18.50,52.50 L23.80,47.20 L16.80,40.20 L11.50,45.50 Z" fill="url(#bouteille-couchee-cap)"/><path d="M23.80,47.20 L16.80,40.20" stroke="#000" stroke-opacity=".35" stroke-width=".6"/><circle cx="15.00" cy="49.00" r="5.10" fill="var(--capsule, #5a0f20)"/><circle cx="15.00" cy="49.00" r="5.10" fill="url(#bout)"/><circle cx="15.00" cy="49.00" r="3.16" fill="none" stroke="#000" stroke-opacity=".28" stroke-width=".6"/></g></symbol>
+    <symbol id="bouteille-champagne" viewBox="8 12 48 48" overflow="visible"><g class="forme"><path d="M39.81,46.81 L61.03,25.60 A16.00,16.00 0 0 0 38.40,2.97 L17.19,24.19 Z" fill="currentColor"/><path d="M39.81,46.81 L61.03,25.60 A16.00,16.00 0 0 0 38.40,2.97 L17.19,24.19 Z" fill="url(#bouteille-champagne-corps)"/><circle cx="28.5" cy="35.5" r="16" fill="currentColor"/><circle cx="28.5" cy="35.5" r="16" fill="url(#epaule)"/><ellipse cx="24.54" cy="29.28" rx="5.12" ry="2.08" transform="rotate(-45 24.54 29.28)" fill="#fff" fill-opacity=".55"/><circle cx="23.75" cy="40.25" r="9.80" fill="url(#or-collerette)"/><circle cx="23.75" cy="40.25" r="9.80" fill="none" stroke="#5e4512" stroke-opacity=".5" stroke-width=".5" stroke-dasharray="1.2 1"/><path d="M19.86,52.63 L27.99,44.49 L19.51,36.01 L11.37,44.14 Z" fill="url(#bouteille-champagne-cap)"/><path d="M19.86,52.63 L27.99,44.49 L19.51,36.01 L11.37,44.14 Z" fill="#c9a646" fill-opacity=".55" style="mix-blend-mode:multiply"/><circle cx="15.62" cy="48.38" r="7.00" fill="url(#or-sphere)"/><path d="M20.17,43.83 L11.06,52.94" stroke="#e6e6e6" stroke-width=".7"/><path d="M11.06,43.83 L20.17,52.94" stroke="#e6e6e6" stroke-width=".7"/><circle cx="15.62" cy="48.38" r="2.94" fill="#f3e6b8" stroke="#7a5d1a" stroke-width=".45"/></g></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-autres" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></symbol>
   </svg>
