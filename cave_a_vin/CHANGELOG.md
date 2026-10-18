@@ -1,6 +1,6 @@
 # Journal des modifications
 
-## Prochaine version (en préparation)
+## 1.12.0
 
 - **Nouvelle identité visuelle « Chai de nuit »** : anthracite, bordeaux, ivoire et or patiné ; titres, noms de vins
   et chiffres en Cormorant Garamond, interface en Instrument Sans. Thème clair (papier ivoire) et sombre (anthracite)
