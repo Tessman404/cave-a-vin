@@ -1160,7 +1160,8 @@ async function pageReglages(main) {
             <select name="ia_garde_auto">${options({ 1: "Activée", 0: "Désactivée" }, r.ia_garde_auto)}</select></label>
           <div class="large petit-texte" id="etat-gardes"></div>
           <label class="large">IA à utiliser
-            <select name="ia_entite"><option value="">IA par défaut de Home Assistant</option>${entitesIA.map((e) => `<option value="${esc(e.entity_id)}"${e.entity_id === r.ia_entite ? " selected" : ""}>${esc(e.nom)}</option>`).join("")}</select></label>
+            <select name="ia_entite"><option value="">Automatique${entitesIA.length ? ` (${esc(entitesIA[0].nom)})` : " — aucune IA trouvée"}</option>${entitesIA.map((e) => `<option value="${esc(e.entity_id)}"${e.entity_id === r.ia_entite ? " selected" : ""}>${esc(e.nom)}</option>`).join("")}</select></label>
+          ${entitesIA.length ? "" : `<p class="large petit-texte" style="margin:0;color:var(--danger)">Aucune IA « tâche IA » trouvée dans Home Assistant. Ajoutez une intégration d'IA (OpenAI, Google Gemini, Anthropic, Ollama…) puis, dans ses options, une « tâche IA » (AI Task).</p>`}
           <p class="large petit-texte" style="margin:0;color:${CAPACITES.ia.possible ? "var(--ok)" : "var(--texte-2)"}">${CAPACITES.ia.possible ? "✓ Lecture d'étiquette disponible" : "Indisponible : " + esc(CAPACITES.ia.raison)}</p>
           <label class="large">Qualité du détourage
             <select name="detourage_qualite">${options({ rapide: "Rapide (modèle de 5 Mo)", standard: "Standard (45 Mo, recommandé)", precis: "Précis (180 Mo, plus lent, 2 Go de mémoire conseillés)" }, r.detourage_qualite)}</select></label>

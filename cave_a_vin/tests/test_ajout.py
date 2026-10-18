@@ -253,16 +253,20 @@ class TestLectureEtiquette(BaseTest):
                            "cepages": ["Merlot", "Cabernet sauvignon"], "pays": "inconnu", "valeur": "15 €",
                            "accords": "Agneau, entrecôte, fromages affinés", "description": "Haut-Médoc classique."}
         self.fichiers_vus = []
+        self.entites_ha = [{"entity_id": "ai_task.claude", "state": "2026-10-18T10:00:00",
+                            "attributes": {"friendly_name": "Claude AI Task"}}]
+        ia._cache_entites["cle"] = None
 
         def repondre(methode, chemin, corps):
             if chemin.startswith("/api/services/ai_task/generate_data?return_response"):
                 demande = json.loads(corps)
+                if "entity_id" not in demande:  # comportement réel de Home Assistant sans IA préférée
+                    return 500, {"message": "No entity_id provided and no preferred entity set"}
                 fichier = demande["attachments"][0]["media_content_id"].split("/local/")[1]
                 self.fichiers_vus.append((Path(self.media.name) / fichier).exists())
                 return 200, {"changed_states": [], "service_response": {"conversation_id": "x", "data": self.reponse_ia}}
             if chemin == "/api/states":
-                return 200, [{"entity_id": "ai_task.claude", "attributes": {"friendly_name": "Claude AI Task"}},
-                             {"entity_id": "sensor.cave", "attributes": {}}]
+                return 200, self.entites_ha + [{"entity_id": "sensor.cave", "state": "12", "attributes": {}}]
             return 404, {}
 
         self.ha = FauxServeur(repondre)
@@ -274,7 +278,8 @@ class TestLectureEtiquette(BaseTest):
 
     def test_lecture(self):
         self.assertTrue(self.appel("GET", "api/capacites")["ia"]["possible"])
-        self.assertEqual(self.appel("GET", "api/ia/entites"), [{"entity_id": "ai_task.claude", "nom": "Claude AI Task"}])
+        self.assertEqual(self.appel("GET", "api/ia/entites"),
+                         [{"entity_id": "ai_task.claude", "nom": "Claude AI Task", "etat": "2026-10-18T10:00:00"}])
         image = "data:image/jpeg;base64," + base64.b64encode(photo_de_bouteille()).decode()
         ident = self.appel("POST", "api/brouillons", {"image": image})["id"]
         champs = self.appel("POST", f"api/brouillons/{ident}/lire", attendu=200)["champs"]
@@ -296,6 +301,24 @@ class TestLectureEtiquette(BaseTest):
                     "Crémant de Loire": "effervescent", "Moelleux": "liquoreux", "rose": "rose", "violet": None}
         for texte, couleur in attendus.items():
             self.assertEqual(ia.couleur_depuis(texte), couleur, texte)
+
+    def test_choix_automatique_de_l_ia(self):
+        """Sans IA choisie ni IA préférée dans Home Assistant : la cave prend la première « tâche IA » disponible."""
+        self.appel("PUT", "api/reglages", {"ia_entite": ""})
+        self.entites_ha = [{"entity_id": "ai_task.hors_ligne", "state": "unavailable", "attributes": {}}] + self.entites_ha
+        image = "data:image/jpeg;base64," + base64.b64encode(photo_de_bouteille()).decode()
+        ident = self.appel("POST", "api/brouillons", {"image": image})["id"]
+        self.appel("POST", f"api/brouillons/{ident}/lire", attendu=200)
+        self.assertEqual(json.loads(self.ha.requetes[-1][2])["entity_id"], "ai_task.claude")
+
+    def test_aucune_ia_dans_home_assistant(self):
+        self.appel("PUT", "api/reglages", {"ia_entite": ""})
+        self.entites_ha = []
+        image = "data:image/jpeg;base64," + base64.b64encode(photo_de_bouteille()).decode()
+        ident = self.appel("POST", "api/brouillons", {"image": image})["id"]
+        erreur = self.appel("POST", f"api/brouillons/{ident}/lire", attendu=422)["erreur"]
+        self.assertIn("aucune IA de type « tâche IA »", erreur)
+        self.assertNotIn("No entity_id", erreur)
 
     def test_ia_desactivee(self):
         self.appel("PUT", "api/reglages", {"ia_active": "0"})

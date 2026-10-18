@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.3.5
+
+- **IA choisie automatiquement** : si aucune IA n'est choisie dans les réglages de la cave et que Home Assistant n'a
+  pas d'IA « préférée », la cave utilise la première « tâche IA » (AI Task) disponible. Corrige l'erreur
+  « No entity_id provided and no preferred entity set ».
+- Message clair s'il n'existe aucune IA « tâche IA » dans Home Assistant, avec la marche à suivre.
+- Réglages : l'option « Automatique » indique l'IA qui sera utilisée.
+
 ## 1.3.4
 
 - **Scan du code-barres beaucoup plus fiable** :

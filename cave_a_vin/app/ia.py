@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import secrets
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -89,11 +90,24 @@ def etat(reglages, image=True):
     return {"possible": True, "entite": reglages.get("ia_entite") or None}
 
 
+AUCUNE_IA = ("Home Assistant n'a aucune IA de type « tâche IA » : ajoutez une intégration d'IA (OpenAI, Google Gemini, "
+             "Anthropic, Ollama…) et, dans ses options, une « tâche IA » (AI Task). La cave l'utilisera automatiquement.")
+
+
+def entite_a_utiliser(reglages):
+    """L'IA choisie dans les réglages, sinon la première IA « tâche IA » disponible dans Home Assistant."""
+    if reglages.get("ia_entite"):
+        return reglages["ia_entite"]
+    disponibles = [e for e in entites(reglages) if e.get("etat") not in ("unavailable", "unknown")]
+    return disponibles[0]["entity_id"] if disponibles else None
+
+
 def _appeler(reglages, corps, timeout):
     """Appelle ai_task.generate_data et renvoie les données structurées de la réponse."""
     url, jeton = ha.connexion(reglages)
-    if reglages.get("ia_entite"):
-        corps["entity_id"] = reglages["ia_entite"]
+    entite = entite_a_utiliser(reglages)
+    if entite:
+        corps["entity_id"] = entite
     req = urllib.request.Request(f"{url}/services/ai_task/generate_data?return_response", method="POST",
                                  data=json.dumps(corps).encode(),
                                  headers={"Authorization": f"Bearer {jeton}", "Content-Type": "application/json"})
@@ -102,8 +116,11 @@ def _appeler(reglages, corps, timeout):
             reponse = json.loads(rep.read().decode())
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:300]
-        if e.code == 400 and "entity" in detail.lower():
-            raise IAErreur("Aucune IA par défaut dans Home Assistant : choisissez-en une dans les Réglages de la cave")
+        if "entity" in detail.lower():
+            if not entite:
+                raise IAErreur(AUCUNE_IA)
+            raise IAErreur(f"L'IA « {entite} » de Home Assistant est introuvable ou indisponible : "
+                           "choisissez-en une autre dans les Réglages de la cave")
         raise IAErreur(f"L'IA de Home Assistant a refusé la demande ({e.code}) : {detail}")
     except (urllib.error.URLError, OSError, ValueError) as e:
         raise IAErreur(f"Home Assistant injoignable ({getattr(e, 'reason', e)})")
@@ -118,18 +135,27 @@ def _appeler(reglages, corps, timeout):
     return donnees
 
 
-def entites(reglages):
+_cache_entites = {"cle": None, "quand": 0.0, "valeur": []}
+
+
+def entites(reglages, cache_secondes=60):
+    """Entités « tâche IA » (ai_task.*) de Home Assistant, mises en cache une minute."""
     url, jeton = ha.connexion(reglages)
     if not url:
         return []
+    if _cache_entites["cle"] == url and time.time() - _cache_entites["quand"] < cache_secondes:
+        return _cache_entites["valeur"]
     req = urllib.request.Request(f"{url}/states", headers={"Authorization": f"Bearer {jeton}"})
     try:
         with urllib.request.urlopen(req, timeout=8) as rep:
             etats = json.loads(rep.read().decode())
     except (urllib.error.URLError, OSError, ValueError):
         return []
-    return [{"entity_id": e["entity_id"], "nom": e.get("attributes", {}).get("friendly_name", e["entity_id"])}
-            for e in etats if e["entity_id"].startswith("ai_task.")]
+    valeur = [{"entity_id": e["entity_id"], "nom": e.get("attributes", {}).get("friendly_name", e["entity_id"]),
+               "etat": e.get("state")}
+              for e in etats if e["entity_id"].startswith("ai_task.")]
+    _cache_entites.update(cle=url, quand=time.time(), valeur=valeur)
+    return valeur
 
 
 VIDES = ("", "inconnu", "inconnue", "non indiqué", "non indiquée", "n/a", "na", "null", "none", "-", "?")
