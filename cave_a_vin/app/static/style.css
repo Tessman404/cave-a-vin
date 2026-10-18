@@ -90,6 +90,7 @@ h1 { font: 600 2rem/1.1 var(--serif); letter-spacing: -.01em; }
 h2 { font: 600 1.18rem/1.25 var(--serif); }
 h3 { font-size: 1rem; }
 img { max-width: 100%; }
+[hidden] { display: none !important; }
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
@@ -516,7 +517,7 @@ dialog::backdrop { background: rgba(10, 20, 16, .5); -webkit-backdrop-filter: bl
 .feuille-plus a:hover { text-decoration: none; }
 .feuille-plus svg { width: 24px; height: 24px; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #menu button.actif { color: var(--accent); font-weight: 600; }
-@media (max-width: 760px) { .entete > .bouton.primaire[href="#/ajouter"] { display: none; } }
+@media (max-width: 760px) { .entete .bouton.primaire[href="#/ajouter"] { display: none; } }
 
 /* ---------- typographie : Fraunces (titres) ---------- */
 h1, h2, .logo, .casier .total, .casier .chiffres strong, .vin .nom, .liste .titre, .tuile .valeur,
@@ -545,3 +546,8 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
   .liste li > .statut { order: 4; margin-left: 22px; }
   .liste .titre.tronque { white-space: normal; }
 }
+
+.raccourcis { margin: -4px 0 18px; }
+@media (max-width: 760px) { .raccourcis .bouton { width: 100%; } }
+.verso-choix { margin-top: 12px; box-shadow: none; border-color: var(--accent); background: var(--accent-doux); flex-basis: 100%; }
+.verso-choix p { margin: 4px 0 0; }

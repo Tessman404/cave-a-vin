@@ -264,6 +264,7 @@ async function pageAccueil(main) {
       <div class="muted petit-texte">${m.type === "entree" ? "+" : "−"}${m.quantite} · ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)} · ${dateFr(m.date)}</div></div>${etoiles(m.note)}</li>`;
   main.innerHTML = `
     ${casierVivant(s)}
+    <div class="actions raccourcis"><button class="bouton" id="sortie-scan">▥ Sortir une bouteille par son code-barres</button></div>
     <div class="grille tableau-bord">
       ${blocClimat}
       <div class="carte ${s.urgents.length ? "alerte-carte" : ""}"><div class="titre-carte"><h2>À boire vite</h2>
@@ -283,6 +284,7 @@ async function pageAccueil(main) {
         ${s.derniers_mouvements.length ? `<ul class="liste">${s.derniers_mouvements.map(mouvement).join("")}</ul>` : ""}
         <a href="#/historique">Tout l'historique</a></div>
     </div>`;
+  $("#sortie-scan", main).onclick = sortirParCodeBarres;
   $$("[data-filtre-statut]", main).forEach((a) => a.addEventListener("click", () => {
     filtresVins = { ...filtresVins, statut: a.dataset.filtreStatut, stock: "1" };
   }));
@@ -292,7 +294,7 @@ async function pageVins(main) {
   const caves = await api("GET", "caves");
   const statuts = { ...REF.statuts, "urgent,depasse": "⚠ À boire vite ou dépassés", "declin,apogee,a_boire": "✓ Prêts à boire" };
   main.innerHTML = `
-    <div class="entete"><h1>Mes vins</h1><a class="bouton primaire" href="#/ajouter">+ Ajouter un vin</a></div>
+    <div class="entete"><h1>Mes vins</h1><div class="actions"><button class="bouton" id="sortie-scan">▥ Sortir par code-barres</button><a class="bouton primaire" href="#/ajouter">+ Ajouter un vin</a></div></div>
     <div class="filtres">
       <input type="search" name="q" placeholder="Rechercher : nom, domaine, cépage, millésime…" value="${esc(filtresVins.q)}" aria-label="Rechercher">
       <select name="couleur" aria-label="Couleur">${options(REF.couleurs, filtresVins.couleur, "Toutes couleurs")}</select>
@@ -303,6 +305,7 @@ async function pageVins(main) {
     </div>
     <p class="muted petit-texte" id="compte"></p>
     <div id="resultats" class="vins"></div>`;
+  $("#sortie-scan", main).onclick = sortirParCodeBarres;
   const charger = async () => {
     const qs = new URLSearchParams(Object.entries(filtresVins).filter(([, v]) => v !== "")).toString();
     const vins = await api("GET", "vins?" + qs);
@@ -813,68 +816,42 @@ async function pageAjouter(main) {
     ${rangement ? `<div class="carte bandeau-rangement">📍 La bouteille sera rangée dans <b>${esc(rangement.cave_nom)}</b>, rangée ${rangement.rangee}, colonne ${rangement.colonne}.
       <button class="bouton petit" id="annuler-rangement">Ne pas la ranger</button></div>` : ""}
     <div class="tuiles-ajout">
-      <button class="carte tuile-ajout" id="t-scan"><span class="icone">▥</span><b>Scanner le code-barres</b><span class="muted">La fiche se remplit toute seule si le vin est connu</span></button>
       <label class="carte tuile-ajout"><span class="icone">📷</span><b>Photographier la bouteille</b>
-        <span class="muted">${CAPACITES.ia.possible ? "L'IA lit l'étiquette" : "Photo de la bouteille"}${CAPACITES.detourage ? ", la bouteille est détourée et posée sur un fond de cave" : ""}</span>
+        <span class="muted">D'abord l'étiquette, puis le verso${CAPACITES.ia.possible ? " : l'IA remplit la fiche et trouve le code-barres" : ""}${CAPACITES.detourage ? ". La bouteille est détourée et posée sur un fond de cave" : ""}</span>
         <input type="file" accept="image/*" capture="environment" hidden id="t-photo"></label>
       <a class="carte tuile-ajout" href="#/vins/nouveau" id="t-main"><span class="icone">✎</span><b>Saisir à la main</b><span class="muted">Formulaire complet</span></a>
     </div>
-    <form class="filtres" id="code-manuel" style="margin-top:16px;max-width:460px">
-      <input name="code" inputmode="numeric" placeholder="… ou tapez le code-barres (13 chiffres)" aria-label="Code-barres">
-      <button class="bouton" type="submit">Chercher</button>
-    </form>
     <div id="resultat"></div>`;
   ajout = null;
   const resultat = $("#resultat", main);
   $("#t-main", main).onclick = () => { ajout = null; };
   const annulerRangement = $("#annuler-rangement", main);
   if (annulerRangement) annulerRangement.onclick = () => { rangement = null; route(); };
-
   const montrer = () => resultat.scrollIntoView({ behavior: "smooth", block: "start" });
-  const chercher = async (code) => {
-    resultat.innerHTML = `<div class="carte chargement">Recherche du code ${esc(code)}…</div>`;
-    montrer();
-    let r;
-    try { r = await api("GET", "scan/" + encodeURIComponent(code)); }
-    catch (err) { resultat.innerHTML = `<div class="carte"><p>${esc(err.message)}</p></div>`; return; }
-    if (r.local) {
-      const v = r.local;
-      resultat.innerHTML = `<div class="carte resultat-scan">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="">` : bouteilleSVG(v.couleur)}
-        <div><p class="muted">Déjà dans votre cave</p><h2>${titreVin(v)}</h2><p class="muted">${sousTitre(v)}</p><p>${badgeStatut(v.statut)} · ${pluriel(v.stock, "bouteille")}</p>
-        <div class="actions"><button class="bouton primaire" id="r-entree">📥 Ajouter des bouteilles</button><a class="bouton" href="#/vins/${v.id}">Voir la fiche</a></div></div></div>`;
-      $("#r-entree", resultat).onclick = () => dialogueEntree(v, () => apresAjout(v.id));
-      return;
-    }
-    if (r.externe) {
-      const x = r.externe.vin;
-      resultat.innerHTML = `<div class="carte resultat-scan">${r.externe.image_url ? `<img src="${esc(r.externe.image_url)}" alt="" referrerpolicy="no-referrer">` : bouteilleSVG(x.couleur || "autre")}
-        <div><p class="muted">Trouvé dans Open Food Facts</p><h2>${titreVin(x)}</h2><p class="muted">${sousTitre(x)}</p>
-        <div class="actions"><button class="bouton primaire" id="r-suite">Continuer</button>
-        <label class="bouton">📷 Prendre ma photo<input type="file" accept="image/*" capture="environment" hidden id="r-photo"></label></div></div></div>`;
-      $("#r-suite", resultat).onclick = async () => {
-        ajout = { champs: x, code_barre: r.code, source: "off" };
-        if (r.externe.image_url) {
-          try { ajout.brouillon = (await api("POST", "brouillons", { url: r.externe.image_url })).id; ajout.fond = ""; } catch { /* sans photo */ }
-        }
-        location.hash = "#/vins/nouveau";
-      };
-      $("#r-photo", resultat).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0], { code_barre: r.code, champs: x });
-      return;
-    }
-    resultat.innerHTML = `<div class="carte"><h2>Vin inconnu</h2>
-      <p>${r.erreur ? esc(r.erreur) + ". " : "Ce code-barres n'est pas dans la base Open Food Facts. "}Prenez la bouteille en photo${CAPACITES.ia.possible ? " : l'IA lira l'étiquette pour remplir la fiche" : ""}.</p>
-      <label class="bouton primaire">📷 Photographier la bouteille<input type="file" accept="image/*" capture="environment" hidden id="r-photo"></label></div>`;
-    $("#r-photo", resultat).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0], { code_barre: r.code });
-  };
 
-  const traiterPhoto = async (fichier, base = {}) => {
+  /** Demande la photo du verso ; renvoie le fichier, ou null si l'utilisateur l'ignore. */
+  const demanderVerso = () => new Promise((resolve) => {
+    const zone = $("#e-verso-choix", resultat);
+    zone.hidden = false;
+    $("#v-photo", zone).onchange = (e) => { zone.hidden = true; resolve(e.target.files[0] || null); };
+    $("#v-ignorer", zone).onclick = () => { zone.hidden = true; resolve(null); };
+  });
+
+  const traiterPhoto = async (fichier) => {
     resultat.innerHTML = `<div class="carte traitement"><div class="apercu-ajout"><img id="apercu" alt="Photo de la bouteille"></div>
       <ul class="liste etapes"><li id="e-envoi">⏳ Envoi de la photo…</li>
       ${CAPACITES.detourage ? `<li id="e-detour">⏳ Détourage de la bouteille…</li>` : ""}
+      <li id="e-verso">↻ Verso de la bouteille</li>
       ${CAPACITES.ia.possible ? `<li id="e-ia">⏳ Lecture de l'étiquette par l'IA…</li>` : ""}</ul>
+      <div class="carte verso-choix" id="e-verso-choix" hidden>
+        <b>Photographiez maintenant le verso</b>
+        <p class="muted petit-texte">La contre-étiquette donne plus d'informations (cépages, degré…) et le code-barres, qui servira à sortir la bouteille d'un simple scan.</p>
+        <div class="actions"><label class="bouton primaire">📷 Photographier le verso<input type="file" accept="image/*" capture="environment" hidden id="v-photo"></label>
+          <button class="bouton" id="v-ignorer">Ignorer</button></div></div>
+      <div id="e-existe"></div>
       <div class="actions" id="e-actions" hidden>
         ${CAPACITES.detourage ? `<button class="bouton" id="e-fond">🎨 Changer de fond</button>` : ""}
-        <button class="bouton primaire" id="e-suite">Continuer →</button></div></div>`;
+        <button class="bouton primaire" id="e-suite">Continuer</button></div></div>`;
     montrer();
     const etape = (id, texte) => { const li = $("#" + id, resultat); if (li) li.textContent = texte; };
     const image = await redimensionner(fichier, 1600);
@@ -882,33 +859,62 @@ async function pageAjouter(main) {
     let ident;
     try { ident = (await api("POST", "brouillons", { image })).id; etape("e-envoi", "✓ Photo reçue"); }
     catch (err) { etape("e-envoi", "✕ " + err.message); return; }
-    ajout = { ...base, champs: { ...(base.champs || {}) }, brouillon: ident, fond: "", source: "photo" };
+    ajout = { champs: {}, brouillon: ident, fond: "", source: "photo" };
     const lent = setTimeout(() => etape("e-detour", "⏳ Détourage… (la première fois, le modèle de détourage est téléchargé : patientez une minute)"), 6000);
-    await Promise.all([
-      CAPACITES.detourage && api("POST", `brouillons/${ident}/rendu`, { fond: CAPACITES.fond_defaut, cadrage: CAPACITES.cadrage_defaut })
-        .then(() => {
-          ajout.fond = CAPACITES.fond_defaut;
-          ajout.cadrage = CAPACITES.cadrage_defaut;
-          $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${ajout.fond}&cadrage=${ajout.cadrage}`);
-          etape("e-detour", "✓ Bouteille détourée");
-        })
-        .catch((err) => etape("e-detour", "✕ Détourage impossible : " + err.message))
-        .finally(() => clearTimeout(lent)),
-      CAPACITES.ia.possible && api("POST", `brouillons/${ident}/lire`)
-        .then((r) => {
-          ajout.champs = { ...r.champs, ...ajout.champs };  // les données du code-barres priment
-          ajout.source = "ia";
-          const libelles = { nom: "nom", domaine: "domaine", appellation: "appellation", region: "région", couleur: "couleur",
-            millesime: "millésime", cepages: "cépages", degre: "degré", valeur: "valeur", accords: "accords", notes: "description" };
-          const trouves = Object.keys(libelles).filter((k) => r.champs[k] != null && r.champs[k] !== "");
-          const manquants = Object.keys(libelles).filter((k) => !trouves.includes(k));
-          const titre = [r.champs.nom, r.champs.millesime].filter(Boolean).join(" ");
-          etape("e-ia", trouves.length
-            ? `✓ Étiquette lue${titre ? " : " + titre : ""} — ${trouves.length} informations remplies${manquants.length ? ` (à compléter : ${manquants.map((k) => libelles[k]).join(", ")})` : ""}`
-            : "✕ L'IA n'a rien pu lire : complétez à la main");
-        })
-        .catch((err) => etape("e-ia", "✕ Lecture impossible : " + err.message)),
-    ]);
+    const detourage = CAPACITES.detourage && api("POST", `brouillons/${ident}/rendu`, { fond: CAPACITES.fond_defaut, cadrage: CAPACITES.cadrage_defaut })
+      .then(() => {
+        ajout.fond = CAPACITES.fond_defaut;
+        ajout.cadrage = CAPACITES.cadrage_defaut;
+        $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${ajout.fond}&cadrage=${ajout.cadrage}`);
+        etape("e-detour", "✓ Bouteille détourée");
+      })
+      .catch((err) => etape("e-detour", "✕ Détourage impossible : " + err.message))
+      .finally(() => clearTimeout(lent));
+
+    // le verso pendant que le détourage tourne
+    const fichierVerso = await demanderVerso();
+    let verso = null, codeVerso = null;
+    if (fichierVerso) {
+      etape("e-verso", "⏳ Lecture du verso…");
+      [verso, codeVerso] = await Promise.all([redimensionner(fichierVerso, 1600), decoderImage(fichierVerso).catch(() => null)]);
+      etape("e-verso", codeVerso ? `✓ Verso reçu, code-barres ${codeVerso}` : "✓ Verso reçu");
+    } else {
+      etape("e-verso", "– Verso ignoré");
+    }
+
+    const lecture = CAPACITES.ia.possible && api("POST", `brouillons/${ident}/lire`, verso ? { verso } : {})
+      .then((r) => {
+        ajout.champs = { ...r.champs, ...ajout.champs };
+        ajout.source = "ia";
+        const libelles = { nom: "nom", domaine: "domaine", appellation: "appellation", region: "région", couleur: "couleur",
+          millesime: "millésime", cepages: "cépages", degre: "degré", valeur: "valeur", accords: "accords", notes: "description" };
+        const trouves = Object.keys(libelles).filter((k) => r.champs[k] != null && r.champs[k] !== "");
+        const manquants = Object.keys(libelles).filter((k) => !trouves.includes(k));
+        const titre = [r.champs.nom, r.champs.millesime].filter(Boolean).join(" ");
+        etape("e-ia", trouves.length
+          ? `✓ Étiquette lue${titre ? " : " + titre : ""} : ${trouves.length} informations remplies${manquants.length ? ` (à compléter : ${manquants.map((k) => libelles[k]).join(", ")})` : ""}`
+          : "✕ L'IA n'a rien pu lire : complétez à la main");
+      })
+      .catch((err) => etape("e-ia", "✕ Lecture impossible : " + err.message));
+    await Promise.all([detourage, lecture]);
+
+    // code-barres : celui lu sur la photo prime sur celui recopié par l'IA
+    const code = codeVerso || ajout.champs.code_barre || null;
+    if (code) {
+      ajout.code_barre = code;
+      if (!codeVerso) etape("e-verso", `✓ Verso reçu, code-barres ${code} (lu par l'IA)`);
+      try {
+        const r = await api("GET", "scan/" + encodeURIComponent(code));
+        if (r.local) {
+          const v = r.local;
+          $("#e-existe", resultat).innerHTML = `<div class="carte nouveau-vin-case"><b>Ce vin est déjà dans votre cave : ${titreVin(v)}</b>
+            <p class="muted petit-texte">${pluriel(v.stock, "bouteille")}. Ajoutez plutôt des bouteilles à ce vin.</p>
+            <div class="actions"><button class="bouton primaire" id="e-entree">📥 Ajouter des bouteilles</button><a class="bouton" href="#/vins/${v.id}">Voir la fiche</a></div></div>`;
+          $("#e-entree", resultat).onclick = () => dialogueEntree(v, () => apresAjout(v.id));
+        }
+      } catch { /* la vérification est un plus */ }
+    }
+
     $("#e-actions", resultat).hidden = false;
     $("#e-suite", resultat).onclick = () => (location.hash = "#/vins/nouveau");
     const bf = $("#e-fond", resultat);
@@ -921,11 +927,18 @@ async function pageAjouter(main) {
   };
 
   $("#t-photo", main).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0]);
-  $("#code-manuel", main).onsubmit = (e) => { e.preventDefault(); const c = e.target.code.value.replace(/\D/g, ""); if (c) chercher(c); };
-  $("#t-scan", main).onclick = async () => {
-    const code = await scanner();
-    if (code) chercher(code);
-  };
+}
+
+/** Sortir une bouteille en scannant son code-barres. */
+async function sortirParCodeBarres() {
+  const code = await scanner();
+  if (!code) return;
+  let r;
+  try { r = await api("GET", "scan/" + encodeURIComponent(code)); }
+  catch (err) { return toast(err.message, true); }
+  if (!r.local) return toast(`Aucun vin de votre cave ne porte le code-barres ${code}`, true, 6000);
+  if (!r.local.stock) return toast(`${r.local.nom} : plus aucune bouteille en cave`, true, 6000);
+  dialogueSortie(r.local, null, () => { location.hash = `#/vins/${r.local.id}`; route(); });
 }
 
 /** Après un ajout : retour au plan si la bouteille vient d'y être rangée, sinon à la fiche. */

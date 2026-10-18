@@ -296,6 +296,19 @@ class TestLectureEtiquette(BaseTest):
         self.assertEqual(demande["entity_id"], "ai_task.claude")
         self.assertEqual(self.ha.requetes[-1][3]["Authorization"], "Bearer jeton")
 
+    def test_lecture_avec_verso(self):
+        image = "data:image/jpeg;base64," + base64.b64encode(photo_de_bouteille()).decode()
+        ident = self.appel("POST", "api/brouillons", {"image": image})["id"]
+        self.reponse_ia = {**self.reponse_ia, "code_barre": "3 760 123 456 789"}
+        champs = self.appel("POST", f"api/brouillons/{ident}/lire", {"verso": image}, attendu=200)["champs"]
+        self.assertEqual(champs["code_barre"], "3760123456789")
+        demande = json.loads(self.ha.requetes[-1][2])
+        self.assertEqual(len(demande["attachments"]), 2)  # étiquette + contre-étiquette en une seule demande
+        self.assertIn("verso", demande["attachments"][1]["media_content_id"])
+        self.assertEqual(list((Path(self.media.name) / "cave_a_vin").iterdir()), [])  # rien n'est conservé
+        self.reponse_ia = {**self.reponse_ia, "code_barre": "illisible"}
+        self.assertNotIn("code_barre", self.appel("POST", f"api/brouillons/{ident}/lire", attendu=200)["champs"])
+
     def test_couleurs_en_texte_libre(self):
         attendus = {"Vin rouge": "rouge", "Blanc sec": "blanc", "Rosé": "rose", "Champagne brut": "effervescent",
                     "Crémant de Loire": "effervescent", "Moelleux": "liquoreux", "rose": "rose", "violet": None}

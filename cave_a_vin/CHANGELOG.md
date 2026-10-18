@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.6.0
+
+- **Ajout d'un vin en deux photos** : l'étiquette, puis le verso (contre-étiquette), qu'on peut ignorer. L'IA lit
+  les deux en une seule demande et remplit mieux la fiche (cépages, degré, contenance…). Le verso n'est pas conservé.
+- **Le code-barres est récupéré sur la photo du verso** (lu directement sur l'image, sinon recopié par l'IA). Si le
+  vin est déjà dans la cave, la cave propose d'y ajouter des bouteilles.
+- L'ajout par scan du code-barres disparaît de la page « Ajouter ».
+- **Sortir une bouteille par son code-barres** : bouton sur l'accueil et dans « Mes vins ».
+
 ## 1.5.0
 
 - **La cave s'appelle désormais Tessvine** (barre latérale de Home Assistant, application, écran d'accueil de

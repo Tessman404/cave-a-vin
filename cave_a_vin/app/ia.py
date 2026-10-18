@@ -7,6 +7,7 @@ La photo est déposée temporairement dans le dossier « media » de Home Assist
 import json
 import logging
 import os
+import re
 import secrets
 import time
 import urllib.error
@@ -19,8 +20,10 @@ from .cave import COULEURS
 log = logging.getLogger("cave_a_vin")
 SOUS_DOSSIER = "cave_a_vin"
 INSTRUCTIONS = (
-    "Tu es sommelier. La photo jointe montre une bouteille de vin. Remplis, en français, la fiche de ce vin "
-    "pour l'inventaire d'une cave.\n"
+    "Tu es sommelier. La première photo jointe montre une bouteille de vin, vue de face (étiquette). S'il y a une "
+    "seconde photo, c'est le verso de la même bouteille (contre-étiquette) : sers-t'en pour compléter et confirmer "
+    "(producteur, cépages, degré, contenance, conseils de service) et recopie les chiffres du code-barres s'ils "
+    "sont lisibles. Remplis, en français, la fiche de ce vin pour l'inventaire d'une cave.\n"
     "1. Recopie ce qui est écrit sur la bouteille (étiquette, contre-étiquette, collerette, capsule) : le nom de la "
     "cuvée ou du château ; le producteur (domaine, château, maison ou négociant : il est souvent écrit en grand, ou "
     "dans la mention « mis en bouteille par… » / « mis en bouteille au château ») ; l'appellation ; le millésime ; "
@@ -50,6 +53,8 @@ STRUCTURE = {
     "valeur": {"description": "Prix de marché indicatif d'une bouteille, en euros", "selector": {"number": {"min": 0, "max": 100000, "step": 0.5}}},
     "accords": {"description": "Trois à cinq accords mets-vins, séparés par des virgules", "required": True, "selector": TEXTE},
     "description": {"description": "Deux phrases : style du vin, arômes typiques, potentiel", "selector": TEXTE},
+    "code_barre": {"description": "Chiffres du code-barres (EAN, 8 à 14 chiffres) s'ils sont lisibles sur la "
+                                  "contre-étiquette, sinon vide", "selector": TEXTE},
 }
 # Réponses libres de certaines IA ramenées aux couleurs de la cave.
 MOTS_COULEURS = [
@@ -205,33 +210,42 @@ def _nettoyer(donnees):
             continue
         if mini <= valeur <= maxi:
             propre[cle] = round(valeur, 2) if conv is float else valeur
+    code = re.sub(r"\D", "", str(donnees.get("code_barre") or ""))
+    if 8 <= len(code) <= 14:
+        propre["code_barre"] = code
     description = donnees.get("description")
     if isinstance(description, str) and description.strip().lower() not in VIDES:
         propre["notes"] = description.strip()[:600]
     return propre
 
 
-def lire_etiquette(reglages, image_jpeg, timeout=120):
+def lire_etiquette(reglages, image_jpeg, timeout=120, verso_jpeg=None):
+    """Lit l'étiquette (et la contre-étiquette si elle est fournie) en une seule demande à l'IA.
+    Les photos ne sont déposées que le temps de la lecture."""
     possible = etat(reglages)
     if not possible["possible"]:
         raise IAErreur(possible["raison"])
     dossier = dossier_media() / SOUS_DOSSIER
     dossier.mkdir(parents=True, exist_ok=True)
-    nom = f"etiquette-{secrets.token_hex(6)}.jpg"
-    (dossier / nom).write_bytes(image_jpeg)
+    jeton = secrets.token_hex(6)
+    noms = [f"etiquette-{jeton}.jpg"] + ([f"verso-{jeton}.jpg"] if verso_jpeg else [])
+    for nom, contenu in zip(noms, (image_jpeg, verso_jpeg)):
+        (dossier / nom).write_bytes(contenu)
     corps = {
         "task_name": "Lecture d'étiquette de vin",
         "instructions": INSTRUCTIONS,
         "structure": STRUCTURE,
         "attachments": [{"media_content_id": f"media-source://media_source/local/{SOUS_DOSSIER}/{nom}",
-                         "media_content_type": "image/jpeg"}],
+                         "media_content_type": "image/jpeg"} for nom in noms],
     }
     try:
         champs = _nettoyer(_appeler(reglages, corps, timeout))
-        log.info("Étiquette lue par l'IA : %s", ", ".join(f"{k}={v}" for k, v in champs.items() if k != "notes"))
+        log.info("Étiquette lue par l'IA%s : %s", " (avec le verso)" if verso_jpeg else "",
+                 ", ".join(f"{k}={v}" for k, v in champs.items() if k != "notes"))
         return champs
     finally:
-        (dossier / nom).unlink(missing_ok=True)
+        for nom in noms:
+            (dossier / nom).unlink(missing_ok=True)
 
 
 # --------------------------------------------------------------------------- estimation de la garde

@@ -295,7 +295,11 @@ def _image_brouillon(app, req, ident):
 
 @route("POST", r"api/brouillons/(\w+)/lire")
 def _lire_brouillon(app, req, ident):
-    return {"champs": ia.lire_etiquette(app.reglages(), app.brouillons.original(ident).read_bytes())}
+    # le verso (contre-étiquette) est facultatif : il aide l'IA mais n'est jamais conservé
+    verso = req.json().get("verso")
+    verso_jpeg = photo.jpeg(photo.ouvrir(_decoder_image(verso)), 85) if verso else None
+    return {"champs": ia.lire_etiquette(app.reglages(), app.brouillons.original(ident).read_bytes(),
+                                         verso_jpeg=verso_jpeg)}
 
 
 @route("POST", r"api/vins/(\d+)/garde-ia")
