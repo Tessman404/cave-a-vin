@@ -753,3 +753,26 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .casier-titre .modifier-etagere { position: static; margin-left: 2px; }
 .casier-coin { position: absolute; top: 0; right: -6px; z-index: 50; display: flex; align-items: center; gap: 4px; }
 .casier-coin .modifier-etagere { position: static; }
+
+/* ---------- étapes de garde : une couleur chacune, du frais au rouge à mesure que le vin vieillit ---------- */
+:root {
+  --s-trop_jeune: #2f6fa8;  /* à garder : bleu */
+  --s-a_boire: #2d8a4e;     /* prêt à boire : vert */
+  --s-apogee: #9a7b00;      /* à l'apogée : or */
+  --s-declin: #c4610d;      /* après l'apogée : orange */
+  --s-urgent: #c8261c;      /* à boire vite : rouge */
+  --s-depasse: #5b5b5b;     /* garde dépassée : gris foncé */
+  --s-inconnu: #86918a;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --s-trop_jeune: #7fb0dd; --s-a_boire: #5cbf86; --s-apogee: #e0be4a; --s-declin: #f0913e; --s-urgent: #ff6b5e; --s-depasse: #b9b9b9; }
+}
+.statut.trop_jeune, .statut.a_boire, .statut.apogee, .statut.declin, .statut.urgent, .statut.depasse, .statut.inconnu { background: transparent; }
+.statut.trop_jeune { color: var(--s-trop_jeune); }
+.statut.a_boire { color: var(--s-a_boire); }
+.statut.apogee { color: var(--s-apogee); background: color-mix(in srgb, var(--s-apogee) 14%, transparent); }
+.statut.declin { color: var(--s-declin); }
+.statut.urgent { color: #fff; background: var(--s-urgent); border-color: var(--s-urgent); }
+.statut.depasse { color: #fff; background: var(--s-depasse); border-color: var(--s-depasse); }
+.statut.inconnu { color: var(--s-inconnu); }
+@media (prefers-color-scheme: dark) { .statut.urgent, .statut.depasse { color: #1a1210; } }

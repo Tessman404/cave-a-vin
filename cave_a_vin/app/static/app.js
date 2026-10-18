@@ -78,11 +78,12 @@ function datalist(id, valeurs) {
 }
 
 /** Barres horizontales étiquetées : le texte porte l'identité, la couleur la renforce. */
-function barres(lignes, { couleur = false, lien } = {}) {
+function barres(lignes, { couleur = false, statut = false, lien } = {}) {
   if (!lignes.length) return `<p class="muted">Aucune donnée.</p>`;
   const max = Math.max(...lignes.map((l) => l.bouteilles), 1);
   return `<div class="barres">${lignes.map((l) => {
-    const fond = couleur ? `background: var(--c-${COULEURS_CSS.includes(l.cle) ? l.cle : "autre"})` : "";
+    const fond = couleur ? `background: var(--c-${COULEURS_CSS.includes(l.cle) ? l.cle : "autre"})`
+      : statut ? `background: var(--s-${esc(l.cle)}, var(--accent))` : "";
     const nom = `${couleur ? pastille(l.cle) : ""}<span class="tronque">${esc(l.label)}</span>`;
     return `<div class="barre-ligne" title="${esc(l.label)} : ${pluriel(l.bouteilles, "bouteille")}">
       <span class="nom">${lien ? `<a href="${lien(l)}">${nom}</a>` : nom}</span>
@@ -240,7 +241,7 @@ function casierVivant(s) {
         const p = s.place_libre, v = p.suggestion;
         return `<div class="alerte-place" role="status">
           <div><b>${p.libres > 1 ? `${nombre(p.libres)} places libres` : "Une place libre"} dans ${esc(p.casier_nom)}</b>
-            <span>Suggestion : ${titreVin(v)}${v.appellation ? ` · ${esc(v.appellation)}` : ""}${v.valeur ? ` · ${euros(v.valeur)}` : ""}</span></div>
+            <span>${v.a_deplacer ? "À y mettre" : "Suggestion"} : ${titreVin(v)}${v.appellation ? ` · ${esc(v.appellation)}` : ""}${v.valeur ? ` · ${euros(v.valeur)}` : ""}${v.a_deplacer && v.depuis ? `, actuellement sur ${esc(v.depuis)}` : ""}</span></div>
           <a class="bouton petit" href="#/caves/${p.cave_id}?placer=${v.bouteille_id}">Choisir l'emplacement</a></div>`;
       })() : ""}
     </div>
@@ -301,7 +302,7 @@ async function pageAccueil(main) {
       <div class="carte"><h2>Par région</h2>${barres(s.par_region)}</div>
       <div class="carte"><h2>Par cave</h2>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
         { lien: (l) => l.cle ? `#/caves/${l.cle}` : "#/caves" })}</div>
-      <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles))}</div>
+      <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles), { statut: true })}</div>
       <div class="carte"><h2>Par millésime</h2>${histogramme(s.par_millesime)}</div>
       <div class="carte"><h2>Derniers mouvements</h2>
         <p class="muted petit-texte">Ce mois-ci : +${s.entrees_mois} / −${s.sorties_mois}</p>
@@ -1249,7 +1250,8 @@ async function pageCaves(main, id, params) {
   const boutonARanger = $("#voir-a-ranger", main);
   if (boutonARanger) boutonARanger.onclick = voirARanger;
   if (new URLSearchParams(params).get("ranger") && aRanger.length) voirARanger();
-  const aPlacer = aRanger.find((b) => b.id === +new URLSearchParams(params).get("placer"));
+  const idPlacer = +new URLSearchParams(params).get("placer");
+  const aPlacer = aRanger.find((b) => b.id === idPlacer) || toutesBouteilles.find((b) => b.id === idPlacer);
   if (aPlacer) commencerRangement(aPlacer);
   $$(".case-cave", main).forEach((bouton) => bouton.addEventListener("click", async () => {
     const k = casiers.find((x) => x.id === +bouton.dataset.k);
@@ -1381,7 +1383,7 @@ function dialogueCave(c) {
   });
 }
 
-const PLATS_CHAUDS = ["boeuf", "agneau", "canard", "gibier", "volaille", "porc", "poisson", "pates_pizza", "barbecue", "epice"];
+const PLATS_CHAUDS = ["boeuf", "agneau", "canard", "gibier", "volaille", "porc", "poisson", "pates_pizza", "epice"];
 const niveauAccord = (n) => n >= 75 ? "Accord parfait" : n >= 55 ? "Très bon accord" : n >= 35 ? "Bon accord" : "Accord possible";
 
 async function pageCeSoir(main) {

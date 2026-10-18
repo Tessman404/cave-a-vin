@@ -135,9 +135,6 @@ PLATS = {
     "pates_pizza": {"label": "Pâtes & pizza", "icone": "🍕", "couleurs": {"rouge": 2, "rose": 2},
                     "mots": ["chianti", "sangiovese", "italie", "côtes-du-rhône", "languedoc", "provence", "grenache"],
                     "synonymes": ["pâtes", "pates", "pizza", "lasagnes", "bolognaise", "risotto"]},
-    "barbecue": {"label": "Barbecue", "icone": "🔥", "couleurs": {"rouge": 2, "rose": 3},
-                 "mots": ["provence", "rhône", "rhone", "grenache", "syrah", "languedoc", "malbec", "zinfandel"],
-                 "synonymes": ["barbecue", "grillades", "brochettes", "merguez", "plancha"]},
     "epice": {"label": "Épicé & exotique", "icone": "🌶️", "couleurs": {"blanc": 2, "rose": 2},
               "mots": ["gewurztraminer", "alsace", "riesling", "pinot gris", "vouvray"],
               "synonymes": ["épicé", "epice", "curry", "asiatique", "exotique", "thaï", "indien"]},
@@ -152,7 +149,7 @@ PLATS = {
                  "synonymes": ["apéritif", "aperitif", "amuse-bouche"]},
 }
 # anciens noms (scripts Home Assistant existants)
-PLATS_ALIAS = {"viande_rouge": "boeuf", "viande_blanche": "volaille"}
+PLATS_ALIAS = {"viande_rouge": "boeuf", "viande_blanche": "volaille", "barbecue": "boeuf"}
 BONUS_MATURITE = {"urgent": 8, "declin": 7, "apogee": 6, "depasse": 5, "a_boire": 4, "inconnu": 1}
 
 
@@ -807,13 +804,20 @@ def suggerer(db, plat=None, couleur=None, limite=5):
 def place_libre(db):
     """Première cave électrique (casier réfrigéré) qui a des places libres (casier principal d'abord), et la bouteille non rangée la plus
     prestigieuse (valeur estimée, sinon prix d'achat) à y mettre. None s'il n'y a rien à proposer."""
-    suggestion = db.one("""SELECT b.id AS bouteille_id, v.id AS vin_id, v.nom, v.millesime, v.appellation, v.couleur,
-                                  COALESCE(v.valeur, v.prix_achat) AS valeur
-                           FROM bouteilles b JOIN vins v ON v.id = b.vin_id
-                           WHERE b.rangee IS NULL
-                           ORDER BY COALESCE(v.valeur, v.prix_achat, 0) DESC, v.millesime, b.id LIMIT 1""")
+    # candidates : d'abord les bouteilles non rangées, sinon celles des casiers non réfrigérés (étagères).
+    # Un réfrigérateur n'est pas concerné : on y met les bouteilles qu'on va boire.
+    suggestion = db.one(f"""SELECT b.id AS bouteille_id, v.id AS vin_id, v.nom, v.millesime, v.appellation, v.couleur,
+                                   COALESCE(v.valeur, v.prix_achat) AS valeur, b.rangee IS NOT NULL AS a_deplacer,
+                                   CASE WHEN c.id IS NULL THEN '' ELSE {NOM_COMPLET} END AS depuis
+                            FROM bouteilles b JOIN vins v ON v.id = b.vin_id
+                            LEFT JOIN caves c ON c.id = b.cave_id LEFT JOIN caves p ON p.id = c.parent_id
+                            WHERE b.rangee IS NULL
+                               OR (COALESCE(c.refrigere, 0) = 0
+                                   AND LOWER(COALESCE(c.nom, '') || ' ' || COALESCE(c.nom_casier, '')) NOT LIKE '%frig%')
+                            ORDER BY b.rangee IS NOT NULL, COALESCE(v.valeur, v.prix_achat, 0) DESC, v.millesime, b.id LIMIT 1""")
     if not suggestion:
         return None
+    suggestion["a_deplacer"] = bool(suggestion["a_deplacer"])
     casiers = db.all("""SELECT c.id, c.nom, c.nom_casier, c.parent_id, c.position, c.rangees * c.colonnes AS capacite,
                                COALESCE(p.nom, c.nom) AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_id,
                                (SELECT COUNT(*) FROM bouteilles b WHERE b.cave_id = c.id AND b.rangee IS NOT NULL) AS occupees

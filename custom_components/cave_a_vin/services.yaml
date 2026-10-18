@@ -72,7 +72,7 @@ suggerer_vin:
       selector:
         select:
           translation_key: plat
-          options: [boeuf, agneau, canard, gibier, volaille, porc, poisson, fruits_de_mer, foie_gras, fromage, pates_pizza, barbecue, epice, vegetarien, dessert, aperitif, viande_rouge, viande_blanche]
+          options: [boeuf, agneau, canard, gibier, volaille, porc, poisson, fruits_de_mer, foie_gras, fromage, pates_pizza, epice, vegetarien, dessert, aperitif, viande_rouge, viande_blanche, barbecue]
     couleur:
       selector:
         select:

@@ -161,6 +161,19 @@ class TestCave(BaseTest):
         self.appel("PUT", f"api/caves/{etagere['id']}", {"nom": "", "rangees": 1, "colonnes": 2, "refrigere": "0"}, attendu=200)
         self.assertIsNone(self.appel("GET", "api/stats")["place_libre"])  # plus aucune cave électrique
 
+    def test_place_libre_propose_de_deplacer_depuis_une_etagere(self):
+        cave = self.appel("POST", "api/caves", {"nom": "Cave", "rangees": 1, "colonnes": 2, "refrigere": "1"}, attendu=201)
+        etagere = self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "bas", "rangees": 1, "colonnes": 3}, attendu=201)
+        frigo = self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "bas", "ref_id": etagere["id"],
+                                                 "nom": "Frigo", "rangees": 1, "colonnes": 2}, attendu=201)
+        place = lambda k, r, c: [{"cave_id": k, "rangee": r, "colonne": c}]
+        self.creer_vin(nom="Dans la cave", quantite=1, valeur=300, emplacements=place(cave["id"], 1, 1))
+        self.creer_vin(nom="Au frigo", quantite=1, valeur=200, emplacements=place(frigo["id"], 1, 1))
+        self.creer_vin(nom="Sur l'étagère", quantite=1, valeur=50, emplacements=place(etagere["id"], 1, 2))
+        p = self.appel("GET", "api/stats")["place_libre"]
+        self.assertEqual((p["libres"], p["suggestion"]["nom"], p["suggestion"]["a_deplacer"]), (1, "Sur l'étagère", True))
+        self.assertIn("étagère", p["suggestion"]["depuis"])
+
     def test_garde_et_statuts(self):
         self.assertEqual(cave.statut_garde({"garde_debut": 2030, "garde_fin": 2040}, 2026), "trop_jeune")
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2030}, 2026), "a_boire")
