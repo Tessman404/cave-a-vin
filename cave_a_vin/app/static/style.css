@@ -583,11 +583,8 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .plan { column-gap: 0; row-gap: 0; padding-bottom: 0; }
 .plan .entete-col { padding-bottom: 6px; }
 .plan .entete-rang { padding-right: 4px; }
-/* tablette en bois sous le casier */
-.plan::after {
-  content: ""; grid-column: 2 / -1; height: 12px; margin-top: 2px; border-radius: 3px;
-  background: linear-gradient(180deg, #e9cf9f, #cfa96a); box-shadow: 0 3px 0 #b48c50, 0 8px 14px -6px rgba(0, 0, 0, .4);
-}
+/* séparation fine sous chaque casier, juste pour se repérer */
+.plan::after { content: ""; grid-column: 2 / -1; height: 1px; margin-top: 4px; background: var(--texte); opacity: .55; }
 .plan .case-cave {
   position: relative; width: var(--case); height: var(--case); padding: 0;
   border: 0; border-radius: 0; background: none; box-shadow: none; outline: none;
@@ -626,7 +623,7 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 @media (max-width: 760px) { .plan-conteneur { --case: 52px; } }
 
 /* ---------- étagères : plusieurs casiers assemblés ---------- */
-.casiers { display: grid; gap: 22px 18px; align-items: end; justify-items: start; width: max-content; }
+.casiers { display: grid; gap: 8px 14px; align-items: end; justify-items: start; width: max-content; }
 .casier-bloc { display: grid; gap: 6px; }
 .casier-titre { display: flex; align-items: center; gap: 8px; padding-left: 22px; font: italic 600 .95rem var(--serif); color: var(--texte-2); }
 .casier-titre .bouton { min-height: 28px; padding: 2px 9px; }
@@ -647,3 +644,12 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .plan .case-cave.choisie.effervescent { color: var(--c-effervescent); --capsule: #d9b24c; }
 .plan .case-cave.choisie.liquoreux { color: var(--c-liquoreux); --capsule: #4b2a12; }
 .plan .case-cave.choisie.autre { color: var(--c-autre); --capsule: #2a2a2a; }
+
+.casier-bloc { position: relative; }
+.casier-titre { padding-left: 22px; margin-bottom: -2px; }
+.modifier-etagere { position: absolute; top: 0; right: -6px; z-index: 50; min-height: 26px; width: 26px; padding: 0; border-radius: 50%; font-size: .8rem; opacity: .7; }
+.modifier-etagere:hover, .modifier-etagere:focus-visible { opacity: 1; }
+.casier-titre ~ .modifier-etagere { top: 2px; }
+
+.filtre-actif { display: inline-block; margin-left: 6px; padding: 1px 9px; border-radius: 999px; background: var(--accent-doux); color: var(--accent); font-weight: 600; }
+#compte .bouton { margin-left: 4px; vertical-align: middle; }

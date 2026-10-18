@@ -524,7 +524,10 @@ def bouteilles_sans_emplacement(db):
 
 
 POSITIONS = {"bas": "en bas", "haut": "en haut", "gauche": "à gauche", "droite": "à droite"}
-NOM_COMPLET = "CASE WHEN p.id IS NULL THEN c.nom ELSE p.nom || ' · ' || c.nom END"
+# nom d'une étagère sans nom : d'après sa position (Armoire · étagère du bas)
+NOM_ETAGERE = ("CASE WHEN c.nom <> '' THEN c.nom ELSE 'étagère ' || CASE c.position WHEN 'haut' THEN 'du haut' "
+               "WHEN 'gauche' THEN 'de gauche' WHEN 'droite' THEN 'de droite' ELSE 'du bas' END END")
+NOM_COMPLET = f"CASE WHEN p.id IS NULL THEN c.nom ELSE p.nom || ' · ' || {NOM_ETAGERE} END"
 
 
 def lister_caves(db):
@@ -569,9 +572,9 @@ def lire_cave(db, cave_id):
     return cave
 
 
-def _nettoyer_cave(data):
+def _nettoyer_cave(data, etagere=False):
     nom = (data.get("nom") or "").strip()
-    if not nom:
+    if not nom and not etagere:  # le nom d'une étagère est facultatif
         raise ErreurAPI("Le nom de la cave est obligatoire")
     rangees = _entier(data.get("rangees"), "rangees") or 0
     colonnes = _entier(data.get("colonnes"), "colonnes") or 0
@@ -600,10 +603,7 @@ def creer_cave(db, data):
     etagere = data.get("parent_id") not in (None, "", 0, "0")
     if etagere:
         parent_id, ref_id, position = _placement_etagere(db, data)
-        if not nom:
-            n = db.scalar("SELECT COUNT(*) FROM caves WHERE parent_id = ?", (parent_id,)) or 0
-            data = {**data, "nom": f"Étagère {n + 2}"}
-    nom, rangees, colonnes, description = _nettoyer_cave(data)
+    nom, rangees, colonnes, description = _nettoyer_cave(data, etagere)
     if etagere and not (rangees and colonnes):
         raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
     with db.transaction() as conn:
@@ -619,7 +619,7 @@ def creer_cave(db, data):
 
 def modifier_cave(db, cave_id, data):
     actuelle = _lire_casier(db, cave_id)
-    nom, rangees, colonnes, description = _nettoyer_cave(data)
+    nom, rangees, colonnes, description = _nettoyer_cave(data, bool(actuelle["parent_id"]))
     if actuelle["parent_id"] and not (rangees and colonnes):
         raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
     with db.transaction() as conn:

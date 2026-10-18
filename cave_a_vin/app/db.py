@@ -114,6 +114,10 @@ class Database:
                                 ("position", "TEXT NOT NULL DEFAULT ''"), ("ref_id", "INTEGER")):
             if nom not in colonnes_caves:
                 self.conn.execute(f"ALTER TABLE caves ADD COLUMN {nom} {definition}")
+        # 1.7.1 : le nom d'une étagère devient facultatif ; on efface les noms donnés automatiquement (« Étagère 2 »)
+        if self.conn.execute("PRAGMA user_version").fetchone()[0] < 2:
+            self.conn.execute("UPDATE caves SET nom = '' WHERE parent_id IS NOT NULL AND nom GLOB 'Étagère [0-9]*'")
+            self.conn.execute("PRAGMA user_version = 2")
 
     def all(self, sql, params=()):
         with self.lock:

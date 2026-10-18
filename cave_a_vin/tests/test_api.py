@@ -113,7 +113,7 @@ class TestCave(BaseTest):
         cave = self.appel("POST", "api/caves", {"nom": "Armoire", "rangees": 3, "colonnes": 4}, attendu=201)
         etagere = self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "bas", "rangees": 2, "colonnes": 3},
                              attendu=201)
-        self.assertEqual(etagere["nom"], "Étagère 2")
+        self.assertEqual(etagere["nom"], "")  # nom facultatif
         self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "nulle", "rangees": 2, "colonnes": 2}, attendu=400)
         self.appel("POST", "api/caves", {"parent_id": etagere["id"], "rangees": 2, "colonnes": 2}, attendu=400)
         vin = self.creer_vin(quantite=2)
@@ -123,10 +123,10 @@ class TestCave(BaseTest):
         self.assertEqual([e["id"] for e in complete["etageres"]], [etagere["id"]])
         caves = {c["id"]: c for c in self.appel("GET", "api/caves")}
         self.assertEqual((caves[cave["id"]]["bouteilles"], caves[cave["id"]]["capacite"]), (1, 18))
-        self.assertEqual(caves[etagere["id"]]["nom_complet"], "Armoire · Étagère 2")
+        self.assertEqual(caves[etagere["id"]]["nom_complet"], "Armoire · étagère du bas")
         self.assertEqual(len(self.appel("GET", f"api/vins?cave_id={cave['id']}")), 1)  # le filtre inclut les étagères
         b = self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"]
-        self.assertIn(("Armoire · Étagère 2", cave["id"]), [(x["cave_nom"], x["cave_racine"]) for x in b])
+        self.assertIn(("Armoire · étagère du bas", cave["id"]), [(x["cave_nom"], x["cave_racine"]) for x in b])
         self.assertEqual([c["id"] for c in self.appel("GET", "api/stats")["par_cave"] if c["id"]], [cave["id"]])
         # supprimer l'étagère : sa bouteille reste dans la cave, sans emplacement précis
         self.appel("DELETE", f"api/caves/{etagere['id']}", attendu=200)
