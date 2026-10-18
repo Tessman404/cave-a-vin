@@ -693,3 +693,17 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .duo-a-boire { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 @media (max-width: 760px) { .duo-a-boire { grid-template-columns: minmax(0, 1fr); } }
 .separation { border: 0; height: 1px; background: var(--texte); opacity: .5; margin: 28px 0; }
+
+/* ---------- bouteilles réalistes : verre et capsule selon le vin ---------- */
+.plan .case-cave.pleine.rouge, .plan .case-cave.choisie.rouge { color: #3d0b18; --capsule: #7d1530; }
+.plan .case-cave.pleine.blanc, .plan .case-cave.choisie.blanc { color: #a9963c; --capsule: #ece0b4; }
+.plan .case-cave.pleine.rose, .plan .case-cave.choisie.rose { color: #ec9aac; --capsule: #e9e4e6; }
+.plan .case-cave.pleine.effervescent, .plan .case-cave.choisie.effervescent { color: #1f3d2c; }
+.plan .case-cave.pleine.liquoreux, .plan .case-cave.choisie.liquoreux { color: #b8721b; --capsule: #7a4f10; }
+.plan .case-cave.pleine.autre, .plan .case-cave.choisie.autre { color: #4a3d78; --capsule: #2a2a2a; }
+.plan .case-cave:not(.pleine) { color: color-mix(in srgb, var(--bord) 75%, var(--surface)); --capsule: color-mix(in srgb, var(--bord) 90%, var(--texte-3)); }
+.plan .case-cave:not(.pleine) svg { opacity: .5; }
+.plan .case-cave.pleine svg { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); }
+@media (prefers-color-scheme: dark) {
+  .plan .case-cave.pleine.rouge, .plan .case-cave.choisie.rouge { color: #5a1424; }
+}

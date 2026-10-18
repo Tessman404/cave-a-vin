@@ -1019,7 +1019,7 @@ const LETTRE_RANG = (r) => `${String.fromCharCode(64 + ((r - 1) % 26) + 1)}${r >
 /** Un casier = une grille de bouteilles couchées posée sur sa tablette.
  *  surligne : vin dont les bouteilles clignotent ; choix : mode « choisir un emplacement » (seules les places libres réagissent). */
 function dessinerCasier(k, { surligne = null, choix = false } = {}) {
-  const dessin = `<svg aria-hidden="true"><use href="#bouteille-couchee"/></svg>`;
+  const dessin = (couleur) => `<svg aria-hidden="true"><use href="#${couleur === "effervescent" ? "bouteille-champagne" : "bouteille-couchee"}"/></svg>`;
   const parCase = {};
   k.bouteilles.forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
   let h = `<div class="plan${choix ? " plan-choix" : ""}" style="grid-template-columns: 22px repeat(${k.colonnes}, var(--case))"><span></span>`;
@@ -1031,8 +1031,8 @@ function dessinerCasier(k, { surligne = null, choix = false } = {}) {
       // les rangs du haut passent devant ceux du dessous (le goulot recouvre la bouteille du rang inférieur)
       const z = `style="z-index:${k.rangees - r + 1}${r > 1 ? ";margin-top:-10px" : ""}"`;
       h += b
-        ? `<button type="button" class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" ${z} data-k="${k.id}" data-b="${b.id}"${choix ? " disabled" : ""} title="${esc(b.nom)}${b.millesime ? " " + b.millesime : ""} : ${esc(REF.statuts[b.statut] || "")}" aria-label="${esc(nomCasier(k))}, rangée ${LETTRE_RANG(r)}, colonne ${col} : ${esc(b.nom)}">${dessin}</button>`
-        : `<button type="button" class="case-cave" ${z} data-k="${k.id}" data-r="${r}" data-c="${col}" aria-label="${esc(nomCasier(k))}, rangée ${LETTRE_RANG(r)}, colonne ${col} : libre">${dessin}</button>`;
+        ? `<button type="button" class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" ${z} data-k="${k.id}" data-b="${b.id}"${choix ? " disabled" : ""} title="${esc(b.nom)}${b.millesime ? " " + b.millesime : ""} : ${esc(REF.statuts[b.statut] || "")}" aria-label="${esc(nomCasier(k))}, rangée ${LETTRE_RANG(r)}, colonne ${col} : ${esc(b.nom)}">${dessin(b.couleur)}</button>`
+        : `<button type="button" class="case-cave" ${z} data-k="${k.id}" data-r="${r}" data-c="${col}" aria-label="${esc(nomCasier(k))}, rangée ${LETTRE_RANG(r)}, colonne ${col} : libre">${dessin()}</button>`;
     }
   }
   return h + `</div>`;
@@ -1191,14 +1191,16 @@ async function pageCaves(main, id, params) {
   if (boutonCasier) boutonCasier.onclick = () => dialogue(`<h2>Nom du casier principal</h2>
     <div class="form"><label class="large">Nom (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
       <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p>
+      <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${c.rangees}" required></label>
+      <label>Colonnes<input type="number" name="colonnes" min="1" max="100" value="${c.colonnes}" required></label>
       <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
         <option value=""${c.refrigere === undefined ? " selected" : ""} disabled>Choisir…</option>
         <option value="1"${c.refrigere ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
         <option value="0"${c.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label></div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
   { onSubmit: async (data) => {
-    await api("PUT", `caves/${c.id}`, { nom: c.nom, rangees: c.rangees, colonnes: c.colonnes, description: c.description, nom_casier: data.nom_casier, refrigere: data.refrigere });
-    toast("Nom enregistré");
+    await api("PUT", `caves/${c.id}`, { nom: c.nom, rangees: data.rangees, colonnes: data.colonnes, description: c.description, nom_casier: data.nom_casier, refrigere: data.refrigere });
+    toast("Casier modifié");
     route();
   } });
   $$("[data-modifier-etagere]", main).forEach((b) => { b.onclick = () => dialogueEtagere(c, c.etageres.find((e) => e.id === +b.dataset.modifierEtagere)); });
