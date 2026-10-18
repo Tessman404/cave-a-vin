@@ -200,6 +200,43 @@ async function dialogueEntree(vin, apres) {
 
 /* ------------------------------------------------------------------ pages */
 
+/** Le casier vivant : une alvéole par bouteille, colorée selon le vin. */
+function casierVivant(s) {
+  const MAX = 96;
+  const pastilles = [];
+  s.par_couleur.forEach((l) => {
+    const c = COULEURS_CSS.includes(l.cle) ? l.cle : "autre";
+    for (let i = 0; i < l.bouteilles; i++) pastilles.push(c);
+  });
+  const montrees = pastilles.slice(0, MAX);
+  const colonnes = Math.min(12, Math.max(6, Math.ceil(Math.sqrt(montrees.length * 1.6))));
+  const rangs = Math.max(2, Math.ceil(montrees.length / colonnes));
+  const vides = rangs * colonnes - montrees.length;
+  const legende = s.par_couleur.filter((l) => l.bouteilles).map((l) => `${nombre(l.bouteilles)} ${esc(String(l.label).toLowerCase())}`).join(", ");
+  return `<section class="casier" aria-label="Votre cave : ${pluriel(s.bouteilles, "bouteille")}, dont ${legende}">
+    <div>
+      <div class="total">${nombre(s.bouteilles)}</div>
+      <div class="sous-total">${s.bouteilles > 1 ? "bouteilles dans votre cave" : "bouteille dans votre cave"}</div>
+      <div class="chiffres">
+        <div><strong>${nombre(s.references)}</strong><span>${s.references > 1 ? "références" : "référence"}</span></div>
+        <div><strong>${euros(s.valeur)}</strong><span>valeur estimée</span></div>
+        <div><strong>${nombre(s.bues_annee)}</strong><span>${s.bues_annee > 1 ? "bues" : "bue"} en ${s.annee}</span></div>
+      </div>
+    </div>
+    <div class="alveoles" aria-hidden="true" style="--colonnes:${colonnes};--colonnes-mobile:${Math.min(colonnes, 10)}">
+      ${montrees.map((c, i) => `<i style="--c:var(--c-${c});--i:${i}"></i>`).join("")}${"<i class=\"libre\"></i>".repeat(vides)}
+      ${pastilles.length > MAX ? `<span class="reste">et ${nombre(pastilles.length - MAX)} de plus</span>` : ""}
+    </div>
+  </section>`;
+}
+
+function feuillePlus() {
+  const lien = (page, icone, titre) => `<a href="#/${page}"><svg><use href="#i-${icone}"/></svg>${titre}</a>`;
+  dialogue(`<h2>Plus</h2><nav class="feuille-plus">
+    ${lien("envies", "envies", "Envies")}${lien("historique", "historique", "Historique")}${lien("reglages", "reglages", "Réglages")}</nav>
+    <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
+}
+
 async function pageAccueil(main) {
   const [s, climat] = await Promise.all([api("GET", "stats"), api("GET", "ha/climat").catch(() => null)]);
   if (!s.references) {
@@ -226,21 +263,15 @@ async function pageAccueil(main) {
       <div class="grandit"><span class="titre">${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</span>
       <div class="muted petit-texte">${m.type === "entree" ? "+" : "−"}${m.quantite} · ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)} · ${dateFr(m.date)}</div></div>${etoiles(m.note)}</li>`;
   main.innerHTML = `
-    <div class="entete"><h1>Tableau de bord</h1></div>
-    <div class="grille g4" style="margin-bottom:16px">
-      <div class="carte tuile"><div class="valeur">${nombre(s.bouteilles)}</div><div class="libelle">bouteilles en cave</div></div>
-      <div class="carte tuile"><div class="valeur">${nombre(s.references)}</div><div class="libelle">références</div></div>
-      <div class="carte tuile"><div class="valeur">${euros(s.valeur)}</div><div class="libelle">valeur estimée</div></div>
-      <div class="carte tuile"><div class="valeur">${nombre(s.bues_annee)}</div><div class="libelle">bues en ${s.annee}</div></div>
-    </div>
-    <div class="grille g2">
+    ${casierVivant(s)}
+    <div class="grille tableau-bord">
       ${blocClimat}
-      <div class="carte ${s.urgents.length ? "tuile alerte" : ""}"><h2>⚠ À boire vite</h2>
-        ${s.urgents.length ? `<ul class="liste">${s.urgents.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Rien d'urgent : toutes vos bouteilles sont dans leur fenêtre de garde.</p>`}
+      <div class="carte ${s.urgents.length ? "alerte-carte" : ""}"><div class="titre-carte"><h2>À boire vite</h2>
         ${s.urgents.length > 8 ? `<a href="#/vins" data-filtre-statut="urgent,depasse">Voir les ${s.urgents.length}</a>` : ""}</div>
-      <div class="carte"><h2>Prêts à boire</h2>
-        ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}
+        ${s.urgents.length ? `<ul class="liste">${s.urgents.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Rien d'urgent : toutes vos bouteilles sont dans leur fenêtre de garde.</p>`}</div>
+      <div class="carte"><div class="titre-carte"><h2>Prêts à boire</h2>
         ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="declin,apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
+        ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}</div>
       <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true })}</div>
       <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles))}</div>
       <div class="carte"><h2>Par région</h2>${barres(s.par_region)}</div>
@@ -1270,7 +1301,7 @@ async function pageReglages(main) {
 const ROUTES = [
   [/^$/, pageAccueil, "accueil"],
   [/^vins$/, pageVins, "vins"],
-  [/^ajouter$/, pageAjouter, "vins"],
+  [/^ajouter$/, pageAjouter, "ajouter"],
   [/^vins\/nouveau$/, (m) => pageFormulaire(m, null), "vins"],
   [/^vins\/(\d+)$/, (m, id) => pageVin(m, +id), "vins"],
   [/^vins\/(\d+)\/modifier$/, (m, id) => pageFormulaire(m, +id), "vins"],
@@ -1291,6 +1322,7 @@ async function route() {
     const m = chemin.match(motif);
     if (!m) continue;
     $$("#menu a").forEach((a) => a.classList.toggle("actif", a.dataset.page === menu));
+    $("#autres").classList.toggle("actif", ["envies", "historique", "reglages"].includes(menu));
     $("#menu a.actif")?.scrollIntoView({ block: "nearest", inline: "nearest" });
     try {
       if (!REF) [REF, CAPACITES] = await Promise.all([api("GET", "referentiel"), api("GET", "capacites")]);
@@ -1303,6 +1335,8 @@ async function route() {
   }
   location.hash = "#/";
 }
+
+$("#autres").addEventListener("click", feuillePlus);
 
 let derniereRoute = "";
 window.addEventListener("hashchange", () => {

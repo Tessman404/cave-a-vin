@@ -170,7 +170,10 @@ def diagnostic(reglages):
     elif agents:
         conseil = (f"Vous avez une IA de conversation ({', '.join(agents)}) mais pas de « tâche IA ». Dans Home Assistant : "
                    "Paramètres → Appareils et services → ouvrez cette intégration d'IA → « Ajouter une tâche IA » "
-                   "(bouton ou menu ⋮). La cave l'utilisera automatiquement.")
+                   "(bouton ou menu ⋮). La cave l'utilisera automatiquement. Si ce bouton n'existe pas, cette "
+                   "intégration ne sait pas faire de tâches IA (c'est le cas des intégrations qui passent par un "
+                   "abonnement Claude ou ChatGPT) : ajoutez l'intégration officielle Google Gemini (« Google "
+                   "Generative AI », offre gratuite), Anthropic ou OpenAI avec une clé d'API, puis « Ajouter une tâche IA ».")
     else:
         conseil = ("Home Assistant n'a aucune intégration d'IA. Ajoutez-en une : Paramètres → Appareils et services → "
                    "Ajouter une intégration → Google Gemini (« Google Generative AI », offre gratuite), OpenAI, Anthropic "

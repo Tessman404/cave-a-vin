@@ -1,5 +1,16 @@
 # Journal des modifications
 
+## 1.4.0
+
+- **Nouveau design « cave en pierre »** : tons pierre et vert bouteille, lie-de-vin et or pour l'apogée, mode sombre
+  « nuit de cave ».
+- **Accueil** : le « casier vivant » montre chaque bouteille de la cave par sa couleur, avec le total, la valeur et
+  les bouteilles bues dans l'année.
+- **iPhone** : barre d'onglets en bas avec un gros bouton « Ajouter » au centre, fenêtres qui montent du bas, filtres
+  qui défilent. Icône d'écran d'accueil.
+- **iPad et ordinateur** : menu latéral fixe (en icônes sur iPad en portrait).
+- IA : le conseil explique quoi faire quand l'intégration d'IA installée ne sait pas faire de « tâche IA ».
+
 ## 1.3.6
 
 - Réglages → IA : diagnostic de ce que Home Assistant propose (tâches IA, agents de conversation) et marche à suivre

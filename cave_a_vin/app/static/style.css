@@ -1,98 +1,153 @@
+/* =====================================================================
+   Cave à vin — thème « cave en pierre »
+   Pierre gris-vert, encre vert bouteille, lie-de-vin, feuille d'or.
+   ===================================================================== */
 :root {
-  --fond: #f7f3ee;
-  --surface: #fffdfb;
-  --surface-2: #f1ebe4;
-  --bord: #e3d9cf;
-  --texte: #2a1d1a;
-  --texte-2: #6e5f58;
-  --texte-3: #978881;
-  --accent: #6b1e2e;
+  --fond: #e9ece6;          /* pierre de cave */
+  --surface: #fbfcf9;
+  --surface-2: #f0f2ec;
+  --bord: #d6dbd2;
+  --texte: #1d2924;          /* vert bouteille très sombre */
+  --texte-2: #55625b;
+  --texte-3: #86918a;
+  --accent: #7a1f3d;         /* lie-de-vin */
   --accent-texte: #fff;
-  --accent-doux: #f4e4e6;
-  --ok: #2f7d4f;
-  --attention: #a86a00;
+  --accent-doux: #f3e3e8;
+  --or: #a67c2e;             /* feuille d'or : apogée, étoiles */
+  --ok: #2d7a50;
+  --attention: #a3640a;
   --danger: #b3261e;
-  --info: #3d6d99;
-  /* couleurs de vin (palette validée daltonisme / contraste) */
-  --c-rouge: #b02a44;
-  --c-blanc: #c9a227;
-  --c-rose: #e27d93;
+  --info: #356b95;
+  /* couleurs de vin (contraste et daltonisme vérifiés) */
+  --c-rouge: #9e2340;
+  --c-blanc: #d2ae3c;
+  --c-rose: #e58aa0;
   --c-effervescent: #3c84c4;
   --c-liquoreux: #c46a1c;
   --c-autre: #8a64c8;
-  --ombre: 0 1px 2px rgba(60, 30, 20, .06), 0 4px 16px rgba(60, 30, 20, .06);
-  --rayon: 14px;
+  --ombre: 0 1px 0 rgba(29, 41, 36, .04), 0 6px 20px -8px rgba(29, 41, 36, .14);
+  --ombre-haute: 0 18px 50px -12px rgba(29, 41, 36, .35);
+  --rayon: 18px;
+  --rayon-petit: 12px;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --largeur-menu: 232px;
+  --hauteur-onglets: 64px;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fond: #171312;
-    --surface: #211b1a;
-    --surface-2: #2b2422;
-    --bord: #3a3230;
-    --texte: #f2e9e4;
-    --texte-2: #c0b2ab;
-    --texte-3: #8f817b;
-    --accent: #d06a7c;
-    --accent-texte: #1a0f10;
-    --accent-doux: #3a2328;
+    --fond: #111916;
+    --surface: #18221e;
+    --surface-2: #202c27;
+    --bord: #2c3a34;
+    --texte: #eef2ec;
+    --texte-2: #b3bfb7;
+    --texte-3: #7e8c84;
+    --accent: #e0748f;
+    --accent-texte: #1c0d13;
+    --accent-doux: #3a2029;
+    --or: #d9ae5c;
     --ok: #5cbf86;
     --attention: #e0a43a;
     --danger: #ff7a70;
     --info: #7fb0dd;
-    --c-rouge: #c43a55;
-    --c-blanc: #b08a18;
-    --c-rose: #d76c84;
+    --c-rouge: #c43a5a;
+    --c-blanc: #c9a434;
+    --c-rose: #e08aa0;
     --c-effervescent: #4a90d0;
-    --c-liquoreux: #cf7526;
-    --c-autre: #9471d0;
-    --ombre: 0 1px 2px rgba(0, 0, 0, .3);
+    --c-liquoreux: #d47b2c;
+    --c-autre: #9a78d6;
+    --ombre: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 8px 24px -10px rgba(0, 0, 0, .6);
+    --ombre-haute: 0 18px 50px -10px rgba(0, 0, 0, .7);
     color-scheme: dark;
   }
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 body {
   margin: 0;
   background: var(--fond);
   color: var(--texte);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 15.5px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 h1, h2, h3 { line-height: 1.2; margin: 0 0 .6em; }
-h1 { font-size: 1.6rem; font-family: Georgia, "Times New Roman", serif; font-weight: 600; }
-h2 { font-size: 1.1rem; }
+h1 { font: 600 2rem/1.1 var(--serif); letter-spacing: -.01em; }
+h2 { font: 600 1.18rem/1.25 var(--serif); }
 h3 { font-size: 1rem; }
 img { max-width: 100%; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
-/* ---------- en-tête ---------- */
+/* ---------- navigation : menu latéral (iPad, ordinateur) ---------- */
 .barre {
-  position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; gap: 16px;
-  padding: 10px max(16px, env(safe-area-inset-left));
-  background: var(--surface); border-bottom: 1px solid var(--bord);
+  position: fixed; inset: 0 auto 0 0; z-index: 20;
+  width: var(--largeur-menu);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: max(22px, env(safe-area-inset-top)) 14px 20px max(14px, env(safe-area-inset-left));
+  background: var(--surface); border-right: 1px solid var(--bord);
 }
-.logo { display: flex; align-items: center; gap: 8px; color: var(--texte); font: 600 1.15rem Georgia, serif; white-space: nowrap; }
+.logo { display: flex; align-items: center; gap: 10px; color: var(--texte); font: 600 1.3rem var(--serif); white-space: nowrap; padding: 4px 10px 18px; }
 .logo:hover { text-decoration: none; }
-.logo img { width: 30px; height: 30px; }
-#menu { display: flex; gap: 2px; overflow-x: auto; flex: 1; scrollbar-width: none; }
-#menu::-webkit-scrollbar { display: none; }
-#menu a {
-  padding: 7px 12px; border-radius: 999px; color: var(--texte-2); white-space: nowrap; font-size: .93rem;
+.logo img { width: 34px; height: 34px; }
+#menu { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+#menu a, #menu button {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: var(--rayon-petit); border: 0; background: none;
+  color: var(--texte-2); font: 500 .97rem var(--sans); cursor: pointer; text-align: left;
 }
-#menu a:hover { background: var(--surface-2); text-decoration: none; }
+#menu svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+#menu a:hover { background: var(--surface-2); text-decoration: none; color: var(--texte); }
 #menu a.actif { background: var(--accent-doux); color: var(--accent); font-weight: 600; }
+#menu a.secondaire:first-of-type, #menu .secondaire { }
+#menu a[data-page="envies"] { margin-top: 14px; }
+#menu .onglet-ajouter, #menu .seul-mobile { display: none; }
+.barre .ajouter { margin-top: auto; min-height: 46px; }
+.bouton svg, .ajouter svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 
-@media (max-width: 760px) {
-  .barre { flex-wrap: wrap; gap: 8px; }
-  #menu { order: 3; flex-basis: 100%; margin: 0 -16px; padding: 0 12px; }
-  .ajouter { margin-left: auto; }
+main { max-width: 1240px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 32px 80px calc(var(--largeur-menu) + 32px); }
+@media (min-width: 1500px) { main { margin-left: calc((100vw - var(--largeur-menu) - 1240px) / 2); } }
+
+/* iPad portrait : menu en icônes */
+@media (max-width: 1100px) and (min-width: 761px) {
+  :root { --largeur-menu: 84px; }
+  .barre { align-items: center; padding-left: 10px; padding-right: 10px; }
+  .logo span, #menu a span, .barre .ajouter { font-size: 0; }
+  .logo { padding: 4px 0 18px; }
+  #menu a { flex-direction: column; gap: 3px; padding: 9px 6px; font-size: .68rem; width: 64px; }
+  #menu a span { font-size: .66rem; white-space: nowrap; }
+  .barre .ajouter { width: 52px; height: 52px; padding: 0; border-radius: 50%; }
+  .barre .ajouter svg { width: 22px; height: 22px; }
+  main { padding-left: calc(var(--largeur-menu) + 24px); padding-right: 24px; }
 }
 
-main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 80px; }
+/* iPhone : barre d'onglets en bas */
+@media (max-width: 760px) {
+  .barre {
+    inset: auto 0 0 0; width: auto; flex-direction: row; gap: 0;
+    padding: 6px max(6px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    border-right: 0; border-top: 1px solid var(--bord);
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  }
+  .logo, .barre .ajouter, #menu .secondaire { display: none; }
+  #menu { flex-direction: row; justify-content: space-around; align-items: flex-end; }
+  #menu a, #menu button { flex: 1; flex-direction: column; gap: 2px; padding: 4px 0; font-size: .66rem; font-weight: 500; text-align: center; justify-content: flex-end; }
+  #menu a.actif { background: none; }
+  #menu .onglet-ajouter, #menu .seul-mobile { display: flex; }
+  #menu .onglet-ajouter svg {
+    width: 50px; height: 50px; padding: 13px; margin-top: -22px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-texte); stroke-width: 2.4; box-shadow: var(--ombre-haute);
+  }
+  #menu .onglet-ajouter.actif { color: var(--accent); }
+  main { padding: max(20px, env(safe-area-inset-top)) 16px calc(var(--hauteur-onglets) + 40px + env(safe-area-inset-bottom)); }
+  h1 { font-size: 1.75rem; }
+}
 
 /* ---------- éléments ---------- */
 .bouton {
@@ -123,7 +178,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 80px; }
 .sep { height: 1px; background: var(--bord); margin: 16px 0; border: 0; }
 
 /* chiffres clés */
-.tuile .valeur { font: 600 2rem/1.1 Georgia, serif; }
+.tuile .valeur { font: 600 2rem/1.1 var(--serif); }
 .tuile .libelle { color: var(--texte-2); font-size: .88rem; }
 .tuile.alerte { border-color: var(--danger); }
 
@@ -200,8 +255,8 @@ input[type=checkbox] { width: 18px; min-height: 18px; margin: 0; accent-color: v
 .vin .vignette svg { width: 26px; height: 52px; }
 .vin .infos { flex: 1; min-width: 0; display: grid; gap: 3px; align-content: start; }
 .vin .nom { font-weight: 600; }
-.vin .stock { font: 600 1.4rem/1 Georgia, serif; text-align: right; }
-.vin .stock small { display: block; font: .7rem system-ui, sans-serif; color: var(--texte-3); }
+.vin .stock { font: 600 1.4rem/1 var(--serif); text-align: right; }
+.vin .stock small { display: block; font: .7rem var(--sans); color: var(--texte-3); }
 
 /* fiche vin */
 .fiche { display: grid; gap: 16px; grid-template-columns: 260px minmax(0, 1fr); align-items: start; }
@@ -218,7 +273,7 @@ input[type=checkbox] { width: 18px; min-height: 18px; margin: 0; accent-color: v
 .proprietes dt { font-size: .78rem; color: var(--texte-3); text-transform: uppercase; letter-spacing: .04em; }
 .proprietes dd { margin: 0; }
 .compteur { display: flex; align-items: center; gap: 12px; }
-.compteur .valeur { font: 600 2.4rem/1 Georgia, serif; min-width: 2ch; text-align: center; }
+.compteur .valeur { font: 600 2.4rem/1 var(--serif); min-width: 2ch; text-align: center; }
 .etoiles { color: var(--attention); letter-spacing: 1px; white-space: nowrap; }
 .frise { position: relative; height: 34px; margin: 26px 0 6px; }
 .frise .piste { position: absolute; top: 12px; left: 0; right: 0; height: 10px; border-radius: 5px; background: var(--surface-2); }
@@ -265,7 +320,7 @@ input[type=checkbox] { width: 18px; min-height: 18px; margin: 0; accent-color: v
 
 /* climat */
 .climat { display: flex; gap: 24px; flex-wrap: wrap; }
-.climat .mesure { font: 600 1.8rem/1.1 Georgia, serif; }
+.climat .mesure { font: 600 1.8rem/1.1 var(--serif); }
 .climat .alerte { color: var(--danger); }
 
 /* toast & dialogue */
@@ -288,7 +343,7 @@ dialog .actions { justify-content: flex-end; margin-top: 18px; }
 
 .chargement { padding: 40px; text-align: center; color: var(--texte-3); }
 .suggestion { display: flex; gap: 12px; align-items: center; }
-.suggestion .rang { font: 600 1.6rem Georgia, serif; color: var(--texte-3); width: 1.4em; text-align: center; }
+.suggestion .rang { font: 600 1.6rem var(--serif); color: var(--texte-3); width: 1.4em; text-align: center; }
 .plats { display: flex; gap: 8px; flex-wrap: wrap; }
 .plats button { border-radius: 999px; }
 .plats button.actif { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
@@ -328,3 +383,117 @@ dialog .actions { justify-content: flex-end; margin-top: 18px; }
 .nouveau-vin-case { margin-top: 14px; padding: 12px; box-shadow: none; background: var(--surface-2); }
 .nouveau-vin-case .bouton { white-space: normal; text-align: center; }
 .diagnostic-ia { border: 1px solid var(--bord); border-radius: 10px; padding: 10px 12px; background: var(--surface-2); line-height: 1.6; }
+
+/* =====================================================================
+   Refonte visuelle (1.4)
+   ===================================================================== */
+.carte { border-radius: var(--rayon); padding: 20px; border-color: color-mix(in srgb, var(--bord) 70%, transparent); }
+.bouton { border-radius: var(--rayon-petit); min-height: 42px; padding: 8px 16px; }
+.bouton.primaire { box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent) 80%, transparent); }
+.bouton.rond { width: 44px; min-height: 44px; }
+input, select, textarea { border-radius: var(--rayon-petit); min-height: 44px; background: var(--surface); }
+.entete { margin-bottom: 22px; }
+.grille { gap: 18px; }
+.etoiles { color: var(--or); }
+.notes-etoiles button.on { color: var(--or); }
+.statut.apogee { color: var(--or); background: color-mix(in srgb, var(--or) 14%, transparent); }
+.tuile .valeur, .compteur .valeur, .climat .mesure, .vin .stock, .suggestion .rang { font-family: var(--serif); }
+.proprietes dt { text-transform: none; letter-spacing: 0; font-size: .8rem; }
+dialog { border-radius: 22px; padding: 24px; box-shadow: var(--ombre-haute); }
+dialog::backdrop { background: rgba(10, 20, 16, .5); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+#toast { border-radius: 14px; box-shadow: var(--ombre-haute); }
+@media (max-width: 760px) {
+  #toast { bottom: calc(var(--hauteur-onglets) + 24px + env(safe-area-inset-bottom)); }
+  /* sur iPhone, les fenêtres montent du bas comme une feuille iOS */
+  dialog { width: 100% !important; max-width: none; margin: auto 0 0; border-radius: 22px 22px 0 0; padding-bottom: max(24px, env(safe-area-inset-bottom)); max-height: 92vh; }
+  dialog[open] { animation: feuille .28s cubic-bezier(.2, .8, .2, 1); }
+}
+@keyframes feuille { from { transform: translateY(100%); } }
+
+/* ---------- accueil : le casier vivant ---------- */
+.casier {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end;
+  padding: 28px; margin-bottom: 18px; border-radius: 26px; color: #f4efe6;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, .06), transparent 60%),
+    linear-gradient(160deg, #24312b, #16201c);
+  box-shadow: var(--ombre-haute);
+  position: relative; overflow: hidden;
+}
+@media (prefers-color-scheme: dark) { .casier { background: linear-gradient(160deg, #1d2924, #0d1411); border: 1px solid var(--bord); } }
+.casier .total { font: 600 clamp(3.2rem, 9vw, 5.2rem)/.9 var(--serif); letter-spacing: -.03em; }
+.casier .sous-total { font: 1.05rem var(--serif); opacity: .8; margin-top: 6px; }
+.casier .chiffres { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 22px; }
+.casier .chiffres div { display: grid; }
+.casier .chiffres strong { font: 600 1.4rem var(--serif); }
+.casier .chiffres span { font-size: .82rem; opacity: .7; }
+.alveoles {
+  display: grid; grid-template-columns: repeat(var(--colonnes, 12), 18px); gap: 6px;
+  padding: 14px; border-radius: 16px; background: rgba(0, 0, 0, .25); box-shadow: inset 0 2px 8px rgba(0, 0, 0, .35);
+  align-self: center;
+}
+.alveoles i {
+  width: 18px; height: 18px; border-radius: 50%; display: block;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .45), transparent 45%), var(--c, rgba(255, 255, 255, .08));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+  animation: remplir .5s backwards cubic-bezier(.2, .8, .2, 1);
+  animation-delay: calc(var(--i) * 12ms);
+}
+.alveoles i.libre { background: rgba(255, 255, 255, .06); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .5); animation: none; }
+.alveoles .reste { grid-column: 1 / -1; text-align: center; font-size: .78rem; opacity: .7; margin-top: 2px; }
+@keyframes remplir { from { transform: scale(0); opacity: 0; } }
+@media (max-width: 900px) {
+  .casier { grid-template-columns: 1fr; padding: 22px; }
+  .alveoles { grid-template-columns: repeat(var(--colonnes-mobile, 10), minmax(0, 1fr)); justify-self: stretch; justify-items: center; }
+  .alveoles i { width: 100%; max-width: 26px; height: auto; aspect-ratio: 1; }
+}
+
+.alerte-carte { border-color: color-mix(in srgb, var(--attention) 55%, transparent); background: color-mix(in srgb, var(--attention) 6%, var(--surface)); }
+.titre-carte { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.titre-carte h2 { margin: 0; }
+.titre-carte a { font-size: .88rem; white-space: nowrap; }
+.tableau-bord { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); align-items: start; }
+@media (max-width: 400px) { .tableau-bord { grid-template-columns: 1fr; } }
+
+/* ---------- liste des vins : étiquettes ---------- */
+.vins { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.vin { padding: 14px; gap: 14px; align-items: stretch; transition: border-color .15s, box-shadow .15s; }
+.vin:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: var(--ombre-haute); }
+.vin .vignette { width: 64px; height: 92px; border-radius: 12px; background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 70%, var(--bord))); }
+.vin .vignette svg { width: 30px; height: 64px; }
+.vin .nom { font: 600 1.05rem/1.25 var(--serif); }
+.vin .stock { font-size: 1.7rem; align-self: center; }
+.filtres { position: sticky; top: 0; z-index: 5; padding: 10px 0; margin: -10px 0 8px; background: var(--fond); }
+@media (max-width: 760px) {
+  .filtres { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: -10px -16px 8px; padding: 10px 16px; }
+  .filtres::-webkit-scrollbar { display: none; }
+  .filtres input[type=search] { flex: 0 0 72vw; }
+  .filtres select { flex: 0 0 auto; width: auto; border-radius: 999px; }
+}
+
+/* ---------- fiche vin ---------- */
+.fiche { grid-template-columns: 300px minmax(0, 1fr); gap: 24px; }
+.photo { border-radius: 24px; box-shadow: var(--ombre); background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 60%, var(--bord))); }
+.fiche > div:first-child { position: sticky; top: 24px; }
+@media (max-width: 760px) { .fiche > div:first-child { position: static; } .fiche .photo { width: 190px; } }
+.compteur { background: var(--surface-2); border-radius: 999px; padding: 4px; }
+.compteur .bouton.rond { border: 0; background: var(--surface); box-shadow: var(--ombre); }
+.frise .zone { background: color-mix(in srgb, var(--ok) 45%, transparent); }
+.frise .zone.plateau, .frise .etoile { background: var(--or); }
+.frise .etoile { background: none; color: var(--or); }
+
+/* ---------- plan de cave : capsules ---------- */
+.case-cave { width: 42px; height: 42px; }
+.case-cave.pleine { background-image: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .45), transparent 45%); box-shadow: 0 1px 3px rgba(0, 0, 0, .3); border-color: transparent; }
+.plan-conteneur { background: var(--surface-2); border-radius: var(--rayon); padding: 16px; }
+
+/* ---------- onglets et pastilles ---------- */
+.onglets a, .plats button { min-height: 38px; display: inline-flex; align-items: center; }
+
+/* ---------- feuille « Plus » (iPhone) ---------- */
+.feuille-plus { display: grid; gap: 6px; }
+.feuille-plus a { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; background: var(--surface-2); color: var(--texte); font-weight: 500; }
+.feuille-plus a:hover { text-decoration: none; }
+.feuille-plus svg { width: 24px; height: 24px; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#menu button.actif { color: var(--accent); font-weight: 600; }
+@media (max-width: 760px) { .entete > .bouton.primaire[href="#/ajouter"] { display: none; } }
