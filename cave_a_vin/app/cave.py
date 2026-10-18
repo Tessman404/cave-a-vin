@@ -641,7 +641,7 @@ def statistiques(db):
         par_statut[v["statut"]] += v["stock"]
 
     def resume(v):
-        return {k: v[k] for k in ("id", "nom", "domaine", "millesime", "couleur", "stock",
+        return {k: v[k] for k in ("id", "nom", "domaine", "appellation", "millesime", "couleur", "stock",
                                   "garde_debut", "garde_apogee", "garde_fin", "statut", "statut_label")}
 
     urgents = sorted([v for v in vins if v["statut"] in ("urgent", "depasse")],

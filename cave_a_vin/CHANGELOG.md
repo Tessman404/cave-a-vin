@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.6.1
+
+- L'appellation (Fitou, Chablis…) s'affiche en premier sous le nom du vin, dans les listes et sur l'accueil : on
+  reconnaît un vin même quand son nom de cuvée ne la mentionne pas.
+
 ## 1.6.0
 
 - **Ajout d'un vin en deux photos** : l'étiquette, puis le verso (contre-étiquette), qu'on peut ignorer. L'IA lit

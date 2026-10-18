@@ -60,7 +60,8 @@ const pastille = (couleur) => `<span class="pastille ${esc(couleur)}" title="${e
 const badgeStatut = (s) => `<span class="statut ${esc(s)}"><span aria-hidden="true">${ICONES_STATUT[s] || ""}</span>${esc(REF.statuts[s] || s)}</span>`;
 const etoiles = (n) => n == null ? "" : `<span class="etoiles" title="${n} / 5">${"★".repeat(Math.round(n))}${"☆".repeat(5 - Math.round(n))}</span>`;
 const titreVin = (v) => `${esc(v.nom)}${v.millesime ? " " + esc(v.millesime) : ""}`;
-const sousTitre = (v) => [...new Set([v.domaine, v.appellation, v.region].filter(Boolean))].map(esc).join(" · ");
+// l'appellation d'abord : c'est elle qu'on cherche du regard (Fitou, Chablis…), le domaine ensuite
+const sousTitre = (v) => [...new Set([v.appellation, v.domaine, v.region].filter(Boolean))].map(esc).join(" · ");
 
 function bouteilleSVG(couleur) {
   const c = COULEURS_CSS.includes(couleur) ? couleur : "autre";
@@ -257,7 +258,7 @@ async function pageAccueil(main) {
     ? `<div class="carte"><h2>Climat de la cave</h2><div class="climat">${mesure(climat.temperature, "°C", "Température")}${mesure(climat.humidite, "%", "Humidité")}</div></div>`
     : "";
   const ligneVin = (v) => `<li>${pastille(v.couleur)}<div class="grandit"><a class="titre tronque" href="#/vins/${v.id}" style="display:block">${titreVin(v)}</a>
-      <span class="muted petit-texte">${esc(v.domaine || "")}${v.garde_fin ? ` · jusqu'en ${v.garde_fin}` : ""}</span></div>
+      <span class="muted petit-texte">${esc([v.appellation, v.domaine].filter(Boolean).join(" · "))}${v.garde_fin ? ` · jusqu'en ${v.garde_fin}` : ""}</span></div>
       ${badgeStatut(v.statut)}<span class="muted" title="bouteilles">×${v.stock}</span></li>`;
   const mouvement = (m) => `<li><span aria-hidden="true">${m.type === "entree" ? "📥" : "🍷"}</span>
       <div class="grandit"><span class="titre">${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</span>
