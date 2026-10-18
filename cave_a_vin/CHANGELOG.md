@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.11.0
+
+- **Place libre dans la cave électrique : choisir le vin à y mettre.** Bouton « Choisir un autre vin » dans l'alerte
+  de l'accueil : liste des vins avec photo d'étiquette, appellation, garde, valeur et emplacement actuel, puis
+  « Ranger » ouvre le plan prêt à le placer.
+- **Priorité** : d'abord les vins qui ont le plus d'années de garde devant eux (ceux qui profitent d'une cave stable),
+  puis les plus précieux. La température de service n'entre pas en compte ; les vins à garde dépassée et ceux du
+  réfrigérateur ne sont pas proposés.
+
 ## 1.10.0
 
 - **Page « Statistiques »** (menu) : par couleur, garde, région, millésime, cave et derniers mouvements. Chaque ligne
