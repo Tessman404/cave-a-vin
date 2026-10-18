@@ -614,10 +614,13 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .plan .case-cave:focus-visible svg { filter: drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 3px var(--accent)); }
 /* localisation : la bouteille clignote */
 .plan .case-cave.surligne { animation: none; box-shadow: none; }
-.plan .case-cave.surligne svg { animation: clignote-bouteille 1s ease-in-out infinite; }
+.plan .case-cave.surligne svg { animation: clignote-bouteille 1.4s ease-in-out infinite; }
 @keyframes clignote-bouteille {
+  /* une fois en noir, une fois en rouge : bien visible quelle que soit la couleur du vin */
   0%, 100% { filter: drop-shadow(0 0 0 transparent); transform: scale(1); }
-  50% { filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 2px var(--accent)) brightness(1.25); transform: scale(1.08); }
+  25% { filter: brightness(.15) drop-shadow(0 0 3px #000) drop-shadow(0 0 1px #000); transform: scale(1.1); }
+  50% { filter: drop-shadow(0 0 0 transparent); transform: scale(1); }
+  75% { filter: sepia(1) saturate(9) hue-rotate(-50deg) brightness(.85) drop-shadow(0 0 6px #e0102a) drop-shadow(0 0 2px #e0102a); transform: scale(1.1); }
 }
 @media (prefers-reduced-motion: reduce) { .plan .case-cave.surligne svg { filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 2px var(--accent)); } }
 @media (max-width: 760px) { .plan-conteneur { --case: 52px; } }
@@ -678,3 +681,8 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .alerte-place > div { flex: 1 1 220px; display: grid; gap: 2px; }
 .alerte-place span { font-size: .88rem; opacity: .8; }
 .alerte-place .bouton { background: #f4efe6; color: #1d2924; border: 0; }
+
+/* note personnelle : rappel qui clignote en rouge sous le titre */
+.note-perso { margin: 6px 0 4px; font-weight: 700; color: var(--danger); animation: clignote-note 1.2s ease-in-out infinite; }
+@keyframes clignote-note { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .note-perso { animation: none; } }

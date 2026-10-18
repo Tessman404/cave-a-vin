@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, cave, garde_ia, ha, ia, photo, scan
+from . import __version__, alertes, cave, garde_ia, ha, ia, photo, scan
 from .cave import ErreurAPI
 from .db import maintenant
 
@@ -444,6 +444,23 @@ def _modifier_reglages(app, req):
     return _reglages(app, req)
 
 
+@route("GET", "api/notifications/services")
+def _services_notification(app, req):
+    return alertes.services_notification(app.reglages())
+
+
+@route("POST", "api/notifications/test")
+def _test_notification(app, req):
+    service = req.json().get("service") or app.reglages().get("notif_service")
+    if not service:
+        raise ErreurAPI("Choisissez d'abord où envoyer les notifications")
+    try:
+        alertes.envoyer(app.reglages(), service, "🍷 Tessvine", "Les notifications de fin de garde arriveront ici.")
+    except Exception as e:  # noqa: BLE001
+        raise ErreurAPI(f"Envoi impossible : {e}", 502)
+    return {"ok": True}
+
+
 @route("GET", "api/ha/climat")
 def _climat(app, req):
     return ha.climat(app.reglages())
@@ -608,6 +625,7 @@ class Application:
                                      qualite=lambda: self.reglages().get("detourage_qualite") or "standard")
         self.brouillons = photo.Brouillons(Path(dossier_donnees) / "brouillons", self.atelier)
         self.planificateur = garde_ia.Planificateur(self)
+        self.surveillance = alertes.Surveillance(self)
 
     def ecrire_reglage(self, cle, valeur):
         with self.db.transaction() as conn:

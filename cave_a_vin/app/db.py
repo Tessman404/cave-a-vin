@@ -5,6 +5,13 @@ import threading
 from datetime import datetime
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS rappels_fin (
+    vin_id      INTEGER PRIMARY KEY REFERENCES vins(id) ON DELETE CASCADE,
+    nombre      INTEGER NOT NULL DEFAULT 0,
+    dernier     TEXT    NOT NULL,
+    garde_fin   INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS caves (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     nom         TEXT    NOT NULL,
@@ -103,7 +110,8 @@ class Database:
         for nom, definition in (("code_barre", "TEXT NOT NULL DEFAULT ''"), ("photo_originale", "TEXT"),
                                 ("garde_source", "TEXT NOT NULL DEFAULT ''"), ("garde_ia_debut", "INTEGER"),
                                 ("garde_ia_apogee", "INTEGER"), ("garde_ia_fin", "INTEGER"), ("garde_ia_date", "TEXT"),
-                                ("garde_ia_note", "TEXT NOT NULL DEFAULT ''")):
+                                ("garde_ia_note", "TEXT NOT NULL DEFAULT ''"),
+                                ("note_perso", "TEXT NOT NULL DEFAULT ''")):  # rappel personnel (1.7.1)
             if nom not in colonnes:
                 self.conn.execute(f"ALTER TABLE vins ADD COLUMN {nom} {definition}")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_vins_code_barre ON vins(code_barre)")

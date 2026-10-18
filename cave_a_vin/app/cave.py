@@ -34,7 +34,7 @@ RAISONS_ENTREE = {"achat": "Achat", "cadeau": "Cadeau", "inventaire": "Inventair
 RAISONS_SORTIE = {"bue": "Bue", "offerte": "Offerte", "cassee": "Cassée / bouchonnée", "vendue": "Vendue", "autre": "Autre"}
 
 CHAMPS_TEXTE = ["nom", "domaine", "appellation", "region", "pays", "couleur", "cepages",
-                "format", "fournisseur", "accords", "notes", "code_barre"]
+                "format", "fournisseur", "accords", "notes", "code_barre", "note_perso"]
 CHAMPS_ENTIERS = ["millesime", "garde_debut", "garde_apogee", "garde_fin"]
 CHAMPS_REELS = ["degre", "prix_achat", "valeur"]
 CHAMPS_VIN = CHAMPS_TEXTE + CHAMPS_ENTIERS + CHAMPS_REELS + ["favori"]

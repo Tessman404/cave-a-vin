@@ -129,11 +129,13 @@ function dialogue(html, { onSubmit, large } = {}) {
 }
 
 function confirmer(message, libelle = "Confirmer") {
+  // la réponse n'est donnée qu'une fois la fenêtre fermée : la suite peut ouvrir sa propre fenêtre sans conflit
   return new Promise((resolve) => {
-    const d = dialogue(`<p>${esc(message)}</p><div class="actions">
+    let ok = false;
+    const d = dialogue(`<p style="white-space:pre-line">${esc(message)}</p><div class="actions">
       <button class="bouton" data-fermer>Annuler</button>
-      <button class="bouton primaire" type="submit">${esc(libelle)}</button></div>`, { onSubmit: () => resolve(true) });
-    d.addEventListener("close", () => resolve(false), { once: true });
+      <button class="bouton primaire" type="submit">${esc(libelle)}</button></div>`, { onSubmit: () => { ok = true; } });
+    d.addEventListener("close", () => setTimeout(() => resolve(ok)), { once: true });
   });
 }
 
@@ -155,6 +157,9 @@ function activerEtoiles(form) {
 }
 
 async function dialogueSortie(vin, bouteilleId, apres) {
+  // un vin réservé pour une occasion : on demande confirmation en rappelant la note
+  if (vin.note_perso === undefined) vin = { ...vin, note_perso: (await api("GET", `vins/${vin.id}`).catch(() => ({}))).note_perso || "" };
+  if (vin.note_perso && !(await confirmer(`Êtes-vous sûr de vouloir consommer ce vin ?\n\n📌 ${vin.note_perso}`, "Oui, le sortir"))) return;
   const d = dialogue(`<h2>Sortir ${titreVin(vin)}</h2>
     <div class="form">
       ${bouteilleId ? "" : `<label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="${vin.stock}" value="1" required></label>`}
@@ -418,6 +423,7 @@ async function pageVin(main, id) {
         <div class="carte">
           <div class="entete" style="align-items:flex-start">
             <div><h1>${v.favori ? "♥ " : ""}${titreVin(v)}</h1>
+              ${v.note_perso ? `<p class="note-perso" role="note">📌 ${esc(v.note_perso)}</p>` : ""}
               <div class="muted">${sousTitre(v)}</div>
               <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${pastille(v.couleur)} ${esc(v.couleur_label)} ${badgeStatut(v.statut)} ${v.note_moyenne != null ? etoiles(v.note_moyenne) : ""}</div></div>
             <div class="compteur">
@@ -580,6 +586,7 @@ async function pageFormulaire(main, id) {
         <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
       </fieldset>`}
       <label class="large">Accords mets & vins<input name="accords" value="${esc(v.accords)}" placeholder="Agneau, fromages affinés…"></label>
+      <label class="large">Note personnelle<input name="note_perso" maxlength="200" value="${esc(v.note_perso || "")}" placeholder="À boire à l'anniversaire de Leïna…"></label>
       <label class="large">Notes<textarea name="notes">${esc(v.notes)}</textarea></label>
       <label class="case large"><input type="checkbox" name="favori" value="1" ${v.favori ? "checked" : ""}> ♥ Favori</label>
       <div class="actions large"><button class="bouton primaire" type="submit">${id ? "Enregistrer" : "Ajouter à ma cave"}</button>
@@ -1422,8 +1429,9 @@ async function pageHistorique(main) {
 }
 
 async function pageReglages(main) {
-  const [r, capteurs, entitesIA, gardes, diagIA] = await Promise.all([api("GET", "reglages"), api("GET", "ha/capteurs").catch(() => []),
-    api("GET", "ia/entites").catch(() => []), api("GET", "ia/gardes").catch(() => null), api("GET", "ia/diagnostic").catch(() => null)]);
+  const [r, capteurs, entitesIA, gardes, diagIA, servicesNotif] = await Promise.all([api("GET", "reglages"), api("GET", "ha/capteurs").catch(() => []),
+    api("GET", "ia/entites").catch(() => []), api("GET", "ia/gardes").catch(() => null), api("GET", "ia/diagnostic").catch(() => null),
+    api("GET", "notifications/services").catch(() => [])]);
   CAPACITES = await api("GET", "capacites");
   const choixCapteur = (nom, type) => {
     const liste = capteurs.filter((c) => c.type === type);
@@ -1444,6 +1452,14 @@ async function pageReglages(main) {
           <label class="large">Nom de la cave<input name="nom_cave" value="${esc(r.nom_cave)}" maxlength="40" required placeholder="Tessvine"></label>
           <p class="large muted petit-texte" style="margin:0">Affiché en haut de l'application et dans l'onglet. Le nom dans la barre latérale de Home Assistant se change dans Home Assistant.</p>
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
+        </form></div>
+      <div class="carte"><h2>🔔 Notifications de fin de garde</h2>
+        <form class="form" id="notifs">
+          <label class="large">Envoyer sur
+            <select name="notif_service"><option value="">Désactivées</option>${servicesNotif.map((n) => `<option value="${esc(n)}"${n === r.notif_service ? " selected" : ""}>${esc(n.replace("notify.mobile_app_", "📱 ").replace("notify.", ""))}</option>`).join("")}
+            ${r.notif_service && !servicesNotif.includes(r.notif_service) ? `<option selected value="${esc(r.notif_service)}">${esc(r.notif_service)}</option>` : ""}</select></label>
+          <p class="large muted petit-texte" style="margin:0">Quand un vin entre dans sa dernière année de garde (« à boire vite »), Home Assistant vous prévient : au plus 2 rappels par vin, à 15 jours d'intervalle. Un vin dont la garde est dépassée n'est plus rappelé.</p>
+          <div class="actions large"><button class="bouton" type="button" id="test-notif">Envoyer un test</button><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form></div>
       <div class="carte"><h2>🏠 Home Assistant — capteurs de la cave</h2>
         ${r.addon ? `<p class="muted">L'application tourne comme module complémentaire : la connexion à Home Assistant est automatique.</p>`
@@ -1538,6 +1554,15 @@ async function pageReglages(main) {
   };
   afficherGardes(gardes);
   if (gardes?.en_cours) setTimeout(suivre, 2000);
+  $("#notifs", main).onsubmit = async (e) => {
+    e.preventDefault();
+    try { await api("PUT", "reglages", Object.fromEntries(new FormData(e.target))); toast("Notifications enregistrées"); }
+    catch (err) { toast(err.message, true); }
+  };
+  $("#test-notif", main).onclick = async () => {
+    try { await api("POST", "notifications/test", { service: $("#notifs select", main).value }); toast("Notification de test envoyée"); }
+    catch (err) { toast(err.message, true, 6000); }
+  };
   $("#nom-cave", main).onsubmit = async (e) => {
     e.preventDefault();
     try {

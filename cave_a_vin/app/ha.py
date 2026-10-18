@@ -8,6 +8,7 @@ import urllib.request
 
 REGLAGES_DEFAUT = {
     "nom_cave": "Tessvine",
+    "notif_service": "",
     "ha_url": "",
     "ha_token": "",
     "capteur_temperature": "",
