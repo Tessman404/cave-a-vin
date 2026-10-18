@@ -1,5 +1,22 @@
 # Journal des modifications
 
+## 1.8.0
+
+- **Note personnelle** sur un vin (« À boire à l'anniversaire de Leïna ») : elle clignote en rouge sous le titre de
+  la fiche, et sortir ce vin demande « Êtes-vous sûr de vouloir consommer ce vin ? » en rappelant la note.
+- **Notifications de fin de garde** (Réglages → Notifications) : Home Assistant prévient quand un vin entre dans sa
+  dernière année de garde, au plus 2 fois par vin, à 15 jours d'intervalle. Bouton d'envoi d'un test.
+- **Bouteilles non rangées** : nombre sur le plan de cave, liste avec photo d'étiquette, appellation et domaine,
+  bouton « Ranger » ; chiffre « à ranger » dans le bandeau de l'accueil.
+- **Place libre** : le bandeau de l'accueil signale les places libres et propose d'y mettre la bouteille non rangée
+  la plus prestigieuse, puis de choisir l'emplacement sur le plan.
+- **Casiers** : nom du casier principal modifiable ; disposition des étagères modifiable (position et casier de
+  référence) ; nom d'étagère facultatif ; casiers alignés en haut et empilés en colonnes ; fin trait noir à la place
+  de la tablette en bois.
+- La bouteille localisée clignote en noir puis en rouge.
+- Accueil : « Par couleur », « Par région » et « Par cave » juste sous « À boire vite ».
+- « Mes vins » signale un filtre actif, avec un bouton « Tout afficher ».
+
 ## 1.7.0
 
 - **Plan de cave redessiné** : un casier de bouteilles couchées vues par le goulot, colorées selon le vin, posées sur
