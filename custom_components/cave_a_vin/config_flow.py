@@ -49,7 +49,7 @@ class CaveConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             if not (erreur := await self._tester(url, user_input.get(CONF_API_KEY))):
                 return self.async_create_entry(
-                    title="Cave à vin", data={CONF_URL: url, CONF_API_KEY: user_input.get(CONF_API_KEY, "")})
+                    title="Tessvine", data={CONF_URL: url, CONF_API_KEY: user_input.get(CONF_API_KEY, "")})
             erreurs["base"] = erreur
         schema = vol.Schema({
             vol.Required(CONF_URL, default=(user_input or {}).get(CONF_URL, "http://")): str,
@@ -58,7 +58,7 @@ class CaveConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="user", data_schema=schema, errors=erreurs)
 
     async def async_step_hassio(self, discovery_info: HassioServiceInfo) -> ConfigFlowResult:
-        """Découverte automatique par le module complémentaire Cave à vin."""
+        """Découverte automatique par le module complémentaire Tessvine."""
         config = discovery_info.config
         url = f"http://{config['host']}:{config['port']}"
         await self.async_set_unique_id(url)
@@ -70,7 +70,7 @@ class CaveConfigFlow(ConfigFlow, domain=DOMAIN):
         erreurs: dict[str, str] = {}
         if user_input is not None:
             if not (erreur := await self._tester(self._decouverte[CONF_URL], self._decouverte[CONF_API_KEY])):
-                return self.async_create_entry(title="Cave à vin", data=self._decouverte)
+                return self.async_create_entry(title="Tessvine", data=self._decouverte)
             erreurs["base"] = erreur
         return self.async_show_form(step_id="hassio_confirm", errors=erreurs)
 

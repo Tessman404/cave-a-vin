@@ -577,7 +577,8 @@ class Handler(BaseHTTPRequestHandler):
         if cible.name == "index.html":
             # force le navigateur (et l'appli Home Assistant) à recharger styles et script à chaque version
             contenu = contenu.replace(b"__VERSION__", __version__.encode())
-        self._envoyer(Reponse(contenu, type_, entetes={"Cache-Control": "no-cache"}))
+        cache = "no-store" if cible.name == "index.html" else "no-cache"
+        self._envoyer(Reponse(contenu, type_, entetes={"Cache-Control": cache}))
 
     def _envoyer(self, rep):
         try:

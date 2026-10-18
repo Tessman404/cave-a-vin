@@ -1210,7 +1210,7 @@ async function pageReglages(main) {
         <p class="muted petit-texte">Le modèle de détourage est téléchargé une seule fois, au premier usage, puis tout se fait sur votre installation. Pour la lecture d'étiquette, la photo est envoyée à l'IA configurée dans Home Assistant.</p>
       </div>
       <div class="carte"><h2>🔌 Intégration Home Assistant</h2>
-        <p>L'intégration <b>Cave à vin</b> (dossier <code>custom_components/cave_a_vin</code>) crée dans Home Assistant :</p>
+        <p>L'intégration <b>Tessvine</b> (dossier <code>custom_components/cave_a_vin</code>) crée dans Home Assistant :</p>
         <ul><li>des capteurs : bouteilles, valeur, vins à boire, à boire vite…</li>
           <li>la liste de tâches <b>Envies</b> (utilisable avec Assist : « ajoute Chablis à Cave à vin Envies »)</li>
           <li>les actions <code>cave_a_vin.sortir_bouteille</code>, <code>ajouter_bouteilles</code> et <code>suggerer_vin</code>.</li></ul>
@@ -1227,7 +1227,7 @@ async function pageReglages(main) {
           <input type="file" accept=".json,application/json" id="import-json"></label>
       </div>
       <div class="carte"><h2>ℹ️ À propos</h2>
-        <p>Cave à vin version ${esc(REF.version)}${r.addon ? " — module complémentaire Home Assistant" : ""}.</p>
+        <p>Tessvine version ${esc(REF.version)}${r.addon ? " — module complémentaire Home Assistant" : ""}.</p>
         ${cleAPI.lire() ? `<p>Une clé d'API est mémorisée sur cet appareil. <button class="bouton petit" id="oublier">Oublier la clé</button></p>` : ""}
       </div>
     </div>`;

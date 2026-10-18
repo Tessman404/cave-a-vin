@@ -25,7 +25,7 @@ def options_addon():
 
 
 def annoncer_a_home_assistant(port, api_key):
-    """Découverte automatique : Home Assistant propose alors d'ajouter l'intégration Cave à vin."""
+    """Découverte automatique : Home Assistant propose alors d'ajouter l'intégration Tessvine."""
     jeton = os.environ.get("SUPERVISOR_TOKEN")
     if not jeton:
         return
@@ -53,7 +53,7 @@ def main():
     application = Application(db, dossier, api_key)
     serveur = creer_serveur(application, port=port)
     application.planificateur.demarrer()  # estimation mensuelle de la garde par l'IA
-    logging.info("Cave à vin %s démarrée sur le port %s (données : %s)%s", __version__, port, dossier.resolve(),
+    logging.info("Tessvine %s démarrée sur le port %s (données : %s)%s", __version__, port, dossier.resolve(),
                  " — clé d'API activée" if api_key else "")
     threading.Thread(target=annoncer_a_home_assistant, args=(port, api_key), daemon=True).start()
     try:

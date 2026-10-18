@@ -1,4 +1,4 @@
-"""Entité de base : toutes les entités sont rattachées à l'appareil « Cave à vin »."""
+"""Entité de base : toutes les entités sont rattachées à l'appareil « Tessvine »."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ class CaveEntity(CoordinatorEntity[CaveCoordinator]):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,
-            manufacturer="Cave à vin",
+            manufacturer="Tessvine",
             model="Gestion de cave",
             sw_version=(coordinator.data or {}).get("version"),
             entry_type=DeviceEntryType.SERVICE,

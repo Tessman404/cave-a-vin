@@ -1,4 +1,4 @@
-# Cave à vin 🍷
+# Tessvine 🍷
 
 Un logiciel de gestion de cave à vin, dans l'esprit d'Oeni, **qui s'intègre à Home Assistant** : il s'ouvre dans la barre latérale de Home Assistant, lit la température et l'humidité de votre cave, et crée des capteurs, une liste d'envies et des actions utilisables dans vos automatisations ou avec Assist.
 

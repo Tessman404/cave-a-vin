@@ -3,15 +3,15 @@
     "step": {
       "user": {
         "title": "Ajouter votre cave à vin",
-        "description": "Adresse de l'application Cave à vin. Avec le module complémentaire, utilisez http://<nom d'hôte du module>:8099 (onglet Info du module).",
+        "description": "Adresse de l'application Tessvine. Avec le module complémentaire, utilisez http://<nom d'hôte du module>:8099 (onglet Info du module).",
         "data": {
           "url": "Adresse",
           "api_key": "Clé d'API (si définie)"
         }
       },
       "hassio_confirm": {
-        "title": "Cave à vin détectée",
-        "description": "Le module complémentaire Cave à vin a été détecté. L'ajouter à Home Assistant ?"
+        "title": "Tessvine détectée",
+        "description": "Le module complémentaire Tessvine a été détecté. L'ajouter à Home Assistant ?"
       },
       "reauth_confirm": {
         "title": "Clé d'API",

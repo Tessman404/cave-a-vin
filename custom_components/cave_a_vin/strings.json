@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Add your wine cellar",
-        "description": "Address of the Cave à vin app. With the add-on, use http://<add-on hostname>:8099 (add-on Info tab).",
+        "description": "Address of the Tessvine app. With the add-on, use http://<add-on hostname>:8099 (add-on Info tab).",
         "data": {
           "url": "Address",
           "api_key": "API key (if set)"
@@ -11,7 +11,7 @@
       },
       "hassio_confirm": {
         "title": "Wine cellar found",
-        "description": "The Cave à vin add-on was found. Add it to Home Assistant?"
+        "description": "The Tessvine add-on was found. Add it to Home Assistant?"
       },
       "reauth_confirm": {
         "title": "API key",

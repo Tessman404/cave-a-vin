@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.5.0
+
+- **La cave s'appelle désormais Tessvine** (barre latérale de Home Assistant, application, écran d'accueil de
+  l'iPhone). Les données, les capteurs et la liste d'envies existants ne changent pas.
+- La page principale n'est plus jamais gardée en mémoire par le navigateur : chaque mise à jour s'affiche tout de suite.
+
 ## 1.4.2
 
 - Après une mise à jour, l'iPhone (et l'appli Home Assistant) recharge forcément la nouvelle mise en page au lieu de

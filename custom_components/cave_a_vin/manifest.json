@@ -1,6 +1,6 @@
 {
   "domain": "cave_a_vin",
-  "name": "Cave à vin",
+  "name": "Tessvine",
   "codeowners": ["@Tessman404"],
   "config_flow": true,
   "dependencies": [],

@@ -747,7 +747,7 @@ def exporter_json(db):
 
 def importer_json(db, donnees):
     if not isinstance(donnees, dict) or donnees.get("format") != "cave-a-vin":
-        raise ErreurAPI("Ce fichier n'est pas une sauvegarde de Cave à vin")
+        raise ErreurAPI("Ce fichier n'est pas une sauvegarde de Tessvine")
     with db.transaction() as conn:
         for t in reversed(TABLES_SAUVEGARDE):
             conn.execute(f"DELETE FROM {t}")

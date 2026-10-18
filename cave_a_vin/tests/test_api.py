@@ -58,7 +58,7 @@ class TestCave(BaseTest):
     def test_sante_et_interface(self):
         self.assertEqual(self.appel("GET", "api/health", attendu=200)["status"], "ok")
         page = self.appel("GET", "", attendu=200)
-        self.assertIn(b"<title>Cave", page)
+        self.assertIn(b"<title>Tessvine", page)
         self.assertIn(b"<title>Cave", self.appel("GET", "vins/12", attendu=200))  # repli SPA
         self.appel("GET", "../../etc/passwd", attendu=200)  # ne sort jamais du dossier static
         self.appel("GET", "api/inconnu", attendu=404)
