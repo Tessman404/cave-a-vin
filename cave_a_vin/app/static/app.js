@@ -184,7 +184,7 @@ async function dialogueEntree(vin, apres) {
       <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
       ${place ? `<p class="large" style="margin:0">📍 Rangée ${place.rangee}, colonne ${place.colonne} de <b>${esc(place.cave_nom)}</b> (les bouteilles suivantes dans les cases libres)</p>`
         : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.map((c) =>
-        `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>`}
+        `<option value="${c.id}">${esc(c.nom_complet || c.nom)}${c.capacite_propre ? ` (${c.capacite_propre - c.bouteilles_propres} place(s) libre(s))` : ""}</option>`).join("")}</select></label>`}
       <label>Date<input type="date" name="date" value="${aujourdhui()}"></label>
       <label class="large">Commentaire<input name="commentaire" placeholder="Caviste, salon, prix payé…"></label>
     </div>
@@ -300,7 +300,7 @@ async function pageVins(main) {
       <input type="search" name="q" placeholder="Rechercher : nom, domaine, cépage, millésime…" value="${esc(filtresVins.q)}" aria-label="Rechercher">
       <select name="couleur" aria-label="Couleur">${options(REF.couleurs, filtresVins.couleur, "Toutes couleurs")}</select>
       <select name="statut" aria-label="Garde">${options(statuts, filtresVins.statut, "Toutes gardes")}</select>
-      <select name="cave_id" aria-label="Cave">${options(Object.fromEntries(caves.map((c) => [c.id, c.nom])), filtresVins.cave_id, "Toutes caves")}</select>
+      <select name="cave_id" aria-label="Cave">${options(Object.fromEntries(caves.filter((c) => !c.parent_id).map((c) => [c.id, c.nom])), filtresVins.cave_id, "Toutes caves")}</select>
       <select name="stock" aria-label="Stock">${options({ 1: "En cave", 0: "Épuisés", all: "Tous" }, filtresVins.stock)}</select>
       <select name="tri" aria-label="Tri">${options({ nom: "Tri : nom", millesime: "Tri : millésime", region: "Tri : région", garde: "Tri : à boire en premier", stock: "Tri : quantité", valeur: "Tri : valeur", recent: "Tri : derniers ajouts" }, filtresVins.tri)}</select>
     </div>
@@ -319,8 +319,18 @@ async function pageVins(main) {
           <span class="muted petit-texte tronque">${sousTitre(v) || "&nbsp;"}</span>
           <span>${badgeStatut(v.statut)}</span></div>
         <div class="stock">${v.stock}<small>bout.</small></div>
+        ${v.stock ? `<span class="localiser" role="button" tabindex="0" data-localiser="${v.id}" aria-label="Localiser ${esc(v.nom)} dans la cave" title="Localiser dans la cave">${ICONE_LOCALISER}</span>` : ""}
       </a>`).join("") : `<div class="vide" style="grid-column:1/-1">Aucun vin ne correspond.</div>`;
   };
+  const surLocaliser = (e) => {
+    const cible = e.target.closest("[data-localiser]");
+    if (!cible || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    localiser(+cible.dataset.localiser).catch((err) => toast(err.message, true));
+  };
+  $("#resultats", main).addEventListener("click", surLocaliser);
+  $("#resultats", main).addEventListener("keydown", surLocaliser);
   let minuteur;
   $(".filtres", main).addEventListener("input", (e) => {
     filtresVins[e.target.name] = e.target.value;
@@ -415,7 +425,8 @@ async function pageVin(main, id) {
         </dl>
         ${v.accords ? `<h3 style="margin-top:14px">Accords</h3><p>${esc(v.accords)}</p>` : ""}
         ${v.notes ? `<h3 style="margin-top:14px">Notes</h3><p style="white-space:pre-line">${esc(v.notes)}</p>` : ""}</div>
-        <div class="carte"><h2>Emplacements</h2>
+        <div class="carte"><div class="titre-carte"><h2>Emplacements</h2>
+          ${v.bouteilles.some((b) => b.cave_id) ? `<button class="bouton petit" id="localiser">${ICONE_LOCALISER} Localiser dans la cave</button>` : ""}</div>
           ${v.bouteilles.length ? `<ul class="liste">${Object.entries(groupes).map(([k, g]) => `<li><span aria-hidden="true">📍</span><span class="grandit">${g.b.cave_id ? `<a href="#/caves/${g.b.cave_id}?vin=${v.id}">${k}</a>` : k}</span><span class="muted">×${g.n}</span></li>`).join("")}</ul>`
             : `<p class="muted">Plus aucune bouteille en cave.</p>`}</div>
         <div class="carte"><h2>Historique & dégustations</h2>
@@ -443,6 +454,8 @@ async function pageVin(main, id) {
       recharger();
     } catch (err) { toast(err.message, true); boutonIA.disabled = false; boutonIA.textContent = "🤖 Demander la garde à l'IA"; }
   };
+  const boutonLocaliser = $("#localiser", main);
+  if (boutonLocaliser) boutonLocaliser.onclick = () => localiser(v.id).catch((err) => toast(err.message, true));
   $("#favori", main).onclick = async () => { await api("PUT", `vins/${v.id}`, { favori: !v.favori }); recharger(); };
   $("#supprimer", main).onclick = async () => {
     if (await confirmer(`Supprimer définitivement « ${v.nom} » et ses ${v.stock} bouteille(s) ? L'historique des dégustations est conservé.`, "Supprimer")) {
@@ -540,7 +553,7 @@ async function pageFormulaire(main, id) {
         ${rangement ? `<p style="margin:0;align-self:end">📍 ${esc(rangement.cave_nom)}, rangée ${rangement.rangee}, colonne ${rangement.colonne}</p>
           <input type="hidden" name="cave_id" value="${rangement.cave_id}"><input type="hidden" name="rangee" value="${rangement.rangee}">
           <input type="hidden" name="colonne" value="${rangement.colonne}">`
-        : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.map((c) => `<option value="${c.id}">${esc(c.nom)}</option>`).join("")}</select></label>`}
+        : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.map((c) => `<option value="${c.id}">${esc(c.nom_complet || c.nom)}</option>`).join("")}</select></label>`}
         <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
       </fieldset>`}
       <label class="large">Accords mets & vins<input name="accords" value="${esc(v.accords)}" placeholder="Agneau, fromages affinés…"></label>
@@ -930,6 +943,16 @@ async function pageAjouter(main) {
   $("#t-photo", main).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0]);
 }
 
+/** Ouvre le plan de cave sur les bouteilles d'un vin (elles clignotent). */
+async function localiser(vinId) {
+  const v = await api("GET", `vins/${vinId}`);
+  const rangees = v.bouteilles.filter((b) => b.cave_id && b.rangee);
+  const dansUneCave = rangees.length ? rangees : v.bouteilles.filter((b) => b.cave_id);
+  if (!dansUneCave.length) return toast(v.stock ? "Ce vin n'est rangé dans aucune cave : rangez-le depuis le plan de cave" : "Plus aucune bouteille de ce vin en cave", true, 6000);
+  location.hash = `#/caves/${dansUneCave[0].cave_id}?vin=${v.id}`;
+}
+const ICONE_LOCALISER = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>`;
+
 /** Sortir une bouteille en scannant son code-barres. */
 async function sortirParCodeBarres() {
   const code = await scanner();
@@ -949,9 +972,37 @@ function apresAjout(vinId) {
   location.hash = r ? `#/caves/${r.cave_id}?vin=${vinId}` : `#/vins/${vinId}`;
 }
 
+const LETTRE_RANG = (r) => `${String.fromCharCode(64 + ((r - 1) % 26) + 1)}${r > 26 ? Math.ceil(r / 26) : ""}`;
+
+/** Place les casiers (cave + étagères) sur une grille : chaque étagère se pose à côté de son casier de référence. */
+function disposerCasiers(cave) {
+  const casiers = [cave, ...cave.etageres];
+  const pos = new Map([[cave.id, [0, 0]]]);
+  const occupe = new Set(["0,0"]);
+  const pas = { bas: [0, 1], haut: [0, -1], gauche: [-1, 0], droite: [1, 0] };
+  let restants = cave.etageres.slice();
+  for (let tour = 0; restants.length && tour < 50; tour++) {
+    restants = restants.filter((e) => {
+      const refId = casiers.some((x) => x.id === e.ref_id) ? e.ref_id : cave.id;
+      const ref = pos.get(refId);
+      if (!ref) return true;  // son casier de référence n'est pas encore placé
+      const [dx, dy] = pas[e.position] || pas.bas;
+      let [x, y] = [ref[0] + dx, ref[1] + dy];
+      while (occupe.has(`${x},${y}`)) { x += dx; y += dy; }
+      pos.set(e.id, [x, y]);
+      occupe.add(`${x},${y}`);
+      return false;
+    });
+  }
+  const xs = [...pos.values()].map((p) => p[0]), ys = [...pos.values()].map((p) => p[1]);
+  const [x0, y0] = [Math.min(...xs), Math.min(...ys)];
+  return casiers.filter((c) => pos.has(c.id)).map((c) => ({ casier: c, col: pos.get(c.id)[0] - x0 + 1, rang: pos.get(c.id)[1] - y0 + 1 }));
+}
+
 async function pageCaves(main, id, params) {
   rangement = null;  // retour au plan : on abandonne un rangement commencé
-  const caves = await api("GET", "caves");
+  const toutes = await api("GET", "caves");
+  const caves = toutes.filter((c) => !c.parent_id);
   if (!id && caves.length) { location.replace(`#/caves/${caves[0].id}`); return; }
   const onglets = `<nav class="onglets">${caves.map((c) => `<a href="#/caves/${c.id}" class="${c.id === id ? "actif" : ""}">${esc(c.nom)} <span class="muted">${c.bouteilles}</span></a>`).join("")}</nav>`;
   const entete = `<div class="entete"><h1>Plan de cave</h1><button class="bouton primaire" id="nouvelle">+ Nouvelle cave</button></div>`;
@@ -961,43 +1012,78 @@ async function pageCaves(main, id, params) {
     return;
   }
   const c = await api("GET", `caves/${id}`);
+  if (c.parent_id) { location.replace(`#/caves/${c.parent_id}${params ? "?" + params : ""}`); return; }  // lien vers une étagère
+  const casiers = [c, ...c.etageres];
+  const toutesBouteilles = casiers.flatMap((x) => x.bouteilles);
   const surligne = +new URLSearchParams(params).get("vin") || null;
-  const parCase = {};
-  c.bouteilles.forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
-  let plan = "";
-  if (c.capacite) {
-    plan = `<div class="plan-conteneur"><div class="plan" style="grid-template-columns: 22px repeat(${c.colonnes}, 40px)"><span></span>`;
-    for (let col = 1; col <= c.colonnes; col++) plan += `<span class="entete-col">${col}</span>`;
-    for (let r = 1; r <= c.rangees; r++) {
-      plan += `<span class="entete-rang">${String.fromCharCode(64 + ((r - 1) % 26) + 1)}${r > 26 ? Math.ceil(r / 26) : ""}</span>`;
-      for (let col = 1; col <= c.colonnes; col++) {
+  const capacite = casiers.reduce((n, x) => n + x.capacite, 0);
+  const occupees = toutesBouteilles.filter((b) => b.rangee).length;
+
+  // un casier = une grille de bouteilles posée sur sa tablette
+  const dessin = `<svg aria-hidden="true"><use href="#bouteille-couchee"/></svg>`;
+  const planCasier = (k) => {
+    const parCase = {};
+    k.bouteilles.forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
+    let h = `<div class="plan" style="grid-template-columns: 22px repeat(${k.colonnes}, var(--case))"><span></span>`;
+    for (let col = 1; col <= k.colonnes; col++) h += `<span class="entete-col">${col}</span>`;
+    for (let r = 1; r <= k.rangees; r++) {
+      h += `<span class="entete-rang">${LETTRE_RANG(r)}</span>`;
+      for (let col = 1; col <= k.colonnes; col++) {
         const b = parCase[`${r}-${col}`];
-        plan += b
-          ? `<button class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" data-b="${b.id}" title="${esc(b.nom)}${b.millesime ? " " + b.millesime : ""} — ${esc(REF.statuts[b.statut])}" aria-label="Rangée ${r} colonne ${col} : ${esc(b.nom)}"></button>`
-          : `<button class="case-cave" data-r="${r}" data-c="${col}" aria-label="Rangée ${r} colonne ${col} : libre"></button>`;
+        // les rangs du haut passent devant ceux du dessous (le goulot recouvre la bouteille du rang inférieur)
+        const z = `style="z-index:${k.rangees - r + 1}${r > 1 ? ";margin-top:-10px" : ""}"`;
+        h += b
+          ? `<button class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" ${z} data-k="${k.id}" data-b="${b.id}" title="${esc(b.nom)}${b.millesime ? " " + b.millesime : ""} : ${esc(REF.statuts[b.statut])}" aria-label="${esc(k.nom)}, rangée ${LETTRE_RANG(r)}, colonne ${col} : ${esc(b.nom)}">${dessin}</button>`
+          : `<button class="case-cave" ${z} data-k="${k.id}" data-r="${r}" data-c="${col}" aria-label="${esc(k.nom)}, rangée ${LETTRE_RANG(r)}, colonne ${col} : libre">${dessin}</button>`;
       }
     }
-    plan += `</div></div><div class="legende">${Object.entries(REF.couleurs).map(([k, l]) => `<span>${pastille(k)} ${esc(l)}</span>`).join("")}<span><b>!</b>&nbsp;à boire vite / dépassé</span><span>◌ case libre</span></div>`;
+    return h + `</div>`;
+  };
+  const avecPlan = casiers.filter((k) => k.capacite);
+  const disposition = c.capacite ? disposerCasiers(c) : [];
+  const plusieurs = disposition.length > 1;
+  const plan = disposition.length ? `<div class="plan-conteneur"><div class="casiers">${disposition.map(({ casier: k, col, rang }) => `
+      <div class="casier-bloc" style="grid-column:${col};grid-row:${rang}">
+        ${plusieurs ? `<div class="casier-titre"><span>${esc(k.parent_id ? k.nom : "Casier principal")}</span>
+          ${k.parent_id ? `<button class="bouton petit" data-modifier-etagere="${k.id}" aria-label="Modifier ${esc(k.nom)}">✎</button>` : ""}</div>` : ""}
+        ${planCasier(k)}</div>`).join("")}</div></div>
+    <div class="legende">${Object.entries(REF.couleurs).map(([k, l]) => `<span>${pastille(k)} ${esc(l)}</span>`).join("")}<span><b>!</b>&nbsp;à boire vite / dépassé</span><span>◌ emplacement libre</span></div>` : "";
+
+  let bandeau = "";
+  if (surligne) {
+    const vin = await api("GET", `vins/${surligne}`).catch(() => null);
+    if (vin) {
+      const ici = toutesBouteilles.filter((b) => b.vin_id === surligne).length;
+      const ailleurs = {};
+      vin.bouteilles.filter((b) => b.cave_racine && b.cave_racine !== c.id).forEach((b) => { ailleurs[b.cave_racine] = ailleurs[b.cave_racine] || { nom: b.cave_nom, n: 0 }; ailleurs[b.cave_racine].n++; });
+      bandeau = `<div class="carte bandeau-localisation" role="status">${ICONE_LOCALISER}
+        <div class="grandit"><b>${titreVin(vin)}</b><div class="muted petit-texte">${ici ? `${pluriel(ici, "bouteille")} ${ici > 1 ? "clignotent" : "clignote"} dans cette cave` : "Aucune bouteille dans cette cave"}${Object.entries(ailleurs).map(([cid, a]) => ` · <a href="#/caves/${cid}?vin=${vin.id}">${pluriel(a.n, "autre")} dans ${esc(a.nom)}</a>`).join("")}</div></div>
+        <a class="bouton petit" href="#/vins/${vin.id}">Fiche</a><a class="bouton petit" href="#/caves/${c.id}">Arrêter</a></div>`;
+    }
   }
   const vrac = c.bouteilles.filter((b) => !b.rangee);
   const groupesVrac = {};
   vrac.forEach((b) => { groupesVrac[b.vin_id] = groupesVrac[b.vin_id] || { ...b, n: 0 }; groupesVrac[b.vin_id].n++; });
-  main.innerHTML = entete + onglets + `
+  main.innerHTML = entete + onglets + bandeau + `
     <div class="carte">
       <div class="entete"><div><h2 style="margin:0">${esc(c.nom)}</h2>
-        <span class="muted">${c.capacite ? `${c.bouteilles.length} / ${c.capacite} emplacements occupés · ${c.rangees} rangées × ${c.colonnes} colonnes` : pluriel(c.bouteilles.length, "bouteille") + " (rangement libre)"}</span>
+        <span class="muted">${capacite ? `${occupees} / ${capacite} emplacements occupés${plusieurs ? ` · ${pluriel(disposition.length, "casier")}` : ` · ${c.rangees} rangées × ${c.colonnes} colonnes`}` : pluriel(c.bouteilles.length, "bouteille") + " (rangement libre)"}</span>
         ${c.description ? `<p class="muted">${esc(c.description)}</p>` : ""}</div>
-        <div class="actions"><button class="bouton petit" id="modifier">✎ Modifier</button><button class="bouton petit danger" id="supprimer">Supprimer</button></div></div>
-      <p id="mode-deplacement" class="muted" hidden>Choisissez la case de destination… <button class="bouton petit" id="annuler-depl">Annuler</button></p>
+        <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">+ Étagère</button>` : ""}<button class="bouton petit" id="modifier">✎ Modifier</button><button class="bouton petit danger" id="supprimer">Supprimer</button></div></div>
+      <p id="mode-deplacement" class="muted" hidden>Choisissez l'emplacement de destination… <button class="bouton petit" id="annuler-depl">Annuler</button></p>
       ${plan}
       ${vrac.length ? `<h3 style="margin-top:16px">${c.capacite ? "Sans emplacement précis" : "Bouteilles"}</h3><ul class="liste">${Object.values(groupesVrac).map((b) =>
-        `<li>${pastille(b.couleur)}<a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="muted">×${b.n}</span></li>`).join("")}</ul>` : ""}
+        `<li class="${b.vin_id === surligne ? "surligne" : ""}">${pastille(b.couleur)}<a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="muted">×${b.n}</span></li>`).join("")}</ul>` : ""}
       ${!c.bouteilles.length && !c.capacite ? `<p class="muted">Aucune bouteille. Ajoutez-en depuis la fiche d'un vin.</p>` : ""}
     </div>`;
   $("#nouvelle", main).onclick = () => dialogueCave();
   $("#modifier", main).onclick = () => dialogueCave(c);
+  const boutonEtagere = $("#etagere", main);
+  if (boutonEtagere) boutonEtagere.onclick = () => dialogueEtagere(c);
+  $$("[data-modifier-etagere]", main).forEach((b) => { b.onclick = () => dialogueEtagere(c, c.etageres.find((e) => e.id === +b.dataset.modifierEtagere)); });
   $("#supprimer", main).onclick = async () => {
-    if (await confirmer(`Supprimer « ${c.nom} » ? Ses ${c.bouteilles.length} bouteille(s) resteront dans votre inventaire, sans emplacement.`, "Supprimer")) {
+    const n = toutesBouteilles.length;
+    if (await confirmer(`Supprimer « ${c.nom} »${c.etageres.length ? ` et ses ${pluriel(c.etageres.length, "étagère")}` : ""} ? Ses ${n} bouteille(s) resteront dans votre inventaire, sans emplacement.`, "Supprimer")) {
       await api("DELETE", `caves/${c.id}`);
       location.hash = "#/caves";
     }
@@ -1010,11 +1096,13 @@ async function pageCaves(main, id, params) {
   };
   $("#annuler-depl", main).onclick = finDeplacement;
   $$(".case-cave", main).forEach((bouton) => bouton.addEventListener("click", async () => {
+    const k = casiers.find((x) => x.id === +bouton.dataset.k);
     if (bouton.dataset.b) {
-      const b = c.bouteilles.find((x) => x.id === +bouton.dataset.b);
+      const b = k.bouteilles.find((x) => x.id === +bouton.dataset.b);
       const vin = { id: b.vin_id, nom: b.nom, millesime: b.millesime, stock: 1 };
+      const lieu = `${plusieurs ? esc(k.parent_id ? k.nom : "casier principal") + ", " : ""}rangée ${LETTRE_RANG(b.rangee)}, colonne ${b.colonne}`;
       const d = dialogue(`<h2>${pastille(b.couleur)} ${titreVin(b)}</h2>
-        <p class="muted">${esc(b.domaine || "")} · rangée ${b.rangee}, colonne ${b.colonne}</p><p>${badgeStatut(b.statut)}</p>
+        <p class="muted">${esc(b.domaine || "")}${b.domaine ? " · " : ""}${lieu}</p><p>${badgeStatut(b.statut)}</p>
         <div class="actions" style="justify-content:flex-start">
           <button class="bouton primaire" type="button" data-action="sortir">🍷 Sortir cette bouteille</button>
           <button class="bouton" type="button" data-action="deplacer">↔ Déplacer</button>
@@ -1030,15 +1118,48 @@ async function pageCaves(main, id, params) {
       };
     } else if (deplacement) {
       try {
-        await api("PUT", `bouteilles/${deplacement}`, { cave_id: c.id, rangee: +bouton.dataset.r, colonne: +bouton.dataset.c });
+        await api("PUT", `bouteilles/${deplacement}`, { cave_id: k.id, rangee: +bouton.dataset.r, colonne: +bouton.dataset.c });
         toast("Bouteille déplacée");
         route();
       } catch (err) { toast(err.message, true); finDeplacement(); }
     } else {
-      await dialogueRanger(c, +bouton.dataset.r, +bouton.dataset.c);
+      await dialogueRanger(k, +bouton.dataset.r, +bouton.dataset.c);
     }
   }));
-  if (surligne) $(".case-cave.surligne", main)?.scrollIntoView({ block: "center", inline: "center" });
+  if (surligne) ($(".case-cave.surligne", main) || $(".liste li.surligne", main))?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+}
+
+/** Ajouter (ou modifier) une étagère : en haut, en bas, à gauche ou à droite d'un casier de la cave. */
+function dialogueEtagere(cave, etagere) {
+  const casiers = [{ id: cave.id, nom: "Casier principal" }, ...cave.etageres.filter((e) => e.id !== etagere?.id)];
+  const positions = { bas: "En dessous", haut: "Au-dessus", gauche: "À gauche", droite: "À droite" };
+  dialogue(`<h2>${etagere ? "Modifier l'étagère" : "Nouvelle étagère"}</h2>
+    <div class="form">
+      <label class="large">Nom<input name="nom" value="${esc(etagere?.nom || "")}" placeholder="Étagère ${cave.etageres.length + 2}"></label>
+      <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${etagere?.rangees ?? 6}" required></label>
+      <label>Colonnes<input type="number" name="colonnes" min="1" max="100" value="${etagere?.colonnes ?? cave.colonnes}" required></label>
+      <label>Position<select name="position">${options(positions, etagere?.position || "bas")}</select></label>
+      ${etagere ? "" : `<label>De<select name="ref_id">${casiers.map((k) => `<option value="${k.id}">${esc(k.nom)}</option>`).join("")}</select></label>`}
+    </div>
+    <div class="actions">${etagere ? `<button class="bouton danger" type="button" id="suppr-etagere">Supprimer</button>` : ""}
+      <button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
+  {
+    onSubmit: async (data) => {
+      if (etagere) await api("PUT", `caves/${etagere.id}`, { ...data, nom: data.nom || etagere.nom, description: etagere.description });
+      else await api("POST", "caves", { ...data, parent_id: cave.id });
+      toast(etagere ? "Étagère modifiée" : "Étagère ajoutée");
+      route();
+    },
+  });
+  const suppr = $("#suppr-etagere");
+  if (suppr) suppr.onclick = async () => {
+    $("#dialogue").close();
+    if (await confirmer(`Supprimer « ${etagere.nom} » ? Ses ${etagere.bouteilles.length} bouteille(s) resteront dans la cave, sans emplacement précis.`, "Supprimer")) {
+      await api("DELETE", `caves/${etagere.id}`);
+      toast("Étagère supprimée");
+      route();
+    }
+  };
 }
 
 async function dialogueRanger(cave, rangee, colonne) {
@@ -1097,7 +1218,7 @@ function dialogueCave(c) {
 
 async function pageCeSoir(main) {
   let plat = "", couleur = "";
-  main.innerHTML = `<div class="entete"><h1>Que boire ce soir ?</h1></div>
+  main.innerHTML = `<div class="entete"><h1>Mets &amp; Vins</h1></div>
     <div class="carte"><p class="muted">Choisissez ce que vous mangez : la cave propose les bouteilles qui s'accordent le mieux, en privilégiant celles à boire en priorité.</p>
     <div class="plats" id="plats"><button class="bouton actif" data-plat="">Peu importe</button>${Object.entries(REF.plats).map(([k, l]) => `<button class="bouton" data-plat="${k}">${esc(l)}</button>`).join("")}</div>
     <div class="filtres" style="margin:14px 0 0;max-width:280px"><select id="couleur" aria-label="Couleur">${options(REF.couleurs, "", "Toutes couleurs")}</select></div></div>
@@ -1182,6 +1303,12 @@ async function pageReglages(main) {
   }
   main.innerHTML = `<div class="entete"><h1>Réglages</h1></div>
     <div class="grille g2">
+      <div class="carte"><h2>🍷 Ma cave</h2>
+        <form class="form" id="nom-cave">
+          <label class="large">Nom de la cave<input name="nom_cave" value="${esc(r.nom_cave)}" maxlength="40" required placeholder="Tessvine"></label>
+          <p class="large muted petit-texte" style="margin:0">Affiché en haut de l'application et dans l'onglet. Le nom dans la barre latérale de Home Assistant se change dans Home Assistant.</p>
+          <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
+        </form></div>
       <div class="carte"><h2>🏠 Home Assistant — capteurs de la cave</h2>
         ${r.addon ? `<p class="muted">L'application tourne comme module complémentaire : la connexion à Home Assistant est automatique.</p>`
           : `<p class="muted">Pour afficher la température et l'humidité de la cave, indiquez l'adresse de Home Assistant et un jeton d'accès longue durée (Profil → Sécurité → Jetons d'accès longue durée).</p>`}
@@ -1275,6 +1402,15 @@ async function pageReglages(main) {
   };
   afficherGardes(gardes);
   if (gardes?.en_cours) setTimeout(suivre, 2000);
+  $("#nom-cave", main).onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const r2 = await api("PUT", "reglages", Object.fromEntries(new FormData(e.target)));
+      REF.nom_cave = r2.nom_cave;
+      afficherNomCave(r2.nom_cave);
+      toast("Nom enregistré");
+    } catch (err) { toast(err.message, true); }
+  };
   $("#photos", main).onsubmit = async (e) => {
     e.preventDefault();
     try {
@@ -1310,6 +1446,13 @@ async function pageReglages(main) {
   if (oublier) oublier.onclick = () => { cleAPI.ecrire(""); route(); };
 }
 
+/** Nom choisi dans les réglages : logo et titre de l'onglet. */
+function afficherNomCave(nom) {
+  nom = nom || "Tessvine";
+  $(".logo span").textContent = nom;
+  document.title = nom;
+}
+
 /* ------------------------------------------------------------------ routeur */
 
 const ROUTES = [
@@ -1339,7 +1482,10 @@ async function route() {
     $("#autres").classList.toggle("actif", ["envies", "historique", "reglages"].includes(menu));
     $("#menu a.actif")?.scrollIntoView({ block: "nearest", inline: "nearest" });
     try {
-      if (!REF) [REF, CAPACITES] = await Promise.all([api("GET", "referentiel"), api("GET", "capacites")]);
+      if (!REF) {
+        [REF, CAPACITES] = await Promise.all([api("GET", "referentiel"), api("GET", "capacites")]);
+        afficherNomCave(REF.nom_cave);
+      }
       if (!main.childElementCount) main.innerHTML = `<div class="chargement">Chargement…</div>`;
       await fn(main, m[1], params);
     } catch (err) {

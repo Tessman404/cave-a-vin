@@ -109,6 +109,30 @@ class TestCave(BaseTest):
         vin = self.appel("GET", f"api/vins/{vin['id']}")
         self.assertTrue(all(b["cave_id"] is None for b in vin["bouteilles"]))
 
+    def test_etageres(self):
+        cave = self.appel("POST", "api/caves", {"nom": "Armoire", "rangees": 3, "colonnes": 4}, attendu=201)
+        etagere = self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "bas", "rangees": 2, "colonnes": 3},
+                             attendu=201)
+        self.assertEqual(etagere["nom"], "Étagère 2")
+        self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "nulle", "rangees": 2, "colonnes": 2}, attendu=400)
+        self.appel("POST", "api/caves", {"parent_id": etagere["id"], "rangees": 2, "colonnes": 2}, attendu=400)
+        vin = self.creer_vin(quantite=2)
+        bouteilles = self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"]
+        self.appel("PUT", f"api/bouteilles/{bouteilles[0]['id']}", {"cave_id": etagere["id"], "rangee": 2, "colonne": 3}, attendu=200)
+        complete = self.appel("GET", f"api/caves/{cave['id']}")
+        self.assertEqual([e["id"] for e in complete["etageres"]], [etagere["id"]])
+        caves = {c["id"]: c for c in self.appel("GET", "api/caves")}
+        self.assertEqual((caves[cave["id"]]["bouteilles"], caves[cave["id"]]["capacite"]), (1, 18))
+        self.assertEqual(caves[etagere["id"]]["nom_complet"], "Armoire · Étagère 2")
+        self.assertEqual(len(self.appel("GET", f"api/vins?cave_id={cave['id']}")), 1)  # le filtre inclut les étagères
+        b = self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"]
+        self.assertIn(("Armoire · Étagère 2", cave["id"]), [(x["cave_nom"], x["cave_racine"]) for x in b])
+        self.assertEqual([c["id"] for c in self.appel("GET", "api/stats")["par_cave"] if c["id"]], [cave["id"]])
+        # supprimer l'étagère : sa bouteille reste dans la cave, sans emplacement précis
+        self.appel("DELETE", f"api/caves/{etagere['id']}", attendu=200)
+        b = [x for x in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"] if x["cave_id"]]
+        self.assertEqual([(x["cave_id"], x["rangee"]) for x in b], [(cave["id"], None)])
+
     def test_garde_et_statuts(self):
         self.assertEqual(cave.statut_garde({"garde_debut": 2030, "garde_fin": 2040}, 2026), "trop_jeune")
         self.assertEqual(cave.statut_garde({"garde_debut": 2020, "garde_fin": 2030}, 2026), "a_boire")

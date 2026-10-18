@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 
 REGLAGES_DEFAUT = {
+    "nom_cave": "Tessvine",
     "ha_url": "",
     "ha_token": "",
     "capteur_temperature": "",

@@ -23,6 +23,20 @@
     <symbol id="i-envies" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
     <symbol id="i-historique" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
     <symbol id="i-reglages" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></symbol>
+    <defs>
+      <radialGradient id="g-reflet" cx=".34" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient>
+      <linearGradient id="g-tube" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
+    </defs>
+    <!-- bouteille couchée, vue par le goulot : le verre prend la couleur du vin (currentColor), la capsule --capsule -->
+    <symbol id="bouteille-couchee" viewBox="6 4 54 54">
+      <g class="forme">
+        <g transform="rotate(-45 38 26)"><rect x="18" y="9" width="40" height="34" rx="17" fill="currentColor"/><rect x="18" y="9" width="40" height="34" rx="17" fill="url(#g-tube)"/></g>
+        <circle cx="27" cy="37" r="17" fill="currentColor"/><circle cx="27" cy="37" r="17" fill="url(#g-reflet)"/>
+        <rect x="12.5" y="38" width="17" height="10" rx="5" transform="rotate(135 21 43)" fill="currentColor"/>
+        <rect x="12.5" y="38" width="17" height="10" rx="5" transform="rotate(135 21 43)" fill="url(#g-tube)"/>
+        <circle cx="15" cy="49" r="6.5" fill="var(--capsule, #2a2a2a)"/><circle cx="15" cy="49" r="6.5" fill="url(#g-reflet)"/>
+      </g>
+    </symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-autres" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></symbol>
   </svg>
@@ -34,7 +48,7 @@
       <a href="#/vins" data-page="vins"><svg><use href="#i-vins"/></svg><span>Mes vins</span></a>
       <a href="#/caves" data-page="caves"><svg><use href="#i-cave"/></svg><span>Plan de cave</span></a>
       <a href="#/ajouter" data-page="ajouter" class="onglet-ajouter" aria-label="Ajouter un vin"><svg><use href="#i-plus"/></svg><span>Ajouter</span></a>
-      <a href="#/ce-soir" data-page="ce-soir"><svg><use href="#i-soir"/></svg><span>Ce soir ?</span></a>
+      <a href="#/ce-soir" data-page="ce-soir"><svg><use href="#i-soir"/></svg><span>Mets &amp; Vins</span></a>
       <a href="#/envies" data-page="envies" class="secondaire"><svg><use href="#i-envies"/></svg><span>Envies</span></a>
       <a href="#/historique" data-page="historique" class="secondaire"><svg><use href="#i-historique"/></svg><span>Historique</span></a>
       <a href="#/reglages" data-page="reglages" class="secondaire"><svg><use href="#i-reglages"/></svg><span>Réglages</span></a>

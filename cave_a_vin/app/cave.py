@@ -259,8 +259,9 @@ def lister_vins(db, filtres):
     if filtres.get("favori") in ("1", "true"):
         where.append("v.favori = 1")
     if filtres.get("cave_id"):
-        where.append("v.id IN (SELECT vin_id FROM bouteilles WHERE cave_id = ?)")
-        params.append(_entier(filtres["cave_id"], "cave_id"))
+        where.append("v.id IN (SELECT vin_id FROM bouteilles WHERE cave_id IN "
+                     "(SELECT id FROM caves WHERE id = ? OR parent_id = ?))")  # la cave et ses étagères
+        params += [_entier(filtres["cave_id"], "cave_id")] * 2
     sql = SELECT_VIN + (" WHERE " + " AND ".join(where) if where else "") + " GROUP BY v.id"
     stock = filtres.get("stock", "1")
     if stock == "1":
@@ -292,9 +293,9 @@ def lire_vin(db, vin_id, details=True):
     vin = _enrichir(vin)
     if details:
         vin["bouteilles"] = db.all(
-            """SELECT b.*, c.nom AS cave_nom FROM bouteilles b
-               LEFT JOIN caves c ON c.id = b.cave_id
-               WHERE b.vin_id = ? ORDER BY c.nom, b.rangee, b.colonne, b.id""", (vin_id,))
+            f"""SELECT b.*, {NOM_COMPLET} AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_racine FROM bouteilles b
+               LEFT JOIN caves c ON c.id = b.cave_id LEFT JOIN caves p ON p.id = c.parent_id
+               WHERE b.vin_id = ? ORDER BY cave_nom, b.rangee, b.colonne, b.id""", (vin_id,))
         vin["mouvements"] = db.all(
             "SELECT * FROM mouvements WHERE vin_id = ? ORDER BY date DESC, id DESC", (vin_id,))
         notes = [m["note"] for m in vin["mouvements"] if m["note"] is not None]
@@ -479,33 +480,55 @@ def deplacer_bouteille(db, bouteille_id, data):
 
 def bouteilles_sans_emplacement(db):
     """Bouteilles non rangées ou rangées « en vrac » : candidates pour une case libre du plan."""
-    return db.all("""SELECT b.id, b.vin_id, b.cave_id, c.nom AS cave_nom, v.nom, v.millesime, v.couleur
+    return db.all(f"""SELECT b.id, b.vin_id, b.cave_id, {NOM_COMPLET} AS cave_nom, v.nom, v.millesime, v.couleur
                      FROM bouteilles b JOIN vins v ON v.id = b.vin_id LEFT JOIN caves c ON c.id = b.cave_id
+                     LEFT JOIN caves p ON p.id = c.parent_id
                      WHERE b.rangee IS NULL ORDER BY LOWER(v.nom), v.millesime, b.id""")
 
 
+POSITIONS = {"bas": "en bas", "haut": "en haut", "gauche": "à gauche", "droite": "à droite"}
+NOM_COMPLET = "CASE WHEN p.id IS NULL THEN c.nom ELSE p.nom || ' · ' || c.nom END"
+
+
 def lister_caves(db):
-    caves = db.all("""SELECT c.*, COUNT(b.id) AS bouteilles FROM caves c
-                      LEFT JOIN bouteilles b ON b.cave_id = c.id GROUP BY c.id ORDER BY c.nom""")
+    """Toutes les caves et étagères. Pour une cave principale, « bouteilles » et « capacite » comptent aussi ses
+    étagères ; « nom_complet » nomme une étagère avec sa cave (Armoire · Étagère 2)."""
+    caves = db.all(f"""SELECT c.*, {NOM_COMPLET} AS nom_complet, COUNT(b.id) AS bouteilles_propres
+                       FROM caves c LEFT JOIN caves p ON p.id = c.parent_id
+                       LEFT JOIN bouteilles b ON b.cave_id = c.id GROUP BY c.id ORDER BY nom_complet""")
     for c in caves:
-        c["capacite"] = c["rangees"] * c["colonnes"]
+        c["capacite_propre"] = c["rangees"] * c["colonnes"]
+    for c in caves:
+        groupe = [c] + ([x for x in caves if x["parent_id"] == c["id"]] if not c["parent_id"] else [])
+        c["bouteilles"] = sum(x["bouteilles_propres"] for x in groupe)
+        c["capacite"] = sum(x["capacite_propre"] for x in groupe)
     return caves
 
 
-def lire_cave(db, cave_id):
+def _lire_casier(db, cave_id):
     cave = db.one("SELECT * FROM caves WHERE id = ?", (cave_id,))
     if not cave:
         raise ErreurAPI("Cave introuvable", 404)
     cave["capacite"] = cave["rangees"] * cave["colonnes"]
     annee = annee_courante()
     bouteilles = db.all(
-        """SELECT b.id, b.rangee, b.colonne, b.vin_id, v.nom, v.millesime, v.couleur, v.domaine,
+        """SELECT b.id, b.rangee, b.colonne, b.vin_id, b.cave_id, v.nom, v.millesime, v.couleur, v.domaine,
                   v.garde_debut, v.garde_apogee, v.garde_fin
            FROM bouteilles b JOIN vins v ON v.id = b.vin_id
            WHERE b.cave_id = ? ORDER BY b.rangee, b.colonne, v.nom""", (cave_id,))
     for b in bouteilles:
         b["statut"] = statut_garde(b, annee)
     cave["bouteilles"] = bouteilles
+    return cave
+
+
+def lire_cave(db, cave_id):
+    """Une cave avec ses bouteilles ; pour une cave principale, aussi ses étagères (« etageres »)."""
+    cave = _lire_casier(db, cave_id)
+    cave["etageres"] = []
+    if not cave["parent_id"]:
+        ids = [r["id"] for r in db.all("SELECT id FROM caves WHERE parent_id = ? ORDER BY id", (cave_id,))]
+        cave["etageres"] = [_lire_casier(db, i) for i in ids]
     return cave
 
 
@@ -520,17 +543,48 @@ def _nettoyer_cave(data):
     return nom, rangees, colonnes, (data.get("description") or "").strip()
 
 
+def _placement_etagere(db, data):
+    """Vérifie où accrocher une étagère : cave principale, casier de référence (la cave ou une de ses étagères)."""
+    parent_id = _entier(data.get("parent_id"), "parent_id")
+    parent = db.one("SELECT * FROM caves WHERE id = ?", (parent_id,))
+    if not parent or parent["parent_id"]:
+        raise ErreurAPI("Une étagère s'ajoute à une cave principale")
+    ref_id = _entier(data.get("ref_id"), "ref_id") or parent_id
+    if ref_id != parent_id and not db.one("SELECT id FROM caves WHERE id = ? AND parent_id = ?", (ref_id, parent_id)):
+        raise ErreurAPI("Casier de référence inconnu")
+    position = data.get("position") or "bas"
+    if position not in POSITIONS:
+        raise ErreurAPI("Position : en haut, en bas, à gauche ou à droite")
+    return parent_id, ref_id, position
+
+
 def creer_cave(db, data):
+    nom = (data.get("nom") or "").strip()
+    etagere = data.get("parent_id") not in (None, "", 0, "0")
+    if etagere:
+        parent_id, ref_id, position = _placement_etagere(db, data)
+        if not nom:
+            n = db.scalar("SELECT COUNT(*) FROM caves WHERE parent_id = ?", (parent_id,)) or 0
+            data = {**data, "nom": f"Étagère {n + 2}"}
     nom, rangees, colonnes, description = _nettoyer_cave(data)
+    if etagere and not (rangees and colonnes):
+        raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
     with db.transaction() as conn:
-        cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at) VALUES (?, ?, ?, ?, ?)",
-                           (nom, rangees, colonnes, description, maintenant()))
+        if etagere:
+            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, parent_id, position, ref_id) "
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                               (nom, rangees, colonnes, description, maintenant(), parent_id, position, ref_id))
+        else:
+            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at) VALUES (?, ?, ?, ?, ?)",
+                               (nom, rangees, colonnes, description, maintenant()))
     return lire_cave(db, cur.lastrowid)
 
 
 def modifier_cave(db, cave_id, data):
-    lire_cave(db, cave_id)
+    actuelle = _lire_casier(db, cave_id)
     nom, rangees, colonnes, description = _nettoyer_cave(data)
+    if actuelle["parent_id"] and not (rangees and colonnes):
+        raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
     with db.transaction() as conn:
         hors_plan = conn.execute(
             "SELECT COUNT(*) FROM bouteilles WHERE cave_id = ? AND (rangee > ? OR colonne > ?)",
@@ -541,13 +595,24 @@ def modifier_cave(db, cave_id, data):
             conn.execute("UPDATE bouteilles SET rangee = NULL, colonne = NULL WHERE cave_id = ?", (cave_id,))
         conn.execute("UPDATE caves SET nom = ?, rangees = ?, colonnes = ?, description = ? WHERE id = ?",
                      (nom, rangees, colonnes, description, cave_id))
+        if actuelle["parent_id"] and data.get("position") in POSITIONS:
+            conn.execute("UPDATE caves SET position = ? WHERE id = ?", (data["position"], cave_id))
     return lire_cave(db, cave_id)
 
 
 def supprimer_cave(db, cave_id):
-    lire_cave(db, cave_id)
+    """Supprime une cave (et ses étagères) ou une étagère ; les bouteilles restent dans l'inventaire.
+    Les bouteilles d'une étagère supprimée reviennent « en vrac » dans sa cave principale."""
+    cave = _lire_casier(db, cave_id)
     with db.transaction() as conn:
-        conn.execute("UPDATE bouteilles SET cave_id = NULL, rangee = NULL, colonne = NULL WHERE cave_id = ?", (cave_id,))
+        if cave["parent_id"]:
+            conn.execute("UPDATE bouteilles SET cave_id = ?, rangee = NULL, colonne = NULL WHERE cave_id = ?",
+                         (cave["parent_id"], cave_id))
+            conn.execute("UPDATE caves SET ref_id = ? WHERE ref_id = ?", (cave["ref_id"], cave_id))
+        else:
+            conn.execute("UPDATE bouteilles SET cave_id = NULL, rangee = NULL, colonne = NULL "
+                         "WHERE cave_id IN (SELECT id FROM caves WHERE id = ? OR parent_id = ?)", (cave_id, cave_id))
+            conn.execute("DELETE FROM caves WHERE parent_id = ?", (cave_id,))
         conn.execute("DELETE FROM caves WHERE id = ?", (cave_id,))
 
 
@@ -662,7 +727,7 @@ def statistiques(db):
         "par_millesime": sorted(repartition("millesime"), key=lambda l: str(l["cle"])),
         "par_statut": [{"cle": k, "label": STATUTS[k], "bouteilles": n} for k, n in par_statut.items()],
         "par_cave": [{"id": c["id"], "nom": c["nom"], "bouteilles": c["bouteilles"], "capacite": c["capacite"]}
-                     for c in caves] + ([{"id": None, "nom": "Non rangées", "bouteilles": non_rangees, "capacite": 0}]
+                     for c in caves if not c["parent_id"]] + ([{"id": None, "nom": "Non rangées", "bouteilles": non_rangees, "capacite": 0}]
                                         if non_rangees else []),
         "urgents": [resume(v) for v in urgents],
         "a_boire": [resume(v) for v in a_boire],

@@ -17,7 +17,7 @@ Ce qu'il fait :
 - **plan de cave visuel** : décrivez vos casiers ou votre armoire à vin (rangées × colonnes), chaque bouteille a sa case ; un clic pour la sortir ou la déplacer. Plusieurs caves possibles, et rangement « en vrac » pour les cartons ;
 - **garde** : « à boire à partir de », « apogée », « à boire avant », **estimée par l'IA de Home Assistant** (producteur, appellation, qualité du millésime, prix) et réévaluée chaque mois, ou par une règle générale sans IA. Une garde corrigée à la main est toujours respectée. Les vins à boire vite sont signalés partout ;
 - **dégustations** : chaque bouteille sortie peut recevoir une note sur 5 et un commentaire, conservés dans l'historique ;
-- **« Que boire ce soir ? »** : choisissez le plat, la cave propose les meilleures bouteilles, en privilégiant celles à boire en priorité ;
+- **« Mets & Vins »** : choisissez le plat, la cave propose les meilleures bouteilles, en privilégiant celles à boire en priorité ;
 - **statistiques** : bouteilles, valeur de la cave, répartition par couleur, région, millésime, garde et cave ;
 - **liste d'envies** (vins à acheter), visible aussi dans Home Assistant ;
 - **sauvegarde** : export CSV (Excel), sauvegarde complète JSON, import CSV ;

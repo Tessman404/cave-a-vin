@@ -64,6 +64,7 @@ def _referentiel(app, req):
         "raisons_entree": cave.RAISONS_ENTREE, "raisons_sortie": cave.RAISONS_SORTIE,
         "autocompletion": cave.autocompletion(app.db), "annee": cave.annee_courante(),
         "addon": ha.mode_addon(), "version": __version__,
+        "nom_cave": app.reglages().get("nom_cave") or "Tessvine",
     }
 
 

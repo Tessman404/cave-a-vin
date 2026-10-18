@@ -551,3 +551,84 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 @media (max-width: 760px) { .raccourcis .bouton { width: 100%; } }
 .verso-choix { margin-top: 12px; box-shadow: none; border-color: var(--accent); background: var(--accent-doux); flex-basis: 100%; }
 .verso-choix p { margin: 4px 0 0; }
+
+/* ---------- localiser une bouteille ---------- */
+.vin { position: relative; }
+.localiser {
+  position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--accent-doux); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.localiser:hover { background: var(--accent); color: var(--accent-texte); }
+.localiser svg, .bandeau-localisation > svg, #localiser svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.vin .stock { margin-bottom: 26px; }
+.bandeau-localisation { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; border-color: var(--accent); background: var(--accent-doux); }
+.bandeau-localisation > svg { width: 26px; height: 26px; color: var(--accent); flex: none; }
+.bandeau-localisation .grandit { flex: 1; min-width: 0; }
+@media (max-width: 760px) { .bandeau-localisation { flex-wrap: wrap; } .bandeau-localisation .grandit { flex-basis: calc(100% - 40px); } }
+@keyframes clignote {
+  0%, 100% { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--accent); transform: scale(1); }
+  50% { box-shadow: 0 0 0 3px var(--surface), 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent); transform: scale(1.15); }
+}
+.case-cave.surligne { outline: none; animation: clignote 1s ease-in-out infinite; position: relative; z-index: 1; }
+.liste li.surligne { border-radius: 10px; padding-left: 8px; padding-right: 8px; animation: clignote-ligne 1s ease-in-out infinite; }
+@keyframes clignote-ligne { 50% { background: var(--accent-doux); } }
+@media (prefers-reduced-motion: reduce) {
+  .case-cave.surligne { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--accent); }
+  .liste li.surligne { background: var(--accent-doux); }
+}
+
+/* ---------- plan de cave : casier de bouteilles couchées ---------- */
+.plan-conteneur { --case: 58px; padding: 18px 14px 0; background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 80%, var(--bord))); }
+.plan { column-gap: 0; row-gap: 0; padding-bottom: 0; }
+.plan .entete-col { padding-bottom: 6px; }
+.plan .entete-rang { padding-right: 4px; }
+/* tablette en bois sous le casier */
+.plan::after {
+  content: ""; grid-column: 2 / -1; height: 12px; margin-top: 2px; border-radius: 3px;
+  background: linear-gradient(180deg, #e9cf9f, #cfa96a); box-shadow: 0 3px 0 #b48c50, 0 8px 14px -6px rgba(0, 0, 0, .4);
+}
+.plan .case-cave {
+  position: relative; width: var(--case); height: var(--case); padding: 0;
+  border: 0; border-radius: 0; background: none; box-shadow: none; outline: none;
+  color: color-mix(in srgb, var(--bord) 70%, var(--surface));  /* emplacement vide : bouteille fantôme */
+  --capsule: color-mix(in srgb, var(--bord) 85%, var(--texte-3));
+  pointer-events: none;  /* seule la forme de la bouteille est cliquable */
+}
+.plan .case-cave { display: block; }
+.plan .case-cave svg { width: var(--case); height: var(--case); display: block; overflow: visible; }
+.plan .case-cave .forme, .plan .case-cave use { pointer-events: visiblePainted; cursor: pointer; }
+.plan .case-cave:not(.pleine) svg { opacity: .55; }
+.plan .case-cave:not(.pleine):hover svg { opacity: .9; }
+.plan .case-cave.pleine:hover svg { filter: brightness(1.12); }
+.plan .case-cave.pleine.rouge { color: var(--c-rouge); --capsule: #241417; }
+.plan .case-cave.pleine.blanc { color: var(--c-blanc); --capsule: #2f5a46; }
+.plan .case-cave.pleine.rose { color: var(--c-rose); --capsule: #f2efe9; }
+.plan .case-cave.pleine.effervescent { color: var(--c-effervescent); --capsule: #d9b24c; }
+.plan .case-cave.pleine.liquoreux { color: var(--c-liquoreux); --capsule: #4b2a12; }
+.plan .case-cave.pleine.autre { color: var(--c-autre); --capsule: #2a2a2a; }
+.plan .case-cave.pleine { background: none; }
+.plan .case-cave.pleine.urgent::after, .plan .case-cave.pleine.depasse::after {
+  content: "!"; position: absolute; top: 4px; right: 6px; width: 16px; height: 16px; border-radius: 50%;
+  display: grid; place-items: center; font: 800 .7rem/1 var(--sans); color: #fff; background: var(--attention);
+}
+.plan .case-cave.pleine.depasse::after { background: var(--danger); }
+.plan .case-cave.cible svg { opacity: 1; color: color-mix(in srgb, var(--accent) 35%, var(--surface)); }
+.plan .case-cave:focus-visible svg { filter: drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 3px var(--accent)); }
+/* localisation : la bouteille clignote */
+.plan .case-cave.surligne { animation: none; box-shadow: none; }
+.plan .case-cave.surligne svg { animation: clignote-bouteille 1s ease-in-out infinite; }
+@keyframes clignote-bouteille {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 2px var(--accent)) brightness(1.25); transform: scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) { .plan .case-cave.surligne svg { filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 2px var(--accent)); } }
+@media (max-width: 760px) { .plan-conteneur { --case: 52px; } }
+
+/* ---------- étagères : plusieurs casiers assemblés ---------- */
+.casiers { display: grid; gap: 22px 18px; align-items: end; justify-items: start; width: max-content; }
+.casier-bloc { display: grid; gap: 6px; }
+.casier-titre { display: flex; align-items: center; gap: 8px; padding-left: 22px; font: italic 600 .95rem var(--serif); color: var(--texte-2); }
+.casier-titre .bouton { min-height: 28px; padding: 2px 9px; }
+.plan-conteneur { padding-bottom: 14px; }
+.onglets a { gap: 6px; }
