@@ -286,18 +286,21 @@ async function pageAccueil(main) {
   main.innerHTML = `
     ${casierVivant(s)}
     <div class="actions raccourcis"><button class="bouton" id="sortie-scan">▥ Sortir une bouteille par son code-barres</button></div>
-    <div class="grille tableau-bord">
-      ${blocClimat}
+    <div class="grille duo-a-boire">
       <div class="carte ${s.urgents.length ? "alerte-carte" : ""}"><div class="titre-carte"><h2>À boire vite</h2>
         ${s.urgents.length > 8 ? `<a href="#/vins" data-filtre-statut="urgent,depasse">Voir les ${s.urgents.length}</a>` : ""}</div>
         ${s.urgents.length ? `<ul class="liste">${s.urgents.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Rien d'urgent : toutes vos bouteilles sont dans leur fenêtre de garde.</p>`}</div>
+      <div class="carte"><div class="titre-carte"><h2>Prêts à boire</h2>
+        ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="declin,apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
+        ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}</div>
+    </div>
+    <hr class="separation">
+    <div class="grille tableau-bord">
+      ${blocClimat}
       <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true })}</div>
       <div class="carte"><h2>Par région</h2>${barres(s.par_region)}</div>
       <div class="carte"><h2>Par cave</h2>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
         { lien: (l) => l.cle ? `#/caves/${l.cle}` : "#/caves" })}</div>
-      <div class="carte"><div class="titre-carte"><h2>Prêts à boire</h2>
-        ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="declin,apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
-        ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}</div>
       <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles))}</div>
       <div class="carte"><h2>Par millésime</h2>${histogramme(s.par_millesime)}</div>
       <div class="carte"><h2>Derniers mouvements</h2>

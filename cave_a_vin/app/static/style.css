@@ -688,3 +688,8 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 @media (prefers-reduced-motion: reduce) { .note-perso { animation: none; } }
 
 .froid { position: absolute; top: 2px; right: 26px; z-index: 50; font-size: .85rem; color: var(--info); }
+
+/* accueil : « À boire vite » et « Prêts à boire » côte à côte, puis les statistiques */
+.duo-a-boire { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+@media (max-width: 760px) { .duo-a-boire { grid-template-columns: minmax(0, 1fr); } }
+.separation { border: 0; height: 1px; background: var(--texte); opacity: .5; margin: 28px 0; }
