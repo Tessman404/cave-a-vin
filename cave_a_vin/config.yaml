@@ -1,5 +1,5 @@
 name: Tessvine
-version: "1.8.0"
+version: "1.9.0"
 slug: cave_a_vin
 description: Gérez votre cave à vin (inventaire, plan de cave, garde, dégustations) directement dans Home Assistant
 url: https://github.com/Tessman404/cave-a-vin

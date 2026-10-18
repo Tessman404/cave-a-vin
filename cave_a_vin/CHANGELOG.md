@@ -1,5 +1,18 @@
 # Journal des modifications
 
+## 1.9.0
+
+- **Bouteilles réalistes** sur le plan : bouteilles de vin couchées (verre teinté, reflets, capsule métallisée) et
+  vraies bouteilles de champagne pour les effervescents (collerette dorée, bouchon et muselet).
+- **Caves électriques** : à la création d'une cave ou d'une étagère, et dans leur ✎, la question « Est-ce une cave
+  électrique ? ». Seules les caves électriques (❄ sur le plan) déclenchent l'alerte de place libre. Une cave nommée
+  « … électrique » est reconnue automatiquement.
+- **Casier principal** modifiable comme une étagère : nom, rangées, colonnes, cave électrique.
+- **Mets & Vins** : 16 plats précis en tuiles animées (bœuf, agneau, canard, gibier, volaille, porc, poisson, fruits de
+  mer, foie gras, fromages, pâtes et pizza, barbecue, épicé, végétarien, dessert, apéritif), chacun avec ses vins ;
+  classement par qualité de l'accord puis par urgence ; photo de la bouteille à gauche.
+- **Accueil** : « À boire vite » et « Prêts à boire » côte à côte, puis une séparation avant les statistiques.
+
 ## 1.8.0
 
 - **Note personnelle** sur un vin (« À boire à l'anniversaire de Leïna ») : elle clignote en rouge sous le titre de
