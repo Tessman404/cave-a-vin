@@ -1,5 +1,16 @@
 # Journal des modifications
 
+## 1.10.0
+
+- **Page « Statistiques »** (menu) : par couleur, garde, région, millésime, cave et derniers mouvements. Chaque ligne
+  ou barre ouvre « Mes vins » filtré (par exemple toutes les bouteilles de 2022, ou celles à l'apogée).
+- **Couleurs distinctes par étape de garde** : à garder (bleu), prêt à boire (vert), à l'apogée (or), après l'apogée
+  (orange), à boire vite (rouge), dépassée (gris).
+- **Place libre** : s'il ne reste aucune bouteille à ranger, la cave propose de déplacer vers la cave électrique la
+  plus prestigieuse d'une étagère non réfrigérée (jamais celles du réfrigérateur).
+- Mets & Vins : le plat « Barbecue » est retiré (l'ancien nom reste accepté par les scripts).
+- « Mes vins » : le badge de filtre dit précisément ce qui est filtré.
+
 ## 1.9.1
 
 - **Bouteilles en 3D** sur le plan de cave : vues par le goulot comme dans un vrai casier (corps qui s'enfonce,
