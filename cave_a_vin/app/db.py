@@ -111,7 +111,8 @@ class Database:
         # posée en haut, en bas, à gauche ou à droite (position) d'un casier de référence (ref_id)
         colonnes_caves = {r[1] for r in self.conn.execute("PRAGMA table_info(caves)")}
         for nom, definition in (("parent_id", "INTEGER REFERENCES caves(id) ON DELETE CASCADE"),
-                                ("position", "TEXT NOT NULL DEFAULT ''"), ("ref_id", "INTEGER")):
+                                ("position", "TEXT NOT NULL DEFAULT ''"), ("ref_id", "INTEGER"),
+                                ("nom_casier", "TEXT NOT NULL DEFAULT ''")):  # nom du casier principal (1.7.1)
             if nom not in colonnes_caves:
                 self.conn.execute(f"ALTER TABLE caves ADD COLUMN {nom} {definition}")
         # 1.7.1 : le nom d'une étagère devient facultatif ; on efface les noms donnés automatiquement (« Étagère 2 »)

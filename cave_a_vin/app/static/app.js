@@ -229,7 +229,15 @@ function casierVivant(s) {
         <div><strong>${nombre(s.references)}</strong><span>${s.references > 1 ? "références" : "référence"}</span></div>
         <div><strong>${euros(s.valeur)}</strong><span>valeur estimée</span></div>
         <div><strong>${nombre(s.bues_annee)}</strong><span>${s.bues_annee > 1 ? "bues" : "bue"} en ${s.annee}</span></div>
+        ${s.sans_emplacement ? `<a class="a-ranger" href="#/caves?ranger=1"><strong>${nombre(s.sans_emplacement)}</strong><span>à ranger ›</span></a>` : ""}
       </div>
+      ${s.place_libre ? (() => {
+        const p = s.place_libre, v = p.suggestion;
+        return `<div class="alerte-place" role="status">
+          <div><b>${p.libres > 1 ? `${nombre(p.libres)} places libres` : "Une place libre"} dans ${esc(p.casier_nom)}</b>
+            <span>Suggestion : ${titreVin(v)}${v.appellation ? ` · ${esc(v.appellation)}` : ""}${v.valeur ? ` · ${euros(v.valeur)}` : ""}</span></div>
+          <a class="bouton petit" href="#/caves/${p.cave_id}?placer=${v.bouteille_id}">Choisir l'emplacement</a></div>`;
+      })() : ""}
     </div>
     <div class="alveoles" aria-hidden="true" style="--colonnes:${colonnes};--colonnes-mobile:${Math.min(colonnes, 10)}">
       ${montrees.map((c, i) => `<i style="--c:var(--c-${c});--i:${i}"></i>`).join("")}${"<i class=\"libre\"></i>".repeat(vides)}
@@ -278,15 +286,15 @@ async function pageAccueil(main) {
       <div class="carte ${s.urgents.length ? "alerte-carte" : ""}"><div class="titre-carte"><h2>À boire vite</h2>
         ${s.urgents.length > 8 ? `<a href="#/vins" data-filtre-statut="urgent,depasse">Voir les ${s.urgents.length}</a>` : ""}</div>
         ${s.urgents.length ? `<ul class="liste">${s.urgents.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Rien d'urgent : toutes vos bouteilles sont dans leur fenêtre de garde.</p>`}</div>
+      <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true })}</div>
+      <div class="carte"><h2>Par région</h2>${barres(s.par_region)}</div>
+      <div class="carte"><h2>Par cave</h2>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
+        { lien: (l) => l.cle ? `#/caves/${l.cle}` : "#/caves" })}</div>
       <div class="carte"><div class="titre-carte"><h2>Prêts à boire</h2>
         ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="declin,apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
         ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}</div>
-      <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true })}</div>
       <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles))}</div>
-      <div class="carte"><h2>Par région</h2>${barres(s.par_region)}</div>
       <div class="carte"><h2>Par millésime</h2>${histogramme(s.par_millesime)}</div>
-      <div class="carte"><h2>Par cave</h2>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
-        { lien: (l) => l.cle ? `#/caves/${l.cle}` : "#/caves" })}</div>
       <div class="carte"><h2>Derniers mouvements</h2>
         <p class="muted petit-texte">Ce mois-ci : +${s.entrees_mois} / −${s.sorties_mois}</p>
         ${s.derniers_mouvements.length ? `<ul class="liste">${s.derniers_mouvements.map(mouvement).join("")}</ul>` : ""}
@@ -994,7 +1002,8 @@ function apresAjout(vinId) {
 
 const POSITIONS_ETAGERE = { bas: "du bas", haut: "du haut", gauche: "de gauche", droite: "de droite" };
 /** Nom d'un casier : son nom, ou pour une étagère sans nom, sa position (« étagère du bas »). */
-const nomCasier = (k) => k.nom || (k.parent_id ? `Étagère ${POSITIONS_ETAGERE[k.position] || "du bas"}` : "Casier principal");
+const nomCasier = (k) => k.parent_id ? (k.nom || `Étagère ${POSITIONS_ETAGERE[k.position] || "du bas"}`) : (k.nom_casier || "Casier principal");
+const titreCasier = (k) => k.parent_id ? k.nom : k.nom_casier;  // affiché au-dessus du casier seulement s'il a un nom
 const LETTRE_RANG = (r) => `${String.fromCharCode(64 + ((r - 1) % 26) + 1)}${r > 26 ? Math.ceil(r / 26) : ""}`;
 
 /** Un casier = une grille de bouteilles couchées posée sur sa tablette.
@@ -1050,10 +1059,10 @@ function selecteurEmplacements(select, zone, { quantite, couleur }) {
     if (!cave.capacite) { zone.innerHTML = `<p class="muted petit-texte" style="margin:0">Cave sans plan : les bouteilles y seront rangées en vrac.</p>`; return; }
     const dispo = disposerCasiers(cave);
     zone.innerHTML = `<p class="choix-info petit-texte"></p>
-      <div class="plan-conteneur"><div class="casiers">${dispo.map(({ casier: k, col, rang }) => `
-        <div class="casier-bloc" style="grid-column:${col};grid-row:${rang}">
-          ${k.parent_id && k.nom ? `<div class="casier-titre"><span>${esc(k.nom)}</span></div>` : ""}
-          ${dessinerCasier(k, { choix: true })}</div>`).join("")}</div></div>`;
+      <div class="plan-conteneur">${grilleCasiers(dispo, (k) => `
+        <div class="casier-bloc">
+          ${titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span></div>` : ""}
+          ${dessinerCasier(k, { choix: true })}</div>`)}</div>`;
     $$(".case-cave:not(.pleine)", zone).forEach((b) => b.addEventListener("click", () => {
       const e = { cave_id: +b.dataset.k, rangee: +b.dataset.r, colonne: +b.dataset.c };
       const i = choisis.findIndex((x) => x.cave_id === e.cave_id && x.rangee === e.rangee && x.colonne === e.colonne);
@@ -1097,11 +1106,19 @@ function disposerCasiers(cave) {
   return casiers.filter((c) => pos.has(c.id)).map((c) => ({ casier: c, col: pos.get(c.id)[0] - x0 + 1, rang: pos.get(c.id)[1] - y0 + 1 }));
 }
 
+/** Assemble les casiers en colonnes (de gauche à droite), empilés de haut en bas dans chaque colonne. */
+function grilleCasiers(dispo, bloc) {
+  const colonnes = {};
+  dispo.forEach((d) => { (colonnes[d.col] = colonnes[d.col] || []).push(d); });
+  return `<div class="casiers">${Object.keys(colonnes).sort((a, b) => a - b).map((x) =>
+    `<div class="colonne-casiers">${colonnes[x].sort((a, b) => a.rang - b.rang).map((d) => bloc(d.casier)).join("")}</div>`).join("")}</div>`;
+}
+
 async function pageCaves(main, id, params) {
   rangement = null;  // retour au plan : on abandonne un rangement commencé
   const toutes = await api("GET", "caves");
   const caves = toutes.filter((c) => !c.parent_id);
-  if (!id && caves.length) { location.replace(`#/caves/${caves[0].id}`); return; }
+  if (!id && caves.length) { location.replace(`#/caves/${caves[0].id}${params ? "?" + params : ""}`); return; }
   const onglets = `<nav class="onglets">${caves.map((c) => `<a href="#/caves/${c.id}" class="${c.id === id ? "actif" : ""}">${esc(c.nom)} <span class="muted">${c.bouteilles}</span></a>`).join("")}</nav>`;
   const entete = `<div class="entete"><h1>Plan de cave</h1><button class="bouton primaire" id="nouvelle">+ Nouvelle cave</button></div>`;
   if (!caves.length) {
@@ -1109,7 +1126,7 @@ async function pageCaves(main, id, params) {
     $("#nouvelle", main).onclick = () => dialogueCave();
     return;
   }
-  const c = await api("GET", `caves/${id}`);
+  const [c, aRanger] = await Promise.all([api("GET", `caves/${id}`), api("GET", "bouteilles/non-rangees")]);
   if (c.parent_id) { location.replace(`#/caves/${c.parent_id}${params ? "?" + params : ""}`); return; }  // lien vers une étagère
   const casiers = [c, ...c.etageres];
   const toutesBouteilles = casiers.flatMap((x) => x.bouteilles);
@@ -1120,11 +1137,11 @@ async function pageCaves(main, id, params) {
   const planCasier = (k) => dessinerCasier(k, { surligne });
   const disposition = c.capacite ? disposerCasiers(c) : [];
   const plusieurs = disposition.length > 1;
-  const plan = disposition.length ? `<div class="plan-conteneur"><div class="casiers">${disposition.map(({ casier: k, col, rang }) => `
-      <div class="casier-bloc" style="grid-column:${col};grid-row:${rang}">
-        ${k.parent_id && k.nom ? `<div class="casier-titre"><span>${esc(k.nom)}</span></div>` : ""}
-        ${k.parent_id ? `<button class="bouton petit modifier-etagere" data-modifier-etagere="${k.id}" aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>` : ""}
-        ${planCasier(k)}</div>`).join("")}</div></div>
+  const plan = disposition.length ? `<div class="plan-conteneur">${grilleCasiers(disposition, (k) => `
+      <div class="casier-bloc">
+        ${titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span></div>` : ""}
+        <button class="bouton petit modifier-etagere" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>
+        ${planCasier(k)}</div>`)}</div>
     <div class="legende">${Object.entries(REF.couleurs).map(([k, l]) => `<span>${pastille(k)} ${esc(l)}</span>`).join("")}<span><b>!</b>&nbsp;à boire vite / dépassé</span><span>◌ emplacement libre</span></div>` : "";
 
   let bandeau = "";
@@ -1148,7 +1165,8 @@ async function pageCaves(main, id, params) {
         <span class="muted">${capacite ? `${occupees} / ${capacite} emplacements occupés${plusieurs ? ` · ${pluriel(disposition.length, "casier")}` : ` · ${c.rangees} rangées × ${c.colonnes} colonnes`}` : pluriel(c.bouteilles.length, "bouteille") + " (rangement libre)"}</span>
         ${c.description ? `<p class="muted">${esc(c.description)}</p>` : ""}</div>
         <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">+ Étagère</button>` : ""}<button class="bouton petit" id="modifier">✎ Modifier</button><button class="bouton petit danger" id="supprimer">Supprimer</button></div></div>
-      <p id="mode-deplacement" class="muted" hidden>Choisissez l'emplacement de destination… <button class="bouton petit" id="annuler-depl">Annuler</button></p>
+      ${aRanger.length ? `<button type="button" class="pastille-ranger" id="voir-a-ranger">📦 ${pluriel(aRanger.length, "bouteille non rangée", "bouteilles non rangées")} <span aria-hidden="true">›</span></button>` : ""}
+      <p id="mode-deplacement" class="muted" hidden><span id="texte-deplacement">Choisissez l'emplacement de destination…</span> <button class="bouton petit" id="annuler-depl">Annuler</button></p>
       ${plan}
       ${vrac.length ? `<h3 style="margin-top:16px">${c.capacite ? "Sans emplacement précis" : "Bouteilles"}</h3><ul class="liste">${Object.values(groupesVrac).map((b) =>
         `<li class="${b.vin_id === surligne ? "surligne" : ""}">${pastille(b.couleur)}<a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="muted">×${b.n}</span></li>`).join("")}</ul>` : ""}
@@ -1158,6 +1176,16 @@ async function pageCaves(main, id, params) {
   $("#modifier", main).onclick = () => dialogueCave(c);
   const boutonEtagere = $("#etagere", main);
   if (boutonEtagere) boutonEtagere.onclick = () => dialogueEtagere(c);
+  const boutonCasier = $("[data-modifier-casier]", main);
+  if (boutonCasier) boutonCasier.onclick = () => dialogue(`<h2>Nom du casier principal</h2>
+    <div class="form"><label class="large">Nom (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
+      <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p></div>
+    <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
+  { onSubmit: async (data) => {
+    await api("PUT", `caves/${c.id}`, { nom: c.nom, rangees: c.rangees, colonnes: c.colonnes, description: c.description, nom_casier: data.nom_casier });
+    toast("Nom enregistré");
+    route();
+  } });
   $$("[data-modifier-etagere]", main).forEach((b) => { b.onclick = () => dialogueEtagere(c, c.etageres.find((e) => e.id === +b.dataset.modifierEtagere)); });
   $("#supprimer", main).onclick = async () => {
     const n = toutesBouteilles.length;
@@ -1173,6 +1201,35 @@ async function pageCaves(main, id, params) {
     $$(".case-cave.cible", main).forEach((x) => x.classList.remove("cible"));
   };
   $("#annuler-depl", main).onclick = finDeplacement;
+  const commencerRangement = (b) => {
+    deplacement = b.id;
+    $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement où ranger <b>${titreVin(b)}</b>…`;
+    $("#mode-deplacement", main).hidden = false;
+    $$(".case-cave:not(.pleine)", main).forEach((x) => x.classList.add("cible"));
+    $(".plan-conteneur", main)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  const voirARanger = () => {
+    const groupes = {};
+    aRanger.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, ids: [] }; groupes[b.vin_id].ids.push(b); });
+    const d = dialogue(`<h2>Bouteilles non rangées</h2>
+      <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis l'emplacement voulu." : ""}</p>
+      <ul class="a-ranger-liste">${Object.values(groupes).map((g) => `<li>
+        <div class="etiquette">${g.a_photo ? `<img src="${urlPhoto({ id: g.vin_id, updated_at: g.updated_at })}" alt="Étiquette de ${esc(g.nom)}" loading="lazy">` : bouteilleSVG(g.couleur)}</div>
+        <div class="grandit"><b>${titreVin(g)}</b>
+          <div class="muted petit-texte">${esc([g.appellation, g.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
+          <div class="muted petit-texte">${g.ids[0].cave_nom ? `En vrac dans ${esc(g.ids[0].cave_nom)}` : "Hors cave"} · ×${g.ids.length}</div></div>
+        ${capacite ? `<button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button>` : ""}</li>`).join("")}</ul>
+      <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
+    $$("[data-ranger]", d).forEach((bt) => bt.onclick = () => {
+      d.close();
+      commencerRangement(aRanger.find((b) => b.id === +bt.dataset.ranger));
+    });
+  };
+  const boutonARanger = $("#voir-a-ranger", main);
+  if (boutonARanger) boutonARanger.onclick = voirARanger;
+  if (new URLSearchParams(params).get("ranger") && aRanger.length) voirARanger();
+  const aPlacer = aRanger.find((b) => b.id === +new URLSearchParams(params).get("placer"));
+  if (aPlacer) commencerRangement(aPlacer);
   $$(".case-cave", main).forEach((bouton) => bouton.addEventListener("click", async () => {
     const k = casiers.find((x) => x.id === +bouton.dataset.k);
     if (bouton.dataset.b) {
@@ -1197,7 +1254,8 @@ async function pageCaves(main, id, params) {
     } else if (deplacement) {
       try {
         await api("PUT", `bouteilles/${deplacement}`, { cave_id: k.id, rangee: +bouton.dataset.r, colonne: +bouton.dataset.c });
-        toast("Bouteille déplacée");
+        toast("Bouteille rangée");
+        location.hash = `#/caves/${c.id}`;
         route();
       } catch (err) { toast(err.message, true); finDeplacement(); }
     } else {
@@ -1210,14 +1268,14 @@ async function pageCaves(main, id, params) {
 /** Ajouter (ou modifier) une étagère : en haut, en bas, à gauche ou à droite d'un casier de la cave. */
 function dialogueEtagere(cave, etagere) {
   const casiers = [{ id: cave.id, nom: "Casier principal" }, ...cave.etageres.filter((e) => e.id !== etagere?.id).map((e) => ({ id: e.id, nom: nomCasier(e) }))];
-  const positions = { bas: "En dessous", haut: "Au-dessus", gauche: "À gauche", droite: "À droite" };
+  const positions = { droite: "À droite", bas: "En dessous", haut: "Au-dessus", gauche: "À gauche" };
   dialogue(`<h2>${etagere ? `Modifier : ${esc(nomCasier(etagere))}` : "Nouvelle étagère"}</h2>
     <div class="form">
       <label class="large">Nom (facultatif)<input name="nom" value="${esc(etagere?.nom || "")}" placeholder="Sans nom : rien n'est affiché au-dessus de l'étagère"></label>
       <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${etagere?.rangees ?? 6}" required></label>
       <label>Colonnes<input type="number" name="colonnes" min="1" max="100" value="${etagere?.colonnes ?? cave.colonnes}" required></label>
       <label>Position<select name="position">${options(positions, etagere?.position || "bas")}</select></label>
-      ${etagere ? "" : `<label>De<select name="ref_id">${casiers.map((k) => `<option value="${k.id}">${esc(k.nom)}</option>`).join("")}</select></label>`}
+      <label>Par rapport à<select name="ref_id">${casiers.map((k) => `<option value="${k.id}"${k.id === (etagere?.ref_id || cave.id) ? " selected" : ""}>${esc(k.nom)}</option>`).join("")}</select></label>
     </div>
     <div class="actions">${etagere ? `<button class="bouton danger" type="button" id="suppr-etagere">Supprimer</button>` : ""}
       <button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,

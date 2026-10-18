@@ -517,10 +517,14 @@ def deplacer_bouteille(db, bouteille_id, data):
 
 def bouteilles_sans_emplacement(db):
     """Bouteilles non rangées ou rangées « en vrac » : candidates pour une case libre du plan."""
-    return db.all(f"""SELECT b.id, b.vin_id, b.cave_id, {NOM_COMPLET} AS cave_nom, v.nom, v.millesime, v.couleur
-                     FROM bouteilles b JOIN vins v ON v.id = b.vin_id LEFT JOIN caves c ON c.id = b.cave_id
-                     LEFT JOIN caves p ON p.id = c.parent_id
-                     WHERE b.rangee IS NULL ORDER BY LOWER(v.nom), v.millesime, b.id""")
+    lignes = db.all(f"""SELECT b.id, b.vin_id, b.cave_id, {NOM_COMPLET} AS cave_nom, v.nom, v.millesime, v.couleur,
+                              v.appellation, v.domaine, v.updated_at, COALESCE(v.photo, '') <> '' AS a_photo
+                       FROM bouteilles b JOIN vins v ON v.id = b.vin_id LEFT JOIN caves c ON c.id = b.cave_id
+                       LEFT JOIN caves p ON p.id = c.parent_id
+                       WHERE b.rangee IS NULL ORDER BY LOWER(v.nom), v.millesime, b.id""")
+    for l in lignes:
+        l["a_photo"] = bool(l["a_photo"])
+    return lignes
 
 
 POSITIONS = {"bas": "en bas", "haut": "en haut", "gauche": "à gauche", "droite": "à droite"}
@@ -632,8 +636,24 @@ def modifier_cave(db, cave_id, data):
             conn.execute("UPDATE bouteilles SET rangee = NULL, colonne = NULL WHERE cave_id = ?", (cave_id,))
         conn.execute("UPDATE caves SET nom = ?, rangees = ?, colonnes = ?, description = ? WHERE id = ?",
                      (nom, rangees, colonnes, description, cave_id))
+        if not actuelle["parent_id"] and "nom_casier" in data:
+            conn.execute("UPDATE caves SET nom_casier = ? WHERE id = ?", ((data.get("nom_casier") or "").strip()[:60], cave_id))
         if actuelle["parent_id"] and data.get("position") in POSITIONS:
             conn.execute("UPDATE caves SET position = ? WHERE id = ?", (data["position"], cave_id))
+        if actuelle["parent_id"] and data.get("ref_id") not in (None, ""):
+            ref_id = _entier(data.get("ref_id"), "ref_id")
+            parent = actuelle["parent_id"]
+            if ref_id != parent and not conn.execute("SELECT id FROM caves WHERE id = ? AND parent_id = ?", (ref_id, parent)).fetchone():
+                raise ErreurAPI("Casier de référence inconnu")
+            # pas de boucle : la référence ne doit pas dépendre de cette étagère
+            suivant, vus = ref_id, set()
+            while suivant and suivant != parent and suivant not in vus:
+                if suivant == cave_id:
+                    raise ErreurAPI("Une étagère ne peut pas être placée par rapport à elle-même ou à une étagère qui dépend d'elle")
+                vus.add(suivant)
+                ligne = conn.execute("SELECT ref_id FROM caves WHERE id = ?", (suivant,)).fetchone()
+                suivant = ligne["ref_id"] if ligne else None
+            conn.execute("UPDATE caves SET ref_id = ? WHERE id = ?", (ref_id, cave_id))
     return lire_cave(db, cave_id)
 
 
@@ -724,6 +744,35 @@ def suggerer(db, plat=None, couleur=None, limite=5):
 
 # --------------------------------------------------------------------------- statistiques
 
+def place_libre(db):
+    """Premier casier qui a des places libres (casier principal d'abord), et la bouteille non rangée la plus
+    prestigieuse (valeur estimée, sinon prix d'achat) à y mettre. None s'il n'y a rien à proposer."""
+    suggestion = db.one("""SELECT b.id AS bouteille_id, v.id AS vin_id, v.nom, v.millesime, v.appellation, v.couleur,
+                                  COALESCE(v.valeur, v.prix_achat) AS valeur
+                           FROM bouteilles b JOIN vins v ON v.id = b.vin_id
+                           WHERE b.rangee IS NULL
+                           ORDER BY COALESCE(v.valeur, v.prix_achat, 0) DESC, v.millesime, b.id LIMIT 1""")
+    if not suggestion:
+        return None
+    casiers = db.all("""SELECT c.id, c.nom, c.nom_casier, c.parent_id, c.position, c.rangees * c.colonnes AS capacite,
+                               COALESCE(p.nom, c.nom) AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_id,
+                               (SELECT COUNT(*) FROM bouteilles b WHERE b.cave_id = c.id AND b.rangee IS NOT NULL) AS occupees
+                        FROM caves c LEFT JOIN caves p ON p.id = c.parent_id
+                        WHERE c.rangees > 0 AND c.colonnes > 0
+                        ORDER BY COALESCE(c.parent_id, c.id), c.parent_id IS NOT NULL, c.id""")
+    for k in casiers:
+        libres = k["capacite"] - k["occupees"]
+        if libres > 0:
+            if k["parent_id"]:
+                nom = k["nom"] or "étagère " + {"haut": "du haut", "gauche": "de gauche", "droite": "de droite"}.get(k["position"], "du bas")
+                nom = f"{k['cave_nom']} · {nom}"
+            else:
+                nom = k["nom_casier"] or k["nom"]
+            return {"cave_id": k["cave_id"], "casier_id": k["id"], "casier_nom": nom, "libres": libres,
+                    "total_libres": sum(max(0, x["capacite"] - x["occupees"]) for x in casiers), "suggestion": suggestion}
+    return None
+
+
 def statistiques(db):
     annee = annee_courante()
     vins = lister_vins(db, {"stock": "1"})
@@ -754,10 +803,13 @@ def statistiques(db):
     debut_annee = date(annee, 1, 1).isoformat()
     caves = lister_caves(db)
     non_rangees = db.scalar("SELECT COUNT(*) FROM bouteilles WHERE cave_id IS NULL") or 0
+    sans_emplacement = db.scalar("SELECT COUNT(*) FROM bouteilles WHERE rangee IS NULL") or 0  # hors cave ou en vrac
     return {
         "annee": annee,
         "bouteilles": total,
         "references": len(vins),
+        "sans_emplacement": sans_emplacement,
+        "place_libre": place_libre(db),
         "valeur": round(valeur, 2),
         "par_couleur": repartition("couleur", COULEURS),
         "par_region": repartition("region")[:12],
