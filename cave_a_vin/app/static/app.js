@@ -16,7 +16,7 @@ let REF = null;          // référentiel (couleurs, statuts, plats, autocomplé
 let CAPACITES = null;    // détourage, fonds, IA disponibles
 let ajout = null;        // ajout en cours : { champs, code_barre, brouillon, fond, source }
 let rangement = null;    // case du plan où ranger le vin en cours d'ajout : { cave_id, cave_nom, rangee, colonne }
-let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", stock: "1", tri: "nom" };
+let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", region: "", millesime: "", stock: "1", tri: "nom" };
 
 /* ------------------------------------------------------------------ API */
 
@@ -85,20 +85,21 @@ function barres(lignes, { couleur = false, statut = false, lien } = {}) {
     const fond = couleur ? `background: var(--c-${COULEURS_CSS.includes(l.cle) ? l.cle : "autre"})`
       : statut ? `background: var(--s-${esc(l.cle)}, var(--accent))` : "";
     const nom = `${couleur ? pastille(l.cle) : ""}<span class="tronque">${esc(l.label)}</span>`;
-    return `<div class="barre-ligne" title="${esc(l.label)} : ${pluriel(l.bouteilles, "bouteille")}">
-      <span class="nom">${lien ? `<a href="${lien(l)}">${nom}</a>` : nom}</span>
+    const cible = lien && lien(l);
+    return `<div class="barre-ligne${cible ? " cliquable" : ""}" title="${esc(l.label)} : ${pluriel(l.bouteilles, "bouteille")}"${cible ? ` ${cible}` : ""}>
+      <span class="nom">${nom}</span>
       <div class="piste"><div class="remplie" style="width:${(100 * l.bouteilles / max).toFixed(1)}%;${fond}"></div></div>
       <span class="nombre">${nombre(l.bouteilles)}</span></div>`;
   }).join("")}</div>`;
 }
 
-function histogramme(lignes) {
+function histogramme(lignes, { lien } = {}) {
   const valides = lignes.filter((l) => l.cle !== "—");
   if (!valides.length) return `<p class="muted">Aucun millésime renseigné.</p>`;
   const max = Math.max(...valides.map((l) => l.bouteilles));
   const pas = Math.ceil(valides.length / 10);
   return `<div class="histogramme" role="img" aria-label="Bouteilles par millésime">${valides.map((l) =>
-    `<div class="col" title="${esc(l.label)} : ${pluriel(l.bouteilles, "bouteille")}"><div style="height:${(100 * l.bouteilles / max).toFixed(1)}%"></div></div>`).join("")}</div>
+    `<div class="col${lien ? " cliquable" : ""}" title="${esc(l.label)} : ${pluriel(l.bouteilles, "bouteille")}"${lien ? ` ${lien(l)}` : ""}><div style="height:${(100 * l.bouteilles / max).toFixed(1)}%"></div></div>`).join("")}</div>
     <div class="axe-x">${valides.map((l, i) => `<span>${i % pas === 0 ? esc(String(l.label).slice(-2) === String(l.label) ? l.label : "’" + String(l.label).slice(-2)) : ""}</span>`).join("")}</div>`;
 }
 
@@ -255,7 +256,7 @@ function casierVivant(s) {
 function feuillePlus() {
   const lien = (page, icone, titre) => `<a href="#/${page}"><svg><use href="#i-${icone}"/></svg>${titre}</a>`;
   dialogue(`<h2>Plus</h2><nav class="feuille-plus">
-    ${lien("envies", "envies", "Envies")}${lien("historique", "historique", "Historique")}${lien("reglages", "reglages", "Réglages")}</nav>
+    ${lien("stats", "stats", "Statistiques")}${lien("envies", "envies", "Envies")}${lien("historique", "historique", "Historique")}${lien("reglages", "reglages", "Réglages")}</nav>
     <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
 }
 
@@ -295,24 +296,49 @@ async function pageAccueil(main) {
         ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="declin,apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
         ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}</div>
     </div>
-    <hr class="separation">
+    ${blocClimat ? `<div class="grille tableau-bord" style="margin-top:18px">${blocClimat}</div>` : ""}
+    <p class="lien-stats"><a href="#/stats">Voir les statistiques de la cave ›</a></p>
+  `;
+  $("#sortie-scan", main).onclick = sortirParCodeBarres;
+  $$("[data-filtre-statut]", main).forEach((a) => a.addEventListener("click", () => {
+    filtresVins = { ...filtresVins, statut: a.dataset.filtreStatut, stock: "1" };
+  }));
+}
+
+/** Lien d'une statistique vers « Mes vins » filtré (attribut data-filtre). */
+const versVins = (filtre) => `role="link" tabindex="0" data-filtre='${esc(JSON.stringify(filtre))}'`;
+const FILTRES_VIDES = { q: "", couleur: "", statut: "", cave_id: "", region: "", millesime: "", stock: "1" };
+
+async function pageStats(main) {
+  const s = await api("GET", "stats");
+  if (!s.references) { main.innerHTML = `<div class="entete"><h1>Statistiques</h1></div><div class="carte vide">Ajoutez des vins pour voir les statistiques de votre cave.</div>`; return; }
+  const mouvement = (m) => `<li><span aria-hidden="true">${m.type === "entree" ? "📥" : "🍷"}</span>
+      <div class="grandit"><span class="titre">${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</span>
+      <div class="muted petit-texte">${m.type === "entree" ? "+" : "−"}${m.quantite} · ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)} · ${dateFr(m.date)}</div></div>${etoiles(m.note)}</li>`;
+  main.innerHTML = `<div class="entete"><h1>Statistiques</h1></div>
+    <p class="muted" style="margin-top:-8px">Touchez une ligne ou une barre pour voir les bouteilles correspondantes.</p>
     <div class="grille tableau-bord">
-      ${blocClimat}
-      <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true })}</div>
-      <div class="carte"><h2>Par région</h2>${barres(s.par_region)}</div>
+      <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true, lien: (l) => versVins({ couleur: l.cle }) })}</div>
+      <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles), { statut: true, lien: (l) => versVins({ statut: l.cle }) })}</div>
+      <div class="carte"><h2>Par région</h2>${barres(s.par_region, { lien: (l) => l.cle !== "—" ? versVins({ region: l.cle }) : "" })}</div>
+      <div class="carte"><h2>Par millésime</h2>${histogramme(s.par_millesime, { lien: (l) => versVins({ millesime: l.cle }) })}</div>
       <div class="carte"><h2>Par cave</h2>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
-        { lien: (l) => l.cle ? `#/caves/${l.cle}` : "#/caves" })}</div>
-      <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles), { statut: true })}</div>
-      <div class="carte"><h2>Par millésime</h2>${histogramme(s.par_millesime)}</div>
+        { lien: (l) => l.cle ? versVins({ cave_id: String(l.cle) }) : `role="link" tabindex="0" data-aller="#/caves?ranger=1"` })}</div>
       <div class="carte"><h2>Derniers mouvements</h2>
         <p class="muted petit-texte">Ce mois-ci : +${s.entrees_mois} / −${s.sorties_mois}</p>
         ${s.derniers_mouvements.length ? `<ul class="liste">${s.derniers_mouvements.map(mouvement).join("")}</ul>` : ""}
         <a href="#/historique">Tout l'historique</a></div>
     </div>`;
-  $("#sortie-scan", main).onclick = sortirParCodeBarres;
-  $$("[data-filtre-statut]", main).forEach((a) => a.addEventListener("click", () => {
-    filtresVins = { ...filtresVins, statut: a.dataset.filtreStatut, stock: "1" };
-  }));
+  const ouvrir = (e) => {
+    const el = e.target.closest("[data-filtre], [data-aller]");
+    if (!el || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    if (el.dataset.aller) { location.hash = el.dataset.aller; return; }
+    filtresVins = { ...filtresVins, ...FILTRES_VIDES, ...JSON.parse(el.dataset.filtre) };
+    location.hash = "#/vins";
+  };
+  main.addEventListener("click", ouvrir);
+  main.addEventListener("keydown", ouvrir);
 }
 
 async function pageVins(main) {
@@ -335,12 +361,18 @@ async function pageVins(main) {
     const qs = new URLSearchParams(Object.entries(filtresVins).filter(([, v]) => v !== "")).toString();
     const vins = await api("GET", "vins?" + qs);
     const total = vins.reduce((n, v) => n + v.stock, 0);
-    const filtre = filtresVins.q || filtresVins.couleur || filtresVins.statut || filtresVins.cave_id || filtresVins.stock !== "1";
+    const filtre = filtresVins.q || filtresVins.couleur || filtresVins.statut || filtresVins.cave_id || filtresVins.region || filtresVins.millesime || filtresVins.stock !== "1";
+    const statutsTexte = (filtresVins.statut || "").split(",").filter(Boolean).map((k) => (REF.statuts[k] || k).toLowerCase()).join(" ou ");
+    const precis = [filtresVins.q && `« ${filtresVins.q} »`, filtresVins.couleur && (REF.couleurs[filtresVins.couleur] || "").toLowerCase(),
+      statutsTexte, filtresVins.region && `région ${filtresVins.region}`,
+      filtresVins.millesime && (filtresVins.millesime === "—" ? "sans millésime" : `millésime ${filtresVins.millesime}`),
+      filtresVins.cave_id && `cave ${(caves.find((c) => String(c.id) === String(filtresVins.cave_id)) || {}).nom || ""}`,
+      filtresVins.stock === "0" ? "épuisés" : filtresVins.stock === "all" ? "en cave et épuisés" : ""].filter(Boolean).join(", ");
     $("#compte", main).innerHTML = `${pluriel(vins.length, "référence")} · ${pluriel(total, "bouteille")}${filtre
-      ? ` <span class="filtre-actif">filtre actif</span> <button type="button" class="bouton petit" id="sans-filtre">Tout afficher</button>` : ""}`;
+      ? ` <span class="filtre-actif">${precis ? esc(precis) : "filtre actif"}</span> <button type="button" class="bouton petit" id="sans-filtre">Tout afficher</button>` : ""}`;
     const sansFiltre = $("#sans-filtre", main);
     if (sansFiltre) sansFiltre.onclick = () => {
-      filtresVins = { ...filtresVins, q: "", couleur: "", statut: "", cave_id: "", stock: "1" };
+      filtresVins = { ...filtresVins, ...FILTRES_VIDES };
       route();
     };
     $("#resultats", main).innerHTML = vins.length ? vins.map((v) => `
@@ -1666,6 +1698,7 @@ const ROUTES = [
   [/^ce-soir$/, pageCeSoir, "ce-soir"],
   [/^envies$/, pageEnvies, "envies"],
   [/^historique$/, pageHistorique, "historique"],
+  [/^stats$/, pageStats, "stats"],
   [/^reglages$/, pageReglages, "reglages"],
 ];
 
@@ -1678,7 +1711,7 @@ async function route() {
     const m = chemin.match(motif);
     if (!m) continue;
     $$("#menu a").forEach((a) => a.classList.toggle("actif", a.dataset.page === menu));
-    $("#autres").classList.toggle("actif", ["envies", "historique", "reglages"].includes(menu));
+    $("#autres").classList.toggle("actif", ["stats", "envies", "historique", "reglages"].includes(menu));
     $("#menu a.actif")?.scrollIntoView({ block: "nearest", inline: "nearest" });
     try {
       if (!REF) {

@@ -293,6 +293,12 @@ def lister_vins(db, filtres):
         if filtres.get(champ):
             where.append(f"v.{champ} = ?")
             params.append(filtres[champ])
+    if filtres.get("millesime"):
+        if filtres["millesime"] in ("—", "aucun"):
+            where.append("v.millesime IS NULL")
+        else:
+            where.append("v.millesime = ?")
+            params.append(_entier(filtres["millesime"], "millesime"))
     if filtres.get("favori") in ("1", "true"):
         where.append("v.favori = 1")
     if filtres.get("cave_id"):

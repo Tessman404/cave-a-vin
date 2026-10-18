@@ -115,7 +115,7 @@ img { max-width: 100%; }
 #menu a:hover { background: var(--surface-2); text-decoration: none; color: var(--texte); }
 #menu a.actif { background: var(--accent-doux); color: var(--accent); font-weight: 600; }
 #menu a.secondaire:first-of-type, #menu .secondaire { }
-#menu a[data-page="envies"] { margin-top: 14px; }
+#menu a[data-page="stats"] { margin-top: 14px; }
 #menu .onglet-ajouter, #menu .seul-mobile { display: none; }
 .barre .ajouter { margin-top: auto; min-height: 46px; }
 .bouton svg, .ajouter svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
@@ -776,3 +776,11 @@ h2 { font-weight: 600; font-size: 1.3rem; letter-spacing: -.005em; }
 .statut.depasse { color: #fff; background: var(--s-depasse); border-color: var(--s-depasse); }
 .statut.inconnu { color: var(--s-inconnu); }
 @media (prefers-color-scheme: dark) { .statut.urgent, .statut.depasse { color: #1a1210; } }
+
+/* statistiques cliquables */
+.barre-ligne.cliquable, .histogramme .col.cliquable { cursor: pointer; border-radius: 8px; }
+.barre-ligne.cliquable:hover { background: var(--surface-2); }
+.barre-ligne.cliquable:hover .nom { color: var(--accent); }
+.histogramme .col.cliquable:hover div { filter: brightness(1.25); }
+.barre-ligne.cliquable:focus-visible, .histogramme .col.cliquable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lien-stats { margin: 22px 0 0; text-align: center; }
