@@ -2,3 +2,5 @@ data/
 donnees/
 __pycache__/
 *.pyc
+outils/essai.html
+outils/symboles.svg.txt

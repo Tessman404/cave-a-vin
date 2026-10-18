@@ -22,13 +22,25 @@ def grad_perp(id_, centre, r, stops):
 VERRE = [(0, "#fff", .10), (.12, "#fff", .55), (.2, "#fff", .18), (.45, "#fff", 0), (.78, "#000", .25), (.9, "#fff", .10), (1, "#000", .6)]
 METAL = [(0, "#fff", .25), (.18, "#fff", .75), (.32, "#fff", .1), (.65, "#000", .2), (1, "#000", .6)]
 
-def bouteille(id_, champagne=False):
-    rc = 16 if champagne else 14.5          # rayon du corps
-    rn = 5.6 if champagne else 4.6          # rayon du goulot
+def cone(a, b, ra, rb):
+    """Tronc de cône de a (rayon ra) à b (rayon rb) : épaule tombante des bourguignonnes et des flûtes."""
+    return f"M{p(*add(a, n, ra))} L{p(*add(b, n, rb))} L{p(*add(b, n, -rb))} L{p(*add(a, n, -ra))} Z"
+
+# rayon du corps, du goulot, longueur du goulot, épaule tombante (longueur du cône) — en unités du symbole
+FORMES = {
+    "bordelaise": (14.5, 4.6, 13, 0),
+    "bourguignonne": (15.2, 4.7, 11, 7),
+    "flute": (12, 4.1, 14, 8),
+    "champagne": (16, 5.6, 11.5, 0),
+}
+
+def bouteille(id_, champagne=False, forme=None):
+    forme = forme or ("champagne" if champagne else "bordelaise")
+    rc, rn, lg, ep = FORMES[forme]
     S = (28.5, 35.5)                        # centre de l'épaule (face avant du corps)
     B = add(S, ax, 30)                      # fond de la bouteille, loin derrière
-    C1 = add(S, ax, -rc * .42)              # naissance du goulot sur l'épaule
-    C0 = add(S, ax, -(rc * .42 + (11.5 if champagne else 13)))  # bout du goulot (vers nous)
+    C1 = add(S, ax, -(rc * .42 + ep))       # naissance du goulot sur l'épaule
+    C0 = add(S, ax, -(rc * .42 + ep + lg))  # bout du goulot (vers nous)
     g = []
     d = []
     d.append(grad_perp(f"{id_}-corps", S, rc, VERRE))
@@ -40,6 +52,19 @@ def bouteille(id_, champagne=False):
     # épaule bombée : sphère éclairée en haut à gauche
     g.append(f'<circle cx="{S[0]}" cy="{S[1]}" r="{rc}" fill="currentColor"/>')
     g.append(f'<circle cx="{S[0]}" cy="{S[1]}" r="{rc}" fill="url(#epaule)"/>')
+    if ep:
+        # épaule tombante (bourguignonne, flûte) : une cloche lisse du corps jusqu'au goulot, sans arête
+        E = add(S, ax, -rc * .1)
+        r1, r2 = rc * .97, rn + .5
+        a1, a2 = add(E, n, r1), add(E, n, -r1)
+        b1, b2 = add(C1, n, r2), add(C1, n, -r2)
+        k1, k2 = add(a1, ax, -ep * .9), add(b1, ax, ep * .55)
+        k3, k4 = add(b2, ax, ep * .55), add(a2, ax, -ep * .9)
+        cloche = f"M{p(*a1)} C{p(*k1)} {p(*k2)} {p(*b1)} L{p(*b2)} C{p(*k3)} {p(*k4)} {p(*a2)} Z"
+        d.append(grad_perp(f"{id_}-epaule", E, r1, VERRE))
+        g.append(f'<path d="{cloche}" fill="currentColor"/>')
+        g.append(f'<path d="{cloche}" fill="url(#{id_}-epaule)"/>')
+        g.append(f'<path d="{cloche}" fill="url(#epaule)" fill-opacity=".6"/>')
     hx, hy = add(add(S, n, -rc * .45), ax, rc * .1)
     g.append(f'<ellipse cx="{hx:.2f}" cy="{hy:.2f}" rx="{rc*.32:.2f}" ry="{rc*.13:.2f}" transform="rotate(-45 {hx:.2f} {hy:.2f})" fill="#fff" fill-opacity=".55"/>')
     # goulot
@@ -91,8 +116,12 @@ communs = '''<radialGradient id="epaule" cx=".5" cy=".5" r=".5" fx=".3" fy=".28"
   <stop offset="1" stop-color="#5a4210"/></linearGradient>'''
 d1, vin = bouteille("bouteille-couchee")
 d2, champ = bouteille("bouteille-champagne", True)
-defs = "<defs>" + communs + "".join(d1 + d2) + "</defs>"
-open("symboles.svg.txt", "w").write(defs + "\n" + vin + "\n" + champ)
+d3, bourg = bouteille("bouteille-bourguignonne", forme="bourguignonne")
+d4, flute = bouteille("bouteille-flute", forme="flute")
+defs = "<defs>" + communs + "".join(d1 + d2 + d3 + d4) + "</defs>"
+open("symboles.svg.txt", "w").write(defs + "\n" + vin + "\n" + champ + "\n" + bourg + "\n" + flute)
+vin = vin + champ + bourg + flute
+champ = ""
 html = f'''<!doctype html><html><body style="margin:0;background:#eef0ea">
 <svg width="0" height="0" style="position:absolute">{defs}{vin}{champ}</svg>
 <div style="display:flex;gap:30px;padding:20px;flex-wrap:wrap">

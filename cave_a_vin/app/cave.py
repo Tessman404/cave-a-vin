@@ -608,7 +608,7 @@ def deplacer_bouteille(db, bouteille_id, data):
 def bouteilles_sans_emplacement(db):
     """Bouteilles non rangées ou rangées « en vrac » : candidates pour une case libre du plan."""
     lignes = db.all(f"""SELECT b.id, b.vin_id, b.cave_id, {NOM_COMPLET} AS cave_nom, v.nom, v.millesime, v.couleur,
-                              v.appellation, v.domaine, v.updated_at, COALESCE(v.photo, '') <> '' AS a_photo
+                              v.appellation, v.region, v.cepages, v.domaine, v.updated_at, COALESCE(v.photo, '') <> '' AS a_photo
                        FROM bouteilles b JOIN vins v ON v.id = b.vin_id LEFT JOIN caves c ON c.id = b.cave_id
                        LEFT JOIN caves p ON p.id = c.parent_id
                        WHERE b.rangee IS NULL ORDER BY LOWER(v.nom), v.millesime, b.id""")
@@ -647,11 +647,13 @@ def _lire_casier(db, cave_id):
     annee = annee_courante()
     bouteilles = db.all(
         """SELECT b.id, b.rangee, b.colonne, b.vin_id, b.cave_id, v.nom, v.millesime, v.couleur, v.domaine,
+                  v.appellation, v.region, v.cepages, v.format, v.updated_at, COALESCE(v.photo, '') <> '' AS a_photo,
                   v.garde_debut, v.garde_apogee, v.garde_fin
            FROM bouteilles b JOIN vins v ON v.id = b.vin_id
            WHERE b.cave_id = ? ORDER BY b.rangee, b.colonne, v.nom""", (cave_id,))
     for b in bouteilles:
         b["statut"] = statut_garde(b, annee)
+        b["a_photo"] = bool(b["a_photo"])
     cave["bouteilles"] = bouteilles
     return cave
 
@@ -863,7 +865,7 @@ def candidats_cave(db, limite=None):
     annee = annee_courante()
     lignes = db.all(f"""SELECT b.id AS bouteille_id, b.rangee IS NOT NULL AS a_deplacer,
                                CASE WHEN c.id IS NULL THEN '' ELSE {NOM_COMPLET} END AS depuis,
-                               v.id AS vin_id, v.nom, v.millesime, v.appellation, v.domaine, v.couleur, v.updated_at,
+                               v.id AS vin_id, v.nom, v.millesime, v.appellation, v.region, v.cepages, v.domaine, v.couleur, v.updated_at,
                                COALESCE(v.photo, '') <> '' AS a_photo, v.garde_debut, v.garde_apogee, v.garde_fin,
                                COALESCE(v.valeur, v.prix_achat) AS valeur
                         FROM bouteilles b JOIN vins v ON v.id = b.vin_id
@@ -942,8 +944,9 @@ def statistiques(db):
         par_statut[v["statut"]] += v["stock"]
 
     def resume(v):
-        return {k: v[k] for k in ("id", "nom", "domaine", "appellation", "millesime", "couleur", "stock",
-                                  "garde_debut", "garde_apogee", "garde_fin", "statut", "statut_label")}
+        return {k: v[k] for k in ("id", "nom", "domaine", "appellation", "region", "cepages", "format", "millesime", "couleur",
+                                  "stock", "garde_debut", "garde_apogee", "garde_fin", "statut", "statut_label",
+                                  "note_perso", "note_date")}
 
     urgents = sorted([v for v in vins if v["statut"] in ("urgent", "depasse")],
                      key=lambda v: v["garde_fin"] or 0)
@@ -971,6 +974,9 @@ def statistiques(db):
                      for c in caves if not c["parent_id"]] + ([{"id": None, "nom": "Non rangées", "bouteilles": non_rangees, "capacite": 0}]
                                         if non_rangees else []),
         "urgents": [resume(v) for v in urgents],
+        # vins réservés pour une occasion (note personnelle), les plus proches d'abord
+        "occasions": [resume(v) for v in sorted((v for v in vins if v.get("note_perso")),
+                                                key=lambda v: (v.get("note_date") or "9999", v["nom"].lower()))],
         "a_boire": [resume(v) for v in a_boire],
         "entrees_mois": db.scalar("SELECT COALESCE(SUM(quantite), 0) FROM mouvements WHERE type = 'entree' AND date >= ?",
                                   (debut_mois,)),

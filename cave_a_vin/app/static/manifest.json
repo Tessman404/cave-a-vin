@@ -1,13 +1,21 @@
 {
   "name": "Tessvine",
-  "short_name": "Cave",
+  "short_name": "Tessvine",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#e9ece6",
-  "theme_color": "#e9ece6",
+  "background_color": "#121013",
+  "theme_color": "#121013",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
-    { "src": "icon.png", "sizes": "180x180", "type": "image/png" }
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
   ]
 }

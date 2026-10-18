@@ -10,7 +10,8 @@ const dateFr = (d) => d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLoca
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 const pluriel = (n, mot, motPluriel) => `${nombre(n)} ${n > 1 ? (motPluriel || mot + "s") : mot}`;
 const COULEURS_CSS = ["rouge", "blanc", "rose", "effervescent", "liquoreux", "autre"];
-const ICONES_STATUT = { trop_jeune: "⏳", a_boire: "✓", apogee: "★", declin: "↘", urgent: "⚠", depasse: "✕", inconnu: "?" };
+// signes typographiques (jamais d'émoji : ils s'affichent en couleur sur iPhone)
+const ICONES_STATUT = { trop_jeune: "◷", a_boire: "✓", apogee: "★", declin: "↘\uFE0E", urgent: "!", depasse: "✕", inconnu: "?" };
 
 let REF = null;          // référentiel (couleurs, statuts, plats, autocomplétion…)
 let CAPACITES = null;    // détourage, fonds, IA disponibles
@@ -72,10 +73,23 @@ const titreVin = (v) => `${esc(v.nom)}${v.millesime ? " " + esc(v.millesime) : "
 // l'appellation d'abord : c'est elle qu'on cherche du regard (Fitou, Chablis…), le domaine ensuite
 const sousTitre = (v) => [...new Set([v.appellation, v.domaine, v.region].filter(Boolean))].map(esc).join(" · ");
 
-function bouteilleSVG(couleur) {
-  const c = COULEURS_CSS.includes(couleur) ? couleur : "autre";
-  return `<svg viewBox="0 0 26 64" aria-hidden="true"><path d="M10 2h6v14c0 3 6 6 6 13v31a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V29c0-7 6-10 6-13z" fill="var(--c-${c})"/><rect x="4" y="34" width="18" height="13" rx="1" fill="var(--surface)" opacity=".85"/></svg>`;
+/** Icône du jeu de symboles d'index.html. */
+const ic = (nom) => `<svg class="ic" aria-hidden="true"><use href="#i-${nom}"/></svg>`;
+
+/** Bouteille dessinée (bouteilles.js) : forme, verre et étiquette selon le vin. Accepte aussi une simple couleur. */
+function bouteilleSVG(vin, taille = "mini") {
+  const v = typeof vin === "string" ? { couleur: vin, nom: "" } : vin;
+  return Bouteilles.debout(v, taille).replace("<svg ", '<svg aria-hidden="true" ');
 }
+
+/** Vignette d'un vin : sa photo si elle existe, sinon sa bouteille dessinée. */
+const vignetteVin = (v, taille = "mini", alt = "") => v.a_photo
+  ? `<img src="${urlPhoto({ id: v.vin_id || v.id, updated_at: v.updated_at })}" alt="${esc(alt)}" loading="lazy">` : bouteilleSVG(v, taille);
+
+/** En-tête de page : surtitre, titre et actions. */
+const enTete = (surtitre, titre, actions = "") => `<div class="entete"><div>${surtitre ? `<span class="surtitre">${surtitre}</span>` : ""}<h1>${titre}</h1></div>${actions ? `<div class="actions">${actions}</div>` : ""}</div>`;
+const lienRetour = (href, texte) => `<a class="retour" href="${href}">${ic("retour")}${esc(texte)}</a>`;
+const positionCase = (b) => b.rangee ? `${LETTRE_RANG(b.rangee)}${b.colonne}` : "";
 
 function options(dict, selection, vide) {
   return (vide !== undefined ? `<option value="">${esc(vide)}</option>` : "") +
@@ -206,7 +220,7 @@ async function dialogueSortie(vin, bouteilleId, apres) {
       if (bouteilleId) data.bouteille_id = bouteilleId;
       if (effacerNote) data.effacer_note = true;
       const r = await api("POST", `vins/${vin.id}/sortie`, data);
-      toast(`${+data.quantite > 1 ? "Bouteilles sorties" : "Bouteille sortie"}, santé ! 🍷`, false, null, r.mouvement_id ? {
+      toast(`${+data.quantite > 1 ? "Bouteilles sorties" : "Bouteille sortie"}, santé !`, false, null, r.mouvement_id ? {
         libelle: "Annuler",
         faire: async () => {
           try { await api("POST", `mouvements/${r.mouvement_id}/annuler`); toast("Sortie annulée : la bouteille est revenue à sa place"); }
@@ -227,7 +241,7 @@ async function dialogueEntree(vin, apres) {
     <div class="form">
       <label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="500" value="1" required></label>
       <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
-      ${place ? `<p class="large" style="margin:0">📍 Rangée ${place.rangee}, colonne ${place.colonne} de <b>${esc(place.cave_nom)}</b> (les bouteilles suivantes dans les cases libres)</p>`
+      ${place ? `<p class="large" style="margin:0">Rangée ${LETTRE_RANG(place.rangee)}, colonne ${place.colonne} de <b>${esc(place.cave_nom)}</b> (les bouteilles suivantes dans les cases libres)</p>`
         : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.filter((c) => !c.parent_id).map((c) =>
         `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
         <div class="large choix-emplacements"></div>`}
@@ -268,6 +282,7 @@ function casierVivant(s) {
   const legende = s.par_couleur.filter((l) => l.bouteilles).map((l) => `${nombre(l.bouteilles)} ${esc(String(l.label).toLowerCase())}`).join(", ");
   return `<section class="casier" aria-label="Votre cave : ${pluriel(s.bouteilles, "bouteille")}, dont ${legende}">
     <div>
+      <span class="surtitre">${esc(REF.nom_cave || "Tessvine")}</span>
       <div class="total">${nombre(s.bouteilles)}</div>
       <div class="sous-total">${s.bouteilles > 1 ? "bouteilles dans votre cave" : "bouteille dans votre cave"}</div>
       <div class="chiffres">
@@ -275,7 +290,7 @@ function casierVivant(s) {
         <div title="Valeur de marché indicative, souvent estimée par l'IA"><strong>${euros(s.valeur)}</strong><span>valeur estimée</span></div>
         ${s.valeur_payee ? `<div title="${s.sans_prix_achat ? `${pluriel(s.sans_prix_achat, "bouteille")} sans prix d'achat renseigné` : "Prix d'achat de toutes les bouteilles"}"><strong>${euros(s.valeur_payee)}</strong><span>payé${s.sans_prix_achat ? " (prix connus)" : ""}</span></div>` : ""}
         <div><strong>${nombre(s.bues_annee)}</strong><span>${s.bues_annee > 1 ? "bues" : "bue"} en ${s.annee}</span></div>
-        ${s.sans_emplacement ? `<a class="a-ranger" href="#/caves?ranger=1"><strong>${nombre(s.sans_emplacement)}</strong><span>à ranger ›</span></a>` : ""}
+        ${s.sans_emplacement ? `<a class="a-ranger" href="#/caves?ranger=1" title="Bouteilles sans emplacement sur le plan"><strong>${nombre(s.sans_emplacement)}</strong><span>à ranger ›</span></a>` : ""}
       </div>
       ${s.place_libre ? (() => {
         const p = s.place_libre, v = p.suggestion;
@@ -299,8 +314,8 @@ async function dialogueCandidats(caveId) {
   const d = dialogue(`<h2>Quel vin ranger dans la cave ?</h2>
     <p class="muted petit-texte">Par ordre de priorité : d'abord les vins qui ont le plus d'années de garde devant eux, puis les plus précieux.</p>
     ${liste.length ? `<ul class="a-ranger-liste">${liste.map((c, i) => `<li>
-      <div class="etiquette">${c.a_photo ? `<img src="${urlPhoto({ id: c.vin_id, updated_at: c.updated_at })}" alt="Étiquette de ${esc(c.nom)}" loading="lazy">` : bouteilleSVG(c.couleur)}</div>
-      <div class="grandit"><b>${i === 0 ? "★ " : ""}${titreVin(c)}</b>
+      <div class="etiquette">${vignetteVin(c, "mini", `Étiquette de ${c.nom}`)}</div>
+      <div class="grandit"><b>${i === 0 ? `<span style="color:var(--or)">★</span> ` : ""}${titreVin(c)}</b>
         <div class="muted petit-texte">${esc([c.appellation, c.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
         <div class="petit-texte">${badgeStatut(c.statut)} ${esc(c.raisons.join(" · "))}</div>
         <div class="muted petit-texte">${c.a_deplacer ? `Sur ${esc(c.depuis)}` : c.depuis ? `En vrac dans ${esc(c.depuis)}` : "Non rangé"}${c.nombre > 1 ? ` · ×${c.nombre}` : ""}</div></div>
@@ -320,8 +335,8 @@ function feuillePlus() {
 async function pageAccueil(main) {
   const [s, climat] = await Promise.all([api("GET", "stats"), api("GET", "ha/climat").catch(() => null)]);
   if (!s.references) {
-    main.innerHTML = `<div class="carte vide"><div style="width:60px;margin:0 auto 12px">${bouteilleSVG("rouge")}</div>
-      <h1>Bienvenue dans votre cave</h1>
+    main.innerHTML = `<div class="carte vide"><div style="height:170px;margin:0 auto 16px">${bouteilleSVG({ couleur: "rouge", nom: "Tessvine" }, "silhouette").replace("<svg ", '<svg style="height:100%;width:auto" ')}</div>
+      <span class="surtitre">Tessvine</span><h1>Bienvenue dans votre cave</h1>
       <p>Commencez par décrire votre cave (casiers, armoire à vin…) puis ajoutez vos premières bouteilles.</p>
       <div class="actions" style="justify-content:center"><a class="bouton" href="#/caves">Créer une cave</a>
       <a class="bouton primaire" href="#/ajouter">Ajouter un vin</a></div></div>`;
@@ -334,17 +349,21 @@ async function pageAccueil(main) {
     return `<div><div class="muted petit-texte">${titre}</div><div class="mesure${m.alerte ? " alerte" : ""}">${nombre(m.valeur)} ${esc(m.unite || unite)}</div>${alerte}</div>`;
   };
   const blocClimat = climat && climat.configure
-    ? `<div class="carte"><h2>Climat de la cave</h2><div class="climat">${mesure(climat.temperature, "°C", "Température")}${mesure(climat.humidite, "%", "Humidité")}</div></div>`
+    ? `<div class="carte"><span class="surtitre">Home Assistant</span><h2>Climat de la cave</h2><div class="climat">${mesure(climat.temperature, "°C", "Température")}${mesure(climat.humidite, "%", "Humidité")}</div></div>`
     : "";
-  const ligneVin = (v) => `<li>${pastille(v.couleur)}<div class="grandit"><a class="titre tronque" href="#/vins/${v.id}" style="display:block">${titreVin(v)}</a>
+  const ligneVin = (v) => `<li><span class="mini-bouteille">${bouteilleSVG(v, "silhouette")}</span><div class="grandit"><a class="titre tronque" href="#/vins/${v.id}" style="display:block">${titreVin(v)}</a>
       <span class="muted petit-texte">${esc([v.appellation, v.domaine].filter(Boolean).join(" · "))}${v.garde_fin ? ` · jusqu'en ${v.garde_fin}` : ""}</span></div>
-      ${badgeStatut(v.statut)}<span class="muted" title="bouteilles">×${v.stock}</span></li>`;
-  const mouvement = (m) => `<li><span aria-hidden="true">${m.type === "entree" ? "📥" : "🍷"}</span>
-      <div class="grandit"><span class="titre">${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</span>
-      <div class="muted petit-texte">${m.type === "entree" ? "+" : "−"}${m.quantite} · ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)} · ${dateFr(m.date)}</div></div>${etoiles(m.note)}</li>`;
+      ${badgeStatut(v.statut)}<span class="qte" title="${pluriel(v.stock, "bouteille")}">×${v.stock}</span></li>`;
+  // vins réservés pour une occasion : la date la plus proche d'abord
+  const quand = (d) => {
+    if (!d) return "";
+    const jours = Math.round((new Date(d + "T12:00:00") - new Date(aujourdhui() + "T12:00:00")) / 864e5);
+    return jours < 0 ? "passée" : jours === 0 ? "aujourd'hui" : jours === 1 ? "demain" : jours <= 30 ? `dans ${jours} jours` : dateFr(d);
+  };
+  const occasions = (s.occasions || []).slice(0, 6);
   main.innerHTML = `
     ${casierVivant(s)}
-    <div class="actions raccourcis"><button class="bouton" id="sortie-scan">▥ Sortir une bouteille par son code-barres</button></div>
+    <div class="actions raccourcis"><button class="bouton" id="sortie-scan">${ic("code-barres")} Sortir une bouteille par son code-barres</button></div>
     <div class="grille duo-a-boire">
       <div class="carte ${s.urgents.length ? "alerte-carte" : ""}"><div class="titre-carte"><h2>À boire vite</h2>
         ${s.urgents.length > 8 ? `<a href="#/vins" data-filtre-statut="urgent,depasse">Voir les ${s.urgents.length}</a>` : ""}</div>
@@ -353,8 +372,13 @@ async function pageAccueil(main) {
         ${s.a_boire.length > 8 ? `<a href="#/vins" data-filtre-statut="declin,apogee,a_boire">Voir les ${s.a_boire.length}</a>` : ""}</div>
         ${s.a_boire.length ? `<ul class="liste">${s.a_boire.slice(0, 8).map(ligneVin).join("")}</ul>` : `<p class="muted">Aucun vin dans sa fenêtre de dégustation.</p>`}</div>
     </div>
-    ${blocClimat ? `<div class="grille tableau-bord" style="margin-top:18px">${blocClimat}</div>` : ""}
-    <p class="lien-stats"><a href="#/stats">Voir les statistiques de la cave ›</a></p>
+    ${occasions.length ? `<div class="carte occasions"><div class="titre-carte"><h2>Réservés pour une occasion</h2></div><ul class="liste">${occasions.map((v) => `<li>
+      <span class="mini-bouteille">${bouteilleSVG(v, "silhouette")}</span>
+      <div class="grandit"><a class="titre tronque" href="#/vins/${v.id}" style="display:block">${titreVin(v)}</a>
+        <span class="petit-texte" style="color:var(--danger);font-weight:600">${esc(v.note_perso)}</span></div>
+      ${v.note_date ? `<span class="quand">${quand(v.note_date)}</span>` : ""}<span class="qte">×${v.stock}</span></li>`).join("")}</ul></div>` : ""}
+    ${blocClimat ? `<div class="grille tableau-bord" style="margin-top:20px">${blocClimat}</div>` : ""}
+    <p class="lien-stats"><a href="#/stats">${ic("stats")} Voir les statistiques de la cave</a></p>
   `;
   $("#sortie-scan", main).onclick = sortirParCodeBarres;
   const choisirVin = $("#choisir-vin", main);
@@ -370,12 +394,12 @@ const FILTRES_VIDES = { q: "", couleur: "", statut: "", cave_id: "", region: "",
 
 async function pageStats(main) {
   const s = await api("GET", "stats");
-  if (!s.references) { main.innerHTML = `<div class="entete"><h1>Statistiques</h1></div><div class="carte vide">Ajoutez des vins pour voir les statistiques de votre cave.</div>`; return; }
-  const mouvement = (m) => `<li><span aria-hidden="true">${m.type === "entree" ? "📥" : "🍷"}</span>
+  if (!s.references) { main.innerHTML = `${enTete("Votre cave", "Statistiques")}<div class="carte vide">Ajoutez des vins pour voir les statistiques de votre cave.</div>`; return; }
+  const mouvement = (m) => `<li><span class="signe ${m.type}" aria-label="${m.type === "entree" ? "Entrée" : "Sortie"}">${m.type === "entree" ? "+" : "−"}</span>
       <div class="grandit"><span class="titre">${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</span>
       <div class="muted petit-texte">${m.type === "entree" ? "+" : "−"}${m.quantite} · ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)} · ${dateFr(m.date)}</div></div>${etoiles(m.note)}</li>`;
-  main.innerHTML = `<div class="entete"><h1>Statistiques</h1></div>
-    <p class="muted" style="margin-top:-8px">Touchez une ligne ou une barre pour voir les bouteilles correspondantes.</p>
+  main.innerHTML = `${enTete("Votre cave", "Statistiques")}
+    <p class="muted">Touchez une ligne ou une barre pour voir les bouteilles correspondantes.</p>
     <div class="grille tableau-bord">
       <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true, lien: (l) => versVins({ couleur: l.cle }) })}</div>
       <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles), { statut: true, lien: (l) => versVins({ statut: l.cle }) })}</div>
@@ -386,7 +410,7 @@ async function pageStats(main) {
       <div class="carte"><h2>Derniers mouvements</h2>
         <p class="muted petit-texte">Ce mois-ci : +${s.entrees_mois} / −${s.sorties_mois}</p>
         ${s.derniers_mouvements.length ? `<ul class="liste">${s.derniers_mouvements.map(mouvement).join("")}</ul>` : ""}
-        <a href="#/historique">Tout l'historique</a></div>
+        <p style="margin:12px 0 0"><a href="#/historique">Tout l'historique ›</a></p></div>
     </div>`;
   const ouvrir = (e) => {
     const el = e.target.closest("[data-filtre], [data-aller]");
@@ -403,17 +427,20 @@ async function pageStats(main) {
 async function pageVins(main) {
   const caves = await api("GET", "caves");
   const statuts = { ...REF.statuts, "urgent,depasse": "⚠ À boire vite ou dépassés", "declin,apogee,a_boire": "✓ Prêts à boire" };
+  const puceCouleur = (k, libelle) => `<button type="button" class="puce${filtresVins.couleur === k ? " actif" : ""}" data-couleur="${esc(k)}" aria-pressed="${filtresVins.couleur === k}">${k ? pastille(k) : ""}${esc(libelle)}</button>`;
   main.innerHTML = `
-    <div class="entete"><h1>Mes vins</h1><div class="actions"><button class="bouton" id="sortie-scan">▥ Sortir par code-barres</button><a class="bouton primaire" href="#/ajouter">+ Ajouter un vin</a></div></div>
+    ${enTete("Collection", "Mes vins", `<button class="bouton" id="sortie-scan">${ic("code-barres")} Sortir par code-barres</button><a class="bouton primaire" href="#/ajouter">${ic("plus")} Ajouter un vin</a>`)}
+    <div class="barre-filtres">
     <div class="filtres">
-      <input type="search" name="q" placeholder="Rechercher : nom, domaine, cépage, millésime…" value="${esc(filtresVins.q)}" aria-label="Rechercher">
-      <select name="couleur" aria-label="Couleur">${options(REF.couleurs, filtresVins.couleur, "Toutes couleurs")}</select>
+      <label class="recherche">${ic("recherche")}<input type="search" name="q" placeholder="Nom, domaine, appellation, cépage, millésime…" value="${esc(filtresVins.q)}" aria-label="Rechercher"></label>
       <select name="statut" aria-label="Garde">${options(statuts, filtresVins.statut, "Toutes gardes")}</select>
       <select name="cave_id" aria-label="Cave">${options(Object.fromEntries(caves.filter((c) => !c.parent_id).map((c) => [c.id, c.nom])), filtresVins.cave_id, "Toutes caves")}</select>
       <select name="stock" aria-label="Stock">${options({ 1: "En cave", 0: "Épuisés", all: "Tous" }, filtresVins.stock)}</select>
       <select name="tri" aria-label="Tri">${options({ nom: "Tri : nom", millesime: "Tri : millésime", region: "Tri : région", garde: "Tri : à boire en premier", stock: "Tri : quantité", valeur: "Tri : valeur", recent: "Tri : derniers ajouts" }, filtresVins.tri)}</select>
     </div>
-    <p class="muted petit-texte" id="compte"></p>
+    <div class="puces" id="puces-couleur" role="group" aria-label="Couleur">${puceCouleur("", "Toutes")}${Object.entries(REF.couleurs).map(([k, l]) => puceCouleur(k, l)).join("")}</div>
+    </div>
+    <p class="petit-texte" id="compte"></p>
     <div id="resultats" class="vins"></div>`;
   $("#sortie-scan", main).onclick = sortirParCodeBarres;
   const charger = async () => {
@@ -434,15 +461,21 @@ async function pageVins(main) {
       filtresVins = { ...filtresVins, ...FILTRES_VIDES };
       route();
     };
-    $("#resultats", main).innerHTML = vins.length ? vins.map((v) => `
-      <a class="carte vin" href="#/vins/${v.id}">
-        <div class="vignette">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="" loading="lazy">` : bouteilleSVG(v.couleur)}</div>
-        <div class="infos"><span class="nom">${v.favori ? "♥ " : ""}${titreVin(v)}</span>
-          <span class="muted petit-texte tronque">${sousTitre(v) || "&nbsp;"}</span>
-          <span>${badgeStatut(v.statut)}</span></div>
-        <div class="stock">${v.stock}<small>bout.</small></div>
+    $("#resultats", main).innerHTML = vins.length ? vins.map((v) => {
+      const details = [v.appellation ? v.domaine : "", v.region, v.cepages].filter(Boolean);
+      const garde = v.garde_debut || v.garde_fin ? `${v.garde_debut || "…"} – ${v.garde_fin || "…"}` : "";
+      return `
+      <a class="carte vin${v.stock ? "" : " epuise"}" href="#/vins/${v.id}">
+        <div class="vignette">${vignetteVin(v, "mini")}</div>
+        <div class="infos">
+          ${v.appellation || (!v.appellation && v.domaine) ? `<span class="appellation tronque">${esc(v.appellation || v.domaine)}</span>` : ""}
+          <span class="nom">${v.favori ? `<span class="coeur" aria-label="Favori">♥</span>` : ""}${titreVin(v)}</span>
+          ${details.length ? `<span class="details tronque">${esc([...new Set(details)].join(" · "))}</span>` : ""}
+          <span class="pied">${badgeStatut(v.statut)}${garde ? `<span class="garde" title="Fenêtre de dégustation">${garde}</span>` : ""}</span></div>
+        <div class="stock chiffre">${v.stock}<small>${v.stock > 1 ? "bouteilles" : "bouteille"}</small></div>
         ${v.stock ? `<span class="localiser" role="button" tabindex="0" data-localiser="${v.id}" aria-label="Localiser ${esc(v.nom)} dans la cave" title="Localiser dans la cave">${ICONE_LOCALISER}</span>` : ""}
-      </a>`).join("") : `<div class="vide" style="grid-column:1/-1">Aucun vin ne correspond.</div>`;
+      </a>`;
+    }).join("") : `<div class="vide" style="grid-column:1/-1"><span class="surtitre">Aucun résultat</span>Aucun vin ne correspond à ces critères.</div>`;
   };
   const surLocaliser = (e) => {
     const cible = e.target.closest("[data-localiser]");
@@ -453,6 +486,13 @@ async function pageVins(main) {
   };
   $("#resultats", main).addEventListener("click", surLocaliser);
   $("#resultats", main).addEventListener("keydown", surLocaliser);
+  $("#puces-couleur", main).addEventListener("click", (e) => {
+    const b = e.target.closest("[data-couleur]");
+    if (!b) return;
+    filtresVins.couleur = b.dataset.couleur;
+    $$("#puces-couleur .puce", main).forEach((x) => { const on = x === b; x.classList.toggle("actif", on); x.setAttribute("aria-pressed", on); });
+    charger().catch((err) => toast(err.message, true));
+  });
   let minuteur;
   $(".filtres", main).addEventListener("input", (e) => {
     filtresVins[e.target.name] = e.target.value;
@@ -482,13 +522,13 @@ function origineGarde(v) {
   const dateIA = v.garde_ia_date ? dateFr(v.garde_ia_date.slice(0, 10)) : "";
   let html = "";
   if (v.garde_source === "ia") {
-    html = `🤖 Garde estimée par l'IA le ${dateIA}${v.garde_ia_note ? " : " + esc(v.garde_ia_note) : ""}`;
+    html = `Garde estimée par l'IA le ${dateIA}${v.garde_ia_note ? " : " + esc(v.garde_ia_note) : ""}`;
   } else if (v.garde_source === "manuel") {
-    html = "✎ Garde saisie à la main : l'IA ne la modifie pas.";
+    html = "Garde saisie à la main : l'IA ne la modifie pas.";
     const differe = v.garde_ia_fin && (v.garde_ia_debut !== v.garde_debut || v.garde_ia_fin !== v.garde_fin);
     if (differe) html += ` L'IA suggère ${v.garde_ia_debut} → ${v.garde_ia_fin}${v.garde_ia_apogee ? ` (apogée ${v.garde_ia_apogee})` : ""}${v.garde_ia_note ? " : " + esc(v.garde_ia_note) : ""}`;
   } else if (v.garde_source === "estimation") {
-    html = "✨ Garde estimée automatiquement (règle générale)" + (CAPACITES?.ia_texte?.possible ? " : l'IA l'affinera." : ".");
+    html = "Garde estimée automatiquement (règle générale)" + (CAPACITES?.ia_texte?.possible ? " : l'IA l'affinera." : ".");
   } else if (v.garde_debut || v.garde_fin) {
     html = CAPACITES?.ia_texte?.possible ? "Garde importée : l'IA l'affinera lors de son prochain passage." : "";
   }
@@ -499,29 +539,32 @@ async function pageVin(main, id) {
   const v = await api("GET", `vins/${id}`);
   const recharger = () => route();
   const prop = (titre, valeur) => valeur || valeur === 0 ? `<div><dt>${titre}</dt><dd>${valeur}</dd></div>` : "";
-  const emplacement = (b) => b.cave_id ? `${esc(b.cave_nom)}${b.rangee ? ` — rangée ${b.rangee}, colonne ${b.colonne}` : ""}` : "Non rangée";
+  const emplacement = (b) => b.cave_id ? `${esc(b.cave_nom)}${b.rangee ? ` — rangée ${LETTRE_RANG(b.rangee)}, colonne ${b.colonne}` : " — en vrac"}` : "Non rangée";
   const groupes = {};
   v.bouteilles.forEach((b) => { const k = emplacement(b); groupes[k] = groupes[k] || { b, n: 0 }; groupes[k].n++; });
+  const surtitre = [v.appellation, v.region, v.pays !== "France" ? v.pays : ""].filter(Boolean);
   main.innerHTML = `
-    <p><a href="#/vins">← Mes vins</a></p>
+    ${lienRetour("#/vins", "Mes vins")}
     <div class="fiche">
       <div>
-        <div class="photo">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="Étiquette de ${esc(v.nom)}" id="photo-vin" title="Agrandir">` : bouteilleSVG(v.couleur)}</div>
-        <div class="actions" style="margin-top:8px">
-          <label class="bouton petit" style="color:var(--texte)">📷 ${v.a_photo ? "Changer" : "Photo de l'étiquette"}
+        <div class="photo${v.a_photo ? "" : " scene"}">${v.a_photo ? `<img src="${urlPhoto(v)}" alt="Étiquette de ${esc(v.nom)}" id="photo-vin" title="Agrandir">` : bouteilleSVG(v, "grand")}</div>
+        <div class="actions">
+          <label class="bouton petit">${ic("camera")} ${v.a_photo ? "Changer la photo" : "Photo de l'étiquette"}
             <input type="file" accept="image/*" capture="environment" hidden id="photo"></label>
-          ${v.a_photo && CAPACITES.detourage ? `<button class="bouton petit" id="changer-fond">🎨 Fond</button>` : ""}
-          ${v.a_photo ? `<button class="bouton petit danger" id="suppr-photo">Retirer</button>` : ""}
+          ${v.a_photo && CAPACITES.detourage ? `<button class="bouton petit" id="changer-fond">${ic("palette")} Fond</button>` : ""}
+          ${v.a_photo ? `<button class="bouton petit discret" id="suppr-photo">Retirer</button>` : ""}
         </div>
       </div>
       <div class="grille">
         <div class="carte">
-          <div class="entete" style="align-items:flex-start">
-            <div><h1>${v.favori ? "♥ " : ""}${titreVin(v)}</h1>
-              ${v.note_perso ? `<p class="note-perso" role="note">📌 ${esc(v.note_perso)}${v.note_date ? ` · ${dateFr(v.note_date)}` : ""}</p>` : ""}
-              <div class="muted">${sousTitre(v)}</div>
-              <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${pastille(v.couleur)} ${esc(v.couleur_label)} ${badgeStatut(v.statut)} ${v.note_moyenne != null ? etoiles(v.note_moyenne) : ""}</div></div>
-            <div class="compteur">
+          <div class="fiche-tete">
+            <div style="min-width:0;flex:1">
+              ${surtitre.length ? `<span class="surtitre">${esc([...new Set(surtitre)].join(" · "))}</span>` : ""}
+              <h1>${v.favori ? `<span style="color:var(--accent-lien);font-size:.7em;vertical-align:.15em" aria-label="Favori">♥</span> ` : ""}${esc(v.nom)}${v.millesime ? ` <span class="millesime">${esc(v.millesime)}</span>` : ""}</h1>
+              ${v.domaine ? `<div class="sous-titre">${esc(v.domaine)}</div>` : ""}
+              ${v.note_perso ? `<p class="note-perso" role="note">${ic("epingle")} ${esc(v.note_perso)}${v.note_date ? ` · ${dateFr(v.note_date)}` : ""}</p>` : ""}
+              <div class="etiquettes">${pastille(v.couleur)} ${esc(v.couleur_label)} ${badgeStatut(v.statut)} ${v.note_moyenne != null ? etoiles(v.note_moyenne) : ""}</div></div>
+            <div class="compteur" title="Bouteilles en cave">
               <button class="bouton rond" id="moins" ${v.stock ? "" : "disabled"} aria-label="Sortir une bouteille">−</button>
               <div class="valeur" aria-label="bouteilles en cave">${v.stock}</div>
               <button class="bouton rond" id="plus" aria-label="Ajouter une bouteille">+</button>
@@ -529,13 +572,13 @@ async function pageVin(main, id) {
           </div>
           ${frise(v, REF.annee)}
           ${origineGarde(v)}
-          <div class="actions" style="margin-top:14px">
-            <button class="bouton primaire" id="sortir" ${v.stock ? "" : "disabled"}>🍷 Déguster / sortir</button>
-            <button class="bouton" id="entrer">📥 Ajouter des bouteilles</button>
-            <a class="bouton" href="#/vins/${v.id}/modifier">✎ Modifier</a>
-            <button class="bouton" id="garde-ia">🤖 Demander la garde à l'IA</button>
-            <button class="bouton" id="favori">${v.favori ? "♥ Retirer des favoris" : "♡ Favori"}</button>
-            <button class="bouton danger" id="supprimer">Supprimer</button>
+          <div class="actions actions-vin">
+            <button class="bouton primaire" id="sortir" ${v.stock ? "" : "disabled"}>${ic("soir")} Déguster / sortir</button>
+            <button class="bouton" id="entrer">${ic("entree")} Ajouter des bouteilles</button>
+            <a class="bouton" href="#/vins/${v.id}/modifier">${ic("crayon")} Modifier</a>
+            <button class="bouton" id="garde-ia">${ic("etincelle")} Garde par l'IA</button>
+            <button class="bouton" id="favori">${ic(v.favori ? "coeur-plein" : "envies")} ${v.favori ? "Favori" : "Ajouter aux favoris"}</button>
+            <button class="bouton danger" id="supprimer">${ic("poubelle")} Supprimer</button>
           </div>
         </div>
         <div class="carte"><h2>Caractéristiques</h2><dl class="proprietes">
@@ -546,16 +589,16 @@ async function pageVin(main, id) {
           ${prop("À boire", v.garde_debut || v.garde_fin ? `${v.garde_debut || "?"} → ${v.garde_fin || "?"}` : "")}
           ${prop("Apogée", v.garde_apogee)}
         </dl>
-        ${v.accords ? `<h3 style="margin-top:14px">Accords</h3><p>${esc(v.accords)}</p>` : ""}
-        ${v.notes ? `<h3 style="margin-top:14px">Notes</h3><p style="white-space:pre-line">${esc(v.notes)}</p>` : ""}</div>
+        ${v.accords ? `<h3 style="margin-top:20px">Accords</h3><p>${esc(v.accords)}</p>` : ""}
+        ${v.notes ? `<h3 style="margin-top:20px">Notes</h3><p style="white-space:pre-line">${esc(v.notes)}</p>` : ""}</div>
         <div class="carte"><div class="titre-carte"><h2>Emplacements</h2>
           ${v.bouteilles.some((b) => b.cave_id) ? `<button class="bouton petit" id="localiser">${ICONE_LOCALISER} Localiser dans la cave</button>` : ""}</div>
-          ${v.bouteilles.length ? `<ul class="liste">${Object.entries(groupes).map(([k, g]) => `<li><span aria-hidden="true">📍</span><span class="grandit">${g.b.cave_id ? `<a href="#/caves/${g.b.cave_id}?vin=${v.id}">${k}</a>` : k}</span><span class="muted">×${g.n}</span></li>`).join("")}</ul>`
+          ${v.bouteilles.length ? `<ul class="liste">${Object.entries(groupes).map(([k, g]) => `<li class="emplacement-ligne">${g.b.rangee ? `<span class="position">${positionCase(g.b)}</span>` : `<span class="position" style="opacity:.5">—</span>`}<span class="grandit">${g.b.cave_id ? `<a href="#/caves/${g.b.cave_id}?vin=${v.id}">${k}</a>` : k}</span><span class="qte">×${g.n}</span></li>`).join("")}</ul>`
             : `<p class="muted">Plus aucune bouteille en cave.</p>`}</div>
         <div class="carte"><h2>Historique & dégustations</h2>
           ${v.mouvements.length ? `<div class="defile"><table class="tableau"><thead><tr><th>Date</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
           ${v.mouvements.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
-            <td style="white-space:nowrap">${m.type === "entree" ? "+" : "−"}${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
+            <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
             <td>${etoiles(m.note)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Aucun mouvement.</p>`}</div>
       </div>
     </div>`;
@@ -570,12 +613,12 @@ async function pageVin(main, id) {
     }
     if (v.garde_source === "manuel" && !(await confirmer("Remplacer la garde saisie à la main par l'estimation de l'IA ?", "Remplacer"))) return;
     boutonIA.disabled = true;
-    boutonIA.textContent = "🤖 L'IA réfléchit…";
+    boutonIA.textContent = "L'IA réfléchit…";
     try {
       const r = await api("POST", `vins/${v.id}/garde-ia`, {});
       toast(`Garde estimée par l'IA : ${r.garde_debut} → ${r.garde_fin}`);
       recharger();
-    } catch (err) { toast(err.message, true); boutonIA.disabled = false; boutonIA.textContent = "🤖 Demander la garde à l'IA"; }
+    } catch (err) { toast(err.message, true); boutonIA.disabled = false; boutonIA.innerHTML = `${ic("etincelle")} Garde par l'IA`; }
   };
   const boutonLocaliser = $("#localiser", main);
   if (boutonLocaliser) boutonLocaliser.onclick = () => localiser(v.id).catch((err) => toast(err.message, true));
@@ -639,11 +682,11 @@ async function pageFormulaire(main, id) {
   const a = REF.autocompletion;
   const champ = (nom, libelle, attrs = "") => `<label>${libelle}<input name="${nom}" value="${esc(v[nom])}" ${attrs}></label>`;
   main.innerHTML = `
-    <p><a href="${id ? `#/vins/${id}` : "#/vins"}">← Retour</a></p>
-    <div class="carte"><h1>${id ? "Modifier le vin" : "Ajouter un vin"}</h1>
-    ${!id && ajout?.source ? `<p class="muted">${{ off: "📦 Fiche pré-remplie depuis Open Food Facts", ia: "🔎 Fiche pré-remplie par l'IA à partir de l'étiquette", photo: "📷 Complétez la fiche de la bouteille photographiée" }[ajout.source] || ""} : vérifiez et complétez.</p>` : ""}
+    ${lienRetour(id ? `#/vins/${id}` : "#/vins", id ? "Fiche du vin" : "Mes vins")}
+    <div class="carte formulaire-vin"><span class="surtitre">${id ? esc(v.nom) : "Nouvelle référence"}</span><h1>${id ? "Modifier le vin" : "Ajouter un vin"}</h1>
+    ${!id && ajout?.source ? `<p class="muted">${{ off: "Fiche pré-remplie depuis Open Food Facts", ia: "Fiche pré-remplie par l'IA à partir de l'étiquette", photo: "Complétez la fiche de la bouteille photographiée" }[ajout.source] || ""} : vérifiez et complétez.</p>` : ""}
     ${brouillon ? `<div class="apercu-ajout"><img id="apercu" src="${avecCle(`api/brouillons/${brouillon.brouillon}/image?fond=${brouillon.fond || ""}&cadrage=${brouillon.cadrage || ""}`)}" alt="Photo de la bouteille">
-      ${CAPACITES.detourage ? `<button class="bouton petit" type="button" id="fond-ajout">🎨 Changer de fond</button>` : ""}</div>` : ""}
+      ${CAPACITES.detourage ? `<button class="bouton petit" type="button" id="fond-ajout">${ic("palette")} Changer de fond</button>` : ""}</div>` : ""}
     <form class="form" id="formulaire" autocomplete="off">
       <fieldset><legend>Identité</legend>
         ${champ("nom", "Nom de la cuvée *", 'required placeholder="Château Margaux, Clos des Mouches…"')}
@@ -667,13 +710,13 @@ async function pageFormulaire(main, id) {
         ${champ("garde_debut", "À boire à partir de", 'type="number" min="1800" max="2200"')}
         ${champ("garde_apogee", "Apogée", 'type="number" min="1800" max="2200"')}
         ${champ("garde_fin", "À boire avant (fin)", 'type="number" min="1800" max="2200"')}
-        <div style="align-self:end"><button class="bouton" type="button" id="estimer">✨ Estimer</button></div>
+        <div style="align-self:end"><button class="bouton" type="button" id="estimer">${ic("etincelle")} Estimer</button></div>
         <input type="hidden" name="garde_source" value="${esc(v.garde_source ?? "")}">
-        <p class="muted petit-texte large" style="margin:0">✨ Estimer applique une règle générale (couleur, appellation, prix, millésime).${CAPACITES.ia_texte?.possible ? " L'IA de Home Assistant l'affinera ensuite, puis chaque mois." : ""} Une garde corrigée à la main n'est jamais modifiée par l'IA.</p>
+        <p class="muted petit-texte large" style="margin:0">« Estimer » applique une règle générale (couleur, appellation, prix, millésime).${CAPACITES.ia_texte?.possible ? " L'IA de Home Assistant l'affinera ensuite, puis chaque mois." : ""} Une garde corrigée à la main n'est jamais modifiée par l'IA.</p>
       </fieldset>
       ${id ? "" : `<fieldset><legend>Bouteilles</legend>
         <label>Nombre de bouteilles<input type="number" name="quantite" min="0" max="500" value="1"></label>
-        ${rangement ? `<p style="margin:0;align-self:end">📍 ${esc(rangement.cave_nom)}, rangée ${rangement.rangee}, colonne ${rangement.colonne}</p>
+        ${rangement ? `<p style="margin:0;align-self:end">${esc(rangement.cave_nom)}, rangée ${LETTRE_RANG(rangement.rangee)}, colonne ${rangement.colonne}</p>
           <input type="hidden" name="cave_id" value="${rangement.cave_id}"><input type="hidden" name="rangee" value="${rangement.rangee}">
           <input type="hidden" name="colonne" value="${rangement.colonne}">`
         : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.filter((c) => !c.parent_id).map((c) => `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
@@ -759,7 +802,7 @@ function dialogueFond(choisir, urlOriginal, cadrageActuel) {
       <img src="fonds/${esc(f.id)}.jpg" alt=""><span>${esc(f.label)}</span></button>`).join("");
   const d = dialogue(`<h2>Choisir le fond</h2>
     <div class="plats cadrages" role="radiogroup" aria-label="Cadrage">${(CAPACITES.cadrages || []).map((c) =>
-      `<button type="button" class="bouton petit${c.id === cadrage ? " actif" : ""}" data-cadrage="${esc(c.id)}">${c.id === "etiquette" ? "🔍" : "🍾"} ${esc(c.label)}</button>`).join("")}</div>
+      `<button type="button" class="bouton petit${c.id === cadrage ? " actif" : ""}" data-cadrage="${esc(c.id)}">${esc(c.label)}</button>`).join("")}</div>
     <div class="fonds">${vignettes}<button type="button" class="vignette-fond" data-fond=""><img src="${urlOriginal}" alt=""><span>Photo d'origine</span></button></div>
     <p class="muted petit-texte" id="etat-fond"></p>
     <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
@@ -884,7 +927,7 @@ function scanner() {
       <div class="viseur" hidden><video playsinline muted></video><div class="cadre"></div></div>
       <p class="petit-texte" id="scan-etat">Ouverture de la caméra…</p>
       <div class="actions" style="justify-content:flex-start;margin-top:8px">
-        <label class="bouton primaire">📷 Photographier le code-barres<input type="file" accept="image/*" capture="environment" hidden id="scan-photo"></label>
+        <label class="bouton primaire">${ic("camera")} Photographier le code-barres<input type="file" accept="image/*" capture="environment" hidden id="scan-photo"></label>
       </div>
       <div class="filtres" style="margin:12px 0 0">
         <input id="scan-chiffres" inputmode="numeric" placeholder="… ou tapez les chiffres" aria-label="Chiffres du code-barres">
@@ -958,14 +1001,14 @@ function scanner() {
 async function pageAjouter(main) {
   CAPACITES = await api("GET", "capacites");
   main.innerHTML = `
-    <div class="entete"><h1>Ajouter un vin</h1></div>
-    ${rangement ? `<div class="carte bandeau-rangement">📍 La bouteille sera rangée dans <b>${esc(rangement.cave_nom)}</b>, rangée ${rangement.rangee}, colonne ${rangement.colonne}.
+    ${enTete("Nouvelle référence", "Ajouter un vin")}
+    ${rangement ? `<div class="carte bandeau-rangement">${ic("epingle")} La bouteille sera rangée dans <b>${esc(rangement.cave_nom)}</b>, rangée ${LETTRE_RANG(rangement.rangee)}, colonne ${rangement.colonne}.
       <button class="bouton petit" id="annuler-rangement">Ne pas la ranger</button></div>` : ""}
     <div class="tuiles-ajout">
-      <label class="carte tuile-ajout"><span class="icone">📷</span><b>Photographier la bouteille</b>
+      <label class="carte tuile-ajout"><span class="icone">${ic("camera")}</span><b>Photographier la bouteille</b>
         <span class="muted">D'abord l'étiquette, puis le verso${CAPACITES.ia.possible ? " : l'IA remplit la fiche et trouve le code-barres" : ""}${CAPACITES.detourage ? ". La bouteille est détourée et posée sur un fond de cave" : ""}</span>
         <input type="file" accept="image/*" capture="environment" hidden id="t-photo"></label>
-      <a class="carte tuile-ajout" href="#/vins/nouveau" id="t-main"><span class="icone">✎</span><b>Saisir à la main</b><span class="muted">Formulaire complet</span></a>
+      <a class="carte tuile-ajout secondaire" href="#/vins/nouveau" id="t-main"><span class="icone">${ic("crayon")}</span><b>Saisir à la main</b><span class="muted">Formulaire complet</span></a>
     </div>
     <div id="resultat"></div>`;
   ajout = null;
@@ -992,11 +1035,11 @@ async function pageAjouter(main) {
       <div class="carte verso-choix" id="e-verso-choix" hidden>
         <b>Photographiez maintenant le verso</b>
         <p class="muted petit-texte">La contre-étiquette donne plus d'informations (cépages, degré…) et le code-barres, qui servira à sortir la bouteille d'un simple scan.</p>
-        <div class="actions"><label class="bouton primaire">📷 Photographier le verso<input type="file" accept="image/*" capture="environment" hidden id="v-photo"></label>
+        <div class="actions"><label class="bouton primaire">${ic("camera")} Photographier le verso<input type="file" accept="image/*" capture="environment" hidden id="v-photo"></label>
           <button class="bouton" id="v-ignorer">Ignorer</button></div></div>
       <div id="e-existe"></div>
       <div class="actions" id="e-actions" hidden>
-        ${CAPACITES.detourage ? `<button class="bouton" id="e-fond">🎨 Changer de fond</button>` : ""}
+        ${CAPACITES.detourage ? `<button class="bouton" id="e-fond">${ic("palette")} Changer de fond</button>` : ""}
         <button class="bouton primaire" id="e-suite">Continuer</button></div></div>`;
     montrer();
     const etape = (id, texte) => { const li = $("#" + id, resultat); if (li) li.textContent = texte; };
@@ -1055,7 +1098,7 @@ async function pageAjouter(main) {
           const v = r.local;
           $("#e-existe", resultat).innerHTML = `<div class="carte nouveau-vin-case"><b>Ce vin est déjà dans votre cave : ${titreVin(v)}</b>
             <p class="muted petit-texte">${pluriel(v.stock, "bouteille")}. Ajoutez plutôt des bouteilles à ce vin.</p>
-            <div class="actions"><button class="bouton primaire" id="e-entree">📥 Ajouter des bouteilles</button><a class="bouton" href="#/vins/${v.id}">Voir la fiche</a></div></div>`;
+            <div class="actions"><button class="bouton primaire" id="e-entree">${ic("entree")} Ajouter des bouteilles</button><a class="bouton" href="#/vins/${v.id}">Voir la fiche</a></div></div>`;
           $("#e-entree", resultat).onclick = () => dialogueEntree(v, () => apresAjout(v.id));
         }
       } catch { /* la vérification est un plus */ }
@@ -1111,9 +1154,9 @@ const titreCasier = (k) => k.parent_id ? k.nom : k.nom_casier;  // affiché au-d
 const LETTRE_RANG = (r) => `${String.fromCharCode(64 + ((r - 1) % 26) + 1)}${r > 26 ? Math.ceil(r / 26) : ""}`;
 
 /** Un casier = une grille de bouteilles couchées posée sur sa tablette.
+ *  Chaque bouteille a la forme et les couleurs de son vin (bouteilles.js) : bordelaise, bourguignonne, flûte, champagne.
  *  surligne : vin dont les bouteilles clignotent ; choix : mode « choisir un emplacement » (seules les places libres réagissent). */
 function dessinerCasier(k, { surligne = null, choix = false } = {}) {
-  const dessin = (couleur) => `<svg aria-hidden="true"><use href="#${couleur === "effervescent" ? "bouteille-champagne" : "bouteille-couchee"}"/></svg>`;
   const parCase = {};
   k.bouteilles.forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
   let h = `<div class="plan${choix ? " plan-choix" : ""}" style="grid-template-columns: 22px repeat(${k.colonnes}, var(--case))"><span></span>`;
@@ -1123,10 +1166,14 @@ function dessinerCasier(k, { surligne = null, choix = false } = {}) {
     for (let col = 1; col <= k.colonnes; col++) {
       const b = parCase[`${r}-${col}`];
       // les rangs du haut passent devant ceux du dessous (le goulot recouvre la bouteille du rang inférieur)
-      const z = `style="z-index:${k.rangees - r + 1}${r > 1 ? ";margin-top:-10px" : ""}"`;
-      h += b
-        ? `<button type="button" class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" ${z} data-k="${k.id}" data-b="${b.id}"${choix ? " disabled" : ""} title="${esc(b.nom)}${b.millesime ? " " + b.millesime : ""} : ${esc(REF.statuts[b.statut] || "")}" aria-label="${esc(nomCasier(k))}, rangée ${LETTRE_RANG(r)}, colonne ${col} : ${esc(b.nom)}">${dessin(b.couleur)}</button>`
-        : `<button type="button" class="case-cave" ${z} data-k="${k.id}" data-r="${r}" data-c="${col}" aria-label="${esc(nomCasier(k))}, rangée ${LETTRE_RANG(r)}, colonne ${col} : libre">${dessin()}</button>`;
+      const z = `z-index:${k.rangees - r + 1}${r > 1 ? ";margin-top:calc(var(--case) * -.17)" : ""}`;
+      const lieu = `${esc(nomCasier(k))}, ${LETTRE_RANG(r)}${col}`;
+      if (b) {
+        const a = Bouteilles.couchee(b);
+        h += `<button type="button" class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" style="${z};color:${a.verre};--capsule:${a.capsule}" data-k="${k.id}" data-b="${b.id}"${choix ? " disabled" : ""} aria-label="${lieu} : ${esc(b.nom)}${b.millesime ? " " + b.millesime : ""}, ${esc(REF.statuts[b.statut] || "")}"><svg aria-hidden="true"><use href="#${a.symbole}"/></svg></button>`;
+      } else {
+        h += `<button type="button" class="case-cave" style="${z}" data-k="${k.id}" data-r="${r}" data-c="${col}" aria-label="${lieu} : libre"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></button>`;
+      }
     }
   }
   return h + `</div>`;
@@ -1146,10 +1193,14 @@ function selecteurEmplacements(select, zone, { quantite, couleur }) {
       : `Touchez ${n > 1 ? `les ${n} emplacements` : "l'emplacement"} où vous rangez ${n > 1 ? "les bouteilles" : "la bouteille"}${n > 1 ? " (ou un seul : les suivantes iront dans les places libres)" : ""}.`;
   };
   const marquer = () => {
+    // une place choisie prend l'aspect de la bouteille qu'on y range
+    const a = Bouteilles.couchee({ couleur: couleur() || "rouge" });
     $$(".case-cave:not(.pleine)", zone).forEach((b) => {
       const pris = choisis.some((e) => e.cave_id === +b.dataset.k && e.rangee === +b.dataset.r && e.colonne === +b.dataset.c);
       b.classList.toggle("choisie", pris);
-      b.classList.toggle(couleur() || "rouge", pris);
+      b.style.color = pris ? a.verre : "";
+      b.style.setProperty("--capsule", pris ? a.capsule : "");
+      $("use", b).setAttribute("href", "#" + (pris ? a.symbole : "bouteille-couchee"));
       b.setAttribute("aria-pressed", pris ? "true" : "false");
     });
     resume();
@@ -1164,7 +1215,7 @@ function selecteurEmplacements(select, zone, { quantite, couleur }) {
     const dispo = disposerCasiers(cave);
     zone.innerHTML = `<p class="choix-info petit-texte"></p>
       <div class="plan-conteneur">${grilleCasiers(dispo, (k) => `
-        <div class="casier-bloc">
+        <div class="casier-bloc${k.refrigere ? " refrigere" : ""}">
           ${titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span></div>` : ""}
           ${dessinerCasier(k, { choix: true })}</div>`)}</div>`;
     $$(".case-cave:not(.pleine)", zone).forEach((b) => b.addEventListener("click", () => {
@@ -1218,13 +1269,26 @@ function grilleCasiers(dispo, bloc) {
     `<div class="colonne-casiers">${colonnes[x].sort((a, b) => a.rang - b.rang).map((d) => bloc(d.casier)).join("")}</div>`).join("")}</div>`;
 }
 
+const sansAccent = (t) => String(t ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const memoire = {
+  lire(cle) { try { return localStorage.getItem(cle); } catch { return null; } },
+  ecrire(cle, v) { try { v == null ? localStorage.removeItem(cle) : localStorage.setItem(cle, String(v)); } catch { /* navigation privée */ } },
+};
+// groupes de surlignage par garde
+const GROUPES_GARDE = [
+  { cle: "vite", libelle: "À boire vite", statuts: ["urgent", "depasse"], teinte: "var(--s-urgent)" },
+  { cle: "prets", libelle: "Prêts à boire", statuts: ["a_boire", "apogee", "declin"], teinte: "var(--s-a_boire)" },
+  { cle: "garder", libelle: "À garder", statuts: ["trop_jeune"], teinte: "var(--s-trop_jeune)" },
+];
+const ZOOMS = [34, 40, 46, 52, 58, 66, 76, 88];
+
 async function pageCaves(main, id, params) {
   rangement = null;  // retour au plan : on abandonne un rangement commencé
   const toutes = await api("GET", "caves");
   const caves = toutes.filter((c) => !c.parent_id);
   if (!id && caves.length) { location.replace(`#/caves/${caves[0].id}${params ? "?" + params : ""}`); return; }
-  const onglets = `<nav class="onglets">${caves.map((c) => `<a href="#/caves/${c.id}" class="${c.id === id ? "actif" : ""}">${esc(c.nom)} <span class="muted">${c.bouteilles}</span></a>`).join("")}</nav>`;
-  const entete = `<div class="entete"><h1>Plan de cave</h1><button class="bouton primaire" id="nouvelle">+ Nouvelle cave</button></div>`;
+  const onglets = caves.length > 1 ? `<nav class="onglets" aria-label="Caves">${caves.map((c) => `<a href="#/caves/${c.id}" class="${c.id === id ? "actif" : ""}">${esc(c.nom)} <span class="muted">${c.bouteilles}</span></a>`).join("")}</nav>` : "";
+  const entete = enTete("Votre cave", "Plan de cave", `<button class="bouton" id="nouvelle">${ic("plus")} Nouvelle cave</button>`);
   if (!caves.length) {
     main.innerHTML = entete + `<div class="carte vide"><p>Décrivez votre cave : une armoire à vin, un casier, une pièce…<br>Indiquez le nombre de rangées et de colonnes pour obtenir un plan cliquable, ou 0 pour un rangement « en vrac ».</p></div>`;
     $("#nouvelle", main).onclick = () => dialogueCave();
@@ -1234,59 +1298,104 @@ async function pageCaves(main, id, params) {
   if (c.parent_id) { location.replace(`#/caves/${c.parent_id}${params ? "?" + params : ""}`); return; }  // lien vers une étagère
   const casiers = [c, ...c.etageres];
   const toutesBouteilles = casiers.flatMap((x) => x.bouteilles);
+  const parId = new Map(toutesBouteilles.map((b) => [b.id, b]));
+  const casierDe = (b) => casiers.find((x) => x.id === b.cave_id) || c;
   const surligne = +new URLSearchParams(params).get("vin") || null;
   const capacite = casiers.reduce((n, x) => n + x.capacite, 0);
-  const occupees = toutesBouteilles.filter((b) => b.rangee).length;
+  const rangees = toutesBouteilles.filter((b) => b.rangee);
+  const occupees = rangees.length;
 
-  const planCasier = (k) => dessinerCasier(k, { surligne });
   const disposition = c.capacite ? disposerCasiers(c) : [];
   const plusieurs = disposition.length > 1;
-  const plan = disposition.length ? `<div class="plan-conteneur">${grilleCasiers(disposition, (k) => `
-      <div class="casier-bloc">
-        ${(() => {
-          const modifier = `<button class="bouton petit modifier-etagere" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>`;
-          const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave électrique">❄</span>` : "";
-          // casier nommé : nom, ❄ et ✎ sur la même ligne ; sinon ❄ et ✎ discrets dans le coin
-          return titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span>${froid}${modifier}</div>`
-            : `<div class="casier-coin">${froid}${modifier}</div>`;
-        })()}
-        ${planCasier(k)}</div>`)}</div>
-    <div class="legende">${Object.entries(REF.couleurs).map(([k, l]) => `<span>${pastille(k)} ${esc(l)}</span>`).join("")}<span><b>!</b>&nbsp;à boire vite / dépassé</span><span>◌ emplacement libre</span></div>` : "";
+  const blocCasier = (k) => {
+    const pleines = k.bouteilles.filter((b) => b.rangee).length;
+    const taux = `<span class="casier-taux" title="Emplacements occupés">${pleines}/${k.capacite}</span>`;
+    const modifier = `<button class="modifier-etagere" type="button" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>`;
+    const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave électrique">❄</span>` : "";
+    // casier nommé : nom, taux, ❄ et ✎ sur la même ligne ; sinon discrets dans le coin
+    const tete = titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span>${froid}${taux}${modifier}</div>`
+      : `<div class="casier-coin">${froid}${plusieurs ? taux : ""}${modifier}</div>`;
+    return `<div class="casier-bloc${k.refrigere ? " refrigere" : ""}">${tete}${dessinerCasier(k, { surligne })}</div>`;
+  };
+
+  // puces de surlignage : couleurs puis gardes présentes dans cette cave
+  const compte = (f) => rangees.filter(f).length;
+  const puce = (type, cle, libelle, icone, n) => `<button type="button" class="puce" data-type="${type}" data-cle="${esc(cle)}" aria-pressed="false">${icone}${esc(libelle)} <span class="n">${n}</span></button>`;
+  const puces = [
+    ...Object.entries(REF.couleurs).map(([k, l]) => {
+      const n = compte((b) => b.couleur === k);
+      if (!n) return "";
+      const a = Bouteilles.couchee({ couleur: k });
+      return puce("couleur", k, l, `<svg class="leg" aria-hidden="true" style="color:${a.verre};--capsule:${a.capsule}"><use href="#${a.symbole}"/></svg>`, n);
+    }),
+    ...GROUPES_GARDE.map((g) => {
+      const n = compte((b) => g.statuts.includes(b.statut));
+      return n ? puce("garde", g.cle, g.libelle, `<span class="pastille" style="background:${g.teinte}"></span>`, n) : "";
+    }),
+  ].join("");
+  const vueMemo = memoire.lire("tessvine-plan-vue") === "liste" ? "liste" : "plan";
+  const outils = disposition.length ? `<div class="plan-outils">
+      <label class="recherche">${ic("recherche")}<input type="search" id="plan-recherche" placeholder="Trouver une bouteille : nom, millésime, B4…" aria-label="Rechercher dans la cave" autocomplete="off"></label>
+      <div class="groupe-boutons" role="group" aria-label="Zoom du plan">
+        <button type="button" data-zoom="-1" aria-label="Réduire" title="Réduire">${ic("moins")}</button>
+        <button type="button" data-zoom="ajuster" aria-label="Ajuster à l'écran" title="Ajuster à l'écran">${ic("ajuster")}</button>
+        <button type="button" data-zoom="1" aria-label="Agrandir" title="Agrandir">${ic("plus")}</button></div>
+      <div class="groupe-boutons" role="group" aria-label="Affichage">
+        <button type="button" data-vue="plan" class="${vueMemo === "plan" ? "actif" : ""}" aria-pressed="${vueMemo === "plan"}">${ic("cave")} Plan</button>
+        <button type="button" data-vue="liste" class="${vueMemo === "liste" ? "actif" : ""}" aria-pressed="${vueMemo === "liste"}">${ic("liste")} Liste</button></div>
+      <span class="resultat-surlignage" id="resultat-surlignage" aria-live="polite"></span>
+      ${puces ? `<div class="puces plan-puces" role="group" aria-label="Mettre en évidence">${puces}</div>` : ""}
+    </div>` : "";
+  const listeCasiers = () => disposition.map(({ casier: k }) => {
+    const bs = k.bouteilles.filter((b) => b.rangee).sort((a, b) => a.rangee - b.rangee || a.colonne - b.colonne);
+    return `<section><h3>${esc(nomCasier(k))}${k.refrigere ? ` <span class="froid-titre">❄</span>` : ""} <span class="casier-taux">${bs.length}/${k.capacite}</span></h3>
+      ${bs.length ? `<ul class="liste">${bs.map((b) => `<li data-b="${b.id}" role="button" tabindex="0" class="${b.vin_id === surligne ? "surligne" : ""}">
+        <span class="position">${positionCase(b)}</span><span class="mini-bouteille">${bouteilleSVG(b, "silhouette")}</span>
+        <div class="grandit"><span class="titre">${titreVin(b)}</span><div class="muted petit-texte tronque">${esc([b.appellation, b.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div></div>
+        ${badgeStatut(b.statut)}</li>`).join("")}</ul>` : `<p class="muted petit-texte">Aucune bouteille.</p>`}</section>`;
+  }).join("");
+  const plan = disposition.length ? `${outils}
+    <div class="plan-conteneur" id="plan-conteneur"${vueMemo === "liste" ? " hidden" : ""}>${grilleCasiers(disposition, blocCasier)}</div>
+    <div class="vue-liste" id="vue-liste"${vueMemo === "plan" ? " hidden" : ""}>${listeCasiers()}</div>
+    <div class="legende"><span><span class="alerte-pt">!</span> à boire vite ou dépassé</span><span>◌ emplacement libre : touchez-le pour y ranger une bouteille</span>${casiers.some((k) => k.refrigere) ? `<span><span class="froid-titre">❄</span> cave électrique</span>` : ""}</div>` : "";
 
   let bandeau = "";
   if (surligne) {
     const vin = await api("GET", `vins/${surligne}`).catch(() => null);
     if (vin) {
-      const ici = toutesBouteilles.filter((b) => b.vin_id === surligne).length;
+      const ici = toutesBouteilles.filter((b) => b.vin_id === surligne);
       const ailleurs = {};
       vin.bouteilles.filter((b) => b.cave_racine && b.cave_racine !== c.id).forEach((b) => { ailleurs[b.cave_racine] = ailleurs[b.cave_racine] || { nom: b.cave_nom, n: 0 }; ailleurs[b.cave_racine].n++; });
+      const positions = ici.filter((b) => b.rangee).map((b) => `<span class="position">${plusieurs && b.cave_id !== c.id ? esc(nomCasier(casierDe(b))) + " · " : ""}${positionCase(b)}</span>`).join(" ");
       bandeau = `<div class="carte bandeau-localisation" role="status">${ICONE_LOCALISER}
-        <div class="grandit"><b>${titreVin(vin)}</b><div class="muted petit-texte">${ici ? `${pluriel(ici, "bouteille")} ${ici > 1 ? "clignotent" : "clignote"} dans cette cave` : "Aucune bouteille dans cette cave"}${Object.entries(ailleurs).map(([cid, a]) => ` · <a href="#/caves/${cid}?vin=${vin.id}">${pluriel(a.n, "autre")} dans ${esc(a.nom)}</a>`).join("")}</div></div>
+        <div class="grandit"><b>${titreVin(vin)}</b><div class="muted petit-texte" style="margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">${ici.length ? `${pluriel(ici.length, "bouteille")} ${ici.length > 1 ? "clignotent" : "clignote"} dans cette cave ${positions}` : "Aucune bouteille dans cette cave"}${Object.entries(ailleurs).map(([cid, a]) => ` · <a href="#/caves/${cid}?vin=${vin.id}">${pluriel(a.n, "autre")} dans ${esc(a.nom)}</a>`).join("")}</div></div>
         <a class="bouton petit" href="#/vins/${vin.id}">Fiche</a><a class="bouton petit" href="#/caves/${c.id}">Arrêter</a></div>`;
     }
   }
   const vrac = c.bouteilles.filter((b) => !b.rangee);
   const groupesVrac = {};
   vrac.forEach((b) => { groupesVrac[b.vin_id] = groupesVrac[b.vin_id] || { ...b, n: 0 }; groupesVrac[b.vin_id].n++; });
+  const pourcent = capacite ? Math.round(100 * occupees / capacite) : 0;
   main.innerHTML = entete + onglets + bandeau + `
-    <div class="carte">
-      <div class="entete"><div><h2 style="margin:0">${esc(c.nom)}</h2>
-        <span class="muted">${capacite ? `${occupees} / ${capacite} emplacements occupés${plusieurs ? ` · ${pluriel(disposition.length, "casier")}` : ` · ${c.rangees} rangées × ${c.colonnes} colonnes`}` : pluriel(c.bouteilles.length, "bouteille") + " (rangement libre)"}</span>
-        ${c.description ? `<p class="muted">${esc(c.description)}</p>` : ""}</div>
-        <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">+ Étagère</button>` : ""}<button class="bouton petit" id="modifier">✎ Modifier</button><button class="bouton petit danger" id="supprimer">Supprimer</button></div></div>
-      ${aRanger.length ? `<button type="button" class="pastille-ranger" id="voir-a-ranger">📦 ${pluriel(aRanger.length, "bouteille non rangée", "bouteilles non rangées")} <span aria-hidden="true">›</span></button>` : ""}
-      <p id="mode-deplacement" class="muted" hidden><span id="texte-deplacement">Choisissez l'emplacement de destination…</span> <button class="bouton petit" id="annuler-depl">Annuler</button></p>
+    <section class="carte">
+      <div class="cave-tete"><div>
+        <h2>${esc(c.nom)}</h2>
+        <div class="remplissage">${capacite ? `<span class="jauge" aria-hidden="true"><span style="width:${pourcent}%"></span></span>${occupees} / ${capacite} emplacements occupés${plusieurs ? ` · ${pluriel(disposition.length, "casier")}` : ` · ${c.rangees} rangées × ${c.colonnes} colonnes`}` : pluriel(c.bouteilles.length, "bouteille") + " (rangement libre)"}</div>
+        ${c.description ? `<p class="muted petit-texte" style="margin:6px 0 0">${esc(c.description)}</p>` : ""}</div>
+        <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">${ic("plus")} Étagère</button>` : ""}<button class="bouton petit" id="modifier">${ic("crayon")} Modifier</button><button class="bouton petit discret" id="supprimer" title="Supprimer la cave">${ic("poubelle")}<span class="seul-texte">Supprimer</span></button></div></div>
+      ${aRanger.length ? `<p style="margin:0 0 14px"><button type="button" class="pastille-ranger" id="voir-a-ranger">${ic("boite")} ${pluriel(aRanger.length, "bouteille non rangée", "bouteilles non rangées")} <span aria-hidden="true">›</span></button></p>` : ""}
+      <div id="mode-deplacement" hidden><span class="grandit" id="texte-deplacement">Choisissez l'emplacement de destination…</span> <button class="bouton petit" id="annuler-depl">Annuler</button></div>
       ${plan}
-      ${vrac.length ? `<h3 style="margin-top:16px">${c.capacite ? "Sans emplacement précis" : "Bouteilles"}</h3><ul class="liste">${Object.values(groupesVrac).map((b) =>
-        `<li class="${b.vin_id === surligne ? "surligne" : ""}">${pastille(b.couleur)}<a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="muted">×${b.n}</span></li>`).join("")}</ul>` : ""}
+      ${vrac.length ? `<h3 style="margin-top:24px">${c.capacite ? "Sans emplacement précis" : "Bouteilles"}</h3><ul class="liste">${Object.values(groupesVrac).map((b) =>
+        `<li class="${b.vin_id === surligne ? "surligne" : ""}"><span class="mini-bouteille">${bouteilleSVG(b, "silhouette")}</span><a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="qte">×${b.n}</span></li>`).join("")}</ul>` : ""}
       ${!c.bouteilles.length && !c.capacite ? `<p class="muted">Aucune bouteille. Ajoutez-en depuis la fiche d'un vin.</p>` : ""}
-    </div>`;
+    </section>`;
   $("#nouvelle", main).onclick = () => dialogueCave();
   $("#modifier", main).onclick = () => dialogueCave(c);
   const boutonEtagere = $("#etagere", main);
   if (boutonEtagere) boutonEtagere.onclick = () => dialogueEtagere(c);
   const boutonCasier = $("[data-modifier-casier]", main);
-  if (boutonCasier) boutonCasier.onclick = () => dialogue(`<h2>Nom du casier principal</h2>
+  if (boutonCasier) boutonCasier.onclick = () => dialogue(`<h2>Casier principal</h2>
     <div class="form"><label class="large">Nom (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
       <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p>
       <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${c.rangees}" required></label>
@@ -1309,6 +1418,8 @@ async function pageCaves(main, id, params) {
       location.hash = "#/caves";
     }
   };
+
+  /* --- déplacer / ranger une bouteille : les places libres s'allument */
   let deplacement = null;
   const finDeplacement = () => {
     deplacement = null;
@@ -1318,18 +1429,19 @@ async function pageCaves(main, id, params) {
   $("#annuler-depl", main).onclick = finDeplacement;
   const commencerRangement = (b) => {
     deplacement = b.id;
-    $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement où ranger <b>${titreVin(b)}</b>…`;
+    $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement libre où ranger <b>${titreVin(b)}</b>${b.rangee ? ` (actuellement en ${positionCase(b)})` : ""}.`;
     $("#mode-deplacement", main).hidden = false;
+    if (vueListe && !vueListe.hidden) changerVue("plan");
     $$(".case-cave:not(.pleine)", main).forEach((x) => x.classList.add("cible"));
-    $(".plan-conteneur", main)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    $("#mode-deplacement", main).scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const voirARanger = () => {
     const groupes = {};
     aRanger.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, ids: [] }; groupes[b.vin_id].ids.push(b); });
-    const d = dialogue(`<h2>Bouteilles non rangées</h2>
+    const d = dialogue(`<span class="surtitre">À ranger</span><h2>Bouteilles non rangées</h2>
       <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis l'emplacement voulu." : ""}</p>
       <ul class="a-ranger-liste">${Object.values(groupes).map((g) => `<li>
-        <div class="etiquette">${g.a_photo ? `<img src="${urlPhoto({ id: g.vin_id, updated_at: g.updated_at })}" alt="Étiquette de ${esc(g.nom)}" loading="lazy">` : bouteilleSVG(g.couleur)}</div>
+        <div class="etiquette">${vignetteVin(g, "mini", `Étiquette de ${g.nom}`)}</div>
         <div class="grandit"><b>${titreVin(g)}</b>
           <div class="muted petit-texte">${esc([g.appellation, g.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
           <div class="muted petit-texte">${g.ids[0].cave_nom ? `En vrac dans ${esc(g.ids[0].cave_nom)}` : "Hors cave"} · ×${g.ids.length}</div></div>
@@ -1342,35 +1454,38 @@ async function pageCaves(main, id, params) {
   };
   const boutonARanger = $("#voir-a-ranger", main);
   if (boutonARanger) boutonARanger.onclick = voirARanger;
-  if (new URLSearchParams(params).get("ranger") && aRanger.length) voirARanger();
-  const idPlacer = +new URLSearchParams(params).get("placer");
-  const aPlacer = aRanger.find((b) => b.id === idPlacer) || toutesBouteilles.find((b) => b.id === idPlacer);
-  if (aPlacer) commencerRangement(aPlacer);
+
+  /* --- fiche d'une bouteille du plan */
+  const ouvrirBouteille = (b) => {
+    const k = casierDe(b);
+    const vin = { id: b.vin_id, nom: b.nom, millesime: b.millesime, stock: 1 };
+    const garde = b.garde_debut || b.garde_fin ? `<span class="muted petit-texte">à boire ${b.garde_debut || "…"} – ${b.garde_fin || "…"}</span>` : "";
+    const d = dialogue(`<div class="dialogue-bouteille">
+        <div class="art">${b.a_photo ? `<img src="${urlPhoto({ id: b.vin_id, updated_at: b.updated_at })}" alt="Étiquette de ${esc(b.nom)}">` : bouteilleSVG(b, "moyen")}</div>
+        <div>
+          ${b.appellation || b.region ? `<span class="surtitre">${esc(b.appellation || b.region)}</span>` : ""}
+          <h2>${titreVin(b)}</h2>
+          ${b.domaine ? `<div class="muted" style="font:italic 500 1.12rem var(--serif)">${esc(b.domaine)}</div>` : ""}
+          <div class="lieu"><span class="position">${positionCase(b)}</span>${esc(nomCasier(k))}${k.refrigere ? ` <span class="froid-titre">❄</span>` : ""}</div>
+          <div class="actions" style="margin:0;gap:10px">${badgeStatut(b.statut)}${garde}</div>
+        </div></div>
+      <div class="actions" style="justify-content:flex-start">
+        <button class="bouton primaire" type="button" data-action="sortir">${ic("soir")} Sortir cette bouteille</button>
+        <button class="bouton" type="button" data-action="deplacer">${ic("deplacer")} Déplacer</button>
+        <a class="bouton" href="#/vins/${b.vin_id}" data-action="fiche">${ic("fiche")} Fiche du vin</a>
+        <button class="bouton discret" data-fermer style="margin-left:auto">Fermer</button></div>`);
+    $("[data-action=sortir]", d).onclick = () => { d.close(); dialogueSortie(vin, b.id, () => route()); };
+    $("[data-action=fiche]", d).onclick = () => d.close();
+    $("[data-action=deplacer]", d).onclick = () => { d.close(); commencerRangement(b); };
+  };
+
   $$(".case-cave", main).forEach((bouton) => bouton.addEventListener("click", async () => {
     const k = casiers.find((x) => x.id === +bouton.dataset.k);
-    if (bouton.dataset.b) {
-      const b = k.bouteilles.find((x) => x.id === +bouton.dataset.b);
-      const vin = { id: b.vin_id, nom: b.nom, millesime: b.millesime, stock: 1 };
-      const lieu = `${plusieurs ? esc(nomCasier(k)) + ", " : ""}rangée ${LETTRE_RANG(b.rangee)}, colonne ${b.colonne}`;
-      const d = dialogue(`<h2>${pastille(b.couleur)} ${titreVin(b)}</h2>
-        <p class="muted">${esc(b.domaine || "")}${b.domaine ? " · " : ""}${lieu}</p><p>${badgeStatut(b.statut)}</p>
-        <div class="actions" style="justify-content:flex-start">
-          <button class="bouton primaire" type="button" data-action="sortir">🍷 Sortir cette bouteille</button>
-          <button class="bouton" type="button" data-action="deplacer">↔ Déplacer</button>
-          <a class="bouton" href="#/vins/${b.vin_id}" data-action="fiche">Voir la fiche</a></div>
-        <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
-      $("[data-action=sortir]", d).onclick = () => { d.close(); dialogueSortie(vin, b.id, () => route()); };
-      $("[data-action=fiche]", d).onclick = () => d.close();
-      $("[data-action=deplacer]", d).onclick = () => {
-        d.close();
-        deplacement = b.id;
-        $("#mode-deplacement", main).hidden = false;
-        $$(".case-cave:not(.pleine)", main).forEach((x) => x.classList.add("cible"));
-      };
-    } else if (deplacement) {
+    if (bouton.dataset.b) ouvrirBouteille(parId.get(+bouton.dataset.b));
+    else if (deplacement) {
       try {
         await api("PUT", `bouteilles/${deplacement}`, { cave_id: k.id, rangee: +bouton.dataset.r, colonne: +bouton.dataset.c });
-        toast("Bouteille rangée");
+        toast(`Bouteille rangée en ${LETTRE_RANG(+bouton.dataset.r)}${bouton.dataset.c}`);
         location.hash = `#/caves/${c.id}`;
         route();
       } catch (err) { toast(err.message, true); finDeplacement(); }
@@ -1378,6 +1493,172 @@ async function pageCaves(main, id, params) {
       await dialogueRanger(k, +bouton.dataset.r, +bouton.dataset.c);
     }
   }));
+
+  /* --- vue liste */
+  const conteneur = $("#plan-conteneur", main);
+  const vueListe = $("#vue-liste", main);
+  const changerVue = (vue) => {
+    if (!conteneur) return;
+    conteneur.hidden = vue !== "plan";
+    vueListe.hidden = vue !== "liste";
+    $$("[data-vue]", main).forEach((b) => { const on = b.dataset.vue === vue; b.classList.toggle("actif", on); b.setAttribute("aria-pressed", on); });
+    $$("[data-zoom]", main).forEach((b) => (b.disabled = vue !== "plan"));
+    memoire.ecrire("tessvine-plan-vue", vue === "liste" ? "liste" : null);
+    if (vue === "plan") majZoom();
+  };
+  $$("[data-vue]", main).forEach((b) => (b.onclick = () => changerVue(b.dataset.vue)));
+  if (vueListe) {
+    const ouvrirLigne = (e) => {
+      const li = e.target.closest("li[data-b]");
+      if (!li || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      ouvrirBouteille(parId.get(+li.dataset.b));
+    };
+    vueListe.addEventListener("click", ouvrirLigne);
+    vueListe.addEventListener("keydown", ouvrirLigne);
+  }
+
+  /* --- zoom : boutons, pincement à deux doigts, Ctrl + molette ; la taille choisie est mémorisée */
+  let taille = 58;
+  const appliquerZoom = (v) => {
+    taille = Math.round(Math.max(ZOOMS[0] - 4, Math.min(ZOOMS[ZOOMS.length - 1] + 8, v)));
+    conteneur.style.setProperty("--case", taille + "px");
+    const moins = $("[data-zoom='-1']", main), plus = $("[data-zoom='1']", main);
+    if (moins) moins.disabled = taille <= ZOOMS[0] - 4;
+    if (plus) plus.disabled = taille >= ZOOMS[ZOOMS.length - 1] + 8;
+  };
+  const tailleAjustee = () => {
+    // la largeur du plan varie linéairement avec la taille d'une case : deux mesures suffisent
+    const bloc = $(".casiers", conteneur);
+    conteneur.style.setProperty("--case", "40px");
+    const l40 = bloc.scrollWidth;
+    conteneur.style.setProperty("--case", "80px");
+    const l80 = bloc.scrollWidth;
+    const pente = (l80 - l40) / 40;
+    const style = getComputedStyle(conteneur);
+    const dispo = conteneur.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2;
+    return pente > 0 ? (dispo - (l40 - 40 * pente)) / pente : 58;
+  };
+  const majZoom = () => {
+    if (!conteneur || conteneur.hidden) return;
+    const memo = +memoire.lire("tessvine-plan-case");
+    appliquerZoom(memo || Math.max(36, Math.min(66, tailleAjustee())));
+  };
+  if (conteneur) {
+    majZoom();
+    $$("[data-zoom]", main).forEach((b) => (b.onclick = () => {
+      if (b.dataset.zoom === "ajuster") {
+        memoire.ecrire("tessvine-plan-case", null);  // retour au réglage automatique
+        appliquerZoom(Math.max(ZOOMS[0] - 4, Math.min(76, tailleAjustee())));
+        return;
+      }
+      const sens = +b.dataset.zoom;
+      const suivant = sens > 0 ? ZOOMS.find((z) => z > taille + 1) : [...ZOOMS].reverse().find((z) => z < taille - 1);
+      appliquerZoom(suivant ?? (sens > 0 ? ZOOMS[ZOOMS.length - 1] + 8 : ZOOMS[0] - 4));
+      memoire.ecrire("tessvine-plan-case", taille);
+    }));
+    conteneur.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey) return;  // pincement du pavé tactile, ou Ctrl + molette
+      e.preventDefault();
+      appliquerZoom(taille * (e.deltaY < 0 ? 1.06 : 1 / 1.06));
+      memoire.ecrire("tessvine-plan-case", taille);
+    }, { passive: false });
+    const doigts = new Map();
+    let pince = null;
+    const ecart = () => { const [a, b] = [...doigts.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]) || 1; };
+    conteneur.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      doigts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (doigts.size === 2) pince = { ecart: ecart(), taille };
+    });
+    conteneur.addEventListener("pointermove", (e) => {
+      if (!doigts.has(e.pointerId)) return;
+      doigts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pince && doigts.size === 2) appliquerZoom(pince.taille * ecart() / pince.ecart);
+    });
+    const leve = (e) => {
+      doigts.delete(e.pointerId);
+      if (pince && doigts.size < 2) { pince = null; memoire.ecrire("tessvine-plan-case", taille); }
+    };
+    conteneur.addEventListener("pointerup", leve);
+    conteneur.addEventListener("pointercancel", leve);
+
+    /* --- infobulle au survol de la souris */
+    const bulle = document.createElement("div");
+    bulle.className = "infobulle";
+    bulle.setAttribute("aria-hidden", "true");
+    main.append(bulle);
+    const placer = (e) => {
+      const l = bulle.offsetWidth, h = bulle.offsetHeight;
+      const x = Math.min(window.innerWidth - l - 10, e.clientX + 16);
+      const y = e.clientY + 18 + h > window.innerHeight ? e.clientY - h - 14 : e.clientY + 18;
+      bulle.style.left = x + "px";
+      bulle.style.top = y + "px";
+    };
+    conteneur.addEventListener("pointerover", (e) => {
+      if (e.pointerType !== "mouse") return;
+      const bouton = e.target.closest(".case-cave.pleine");
+      if (!bouton) return;
+      const b = parId.get(+bouton.dataset.b);
+      bulle.innerHTML = `<span class="nom">${titreVin(b)}</span>${esc([b.appellation || b.region, b.domaine].filter(Boolean).join(" · "))}
+        <span class="lieu">${esc(nomCasier(casierDe(b)))} · ${positionCase(b)}</span>${badgeStatut(b.statut)}`;
+      bulle.classList.add("visible");
+      placer(e);
+    });
+    conteneur.addEventListener("pointermove", (e) => { if (bulle.classList.contains("visible")) placer(e); });
+    conteneur.addEventListener("pointerout", (e) => {
+      if (e.target.closest(".case-cave.pleine") && !e.relatedTarget?.closest?.(".case-cave.pleine")) bulle.classList.remove("visible");
+    });
+    conteneur.addEventListener("scroll", () => bulle.classList.remove("visible"), { passive: true });
+  }
+
+  /* --- mettre en évidence : par couleur, par garde, ou par recherche ; le reste s'estompe */
+  let filtre = null;
+  let recherche = "";
+  const groupe = (cle) => GROUPES_GARDE.find((g) => g.cle === cle);
+  const correspond = (b) => {
+    if (filtre && (filtre.type === "couleur" ? b.couleur !== filtre.cle : !groupe(filtre.cle).statuts.includes(b.statut))) return false;
+    if (!recherche) return true;
+    const texte = sansAccent([b.nom, b.domaine, b.appellation, b.region, b.cepages, b.millesime, positionCase(b), nomCasier(casierDe(b))].join(" "));
+    return recherche.split(/\s+/).every((mot) => texte.includes(mot));
+  };
+  const surligner = () => {
+    const actif = !!(filtre || recherche);
+    let n = 0, premier = null;
+    $$(".case-cave.pleine", main).forEach((bouton) => {
+      const ok = correspond(parId.get(+bouton.dataset.b));
+      bouton.classList.toggle("estompee", actif && !ok);
+      bouton.classList.toggle("trouvee", actif && ok);
+      if (actif && ok) { n++; premier = premier || bouton; }
+    });
+    $$("#vue-liste li[data-b]", main).forEach((li) => li.classList.toggle("estompee", actif && !correspond(parId.get(+li.dataset.b))));
+    const res = $("#resultat-surlignage", main);
+    if (res) res.textContent = actif ? (n ? `${pluriel(n, "bouteille")} en évidence` : "Aucune bouteille ne correspond") : "";
+    return premier;
+  };
+  $$(".plan-puces .puce", main).forEach((p) => (p.onclick = () => {
+    const meme = filtre && filtre.type === p.dataset.type && filtre.cle === p.dataset.cle;
+    filtre = meme ? null : { type: p.dataset.type, cle: p.dataset.cle };
+    $$(".plan-puces .puce", main).forEach((x) => { const on = x === p && !meme; x.classList.toggle("actif", on); x.setAttribute("aria-pressed", on); });
+    surligner();
+  }));
+  const champ = $("#plan-recherche", main);
+  if (champ) {
+    let minuteur;
+    champ.addEventListener("input", () => {
+      clearTimeout(minuteur);
+      minuteur = setTimeout(() => {
+        recherche = sansAccent(champ.value.trim());
+        const premier = surligner();
+        if (premier && recherche && conteneur && !conteneur.hidden) premier.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      }, 150);
+    });
+  }
+
+  if (new URLSearchParams(params).get("ranger") && aRanger.length) voirARanger();
+  const idPlacer = +new URLSearchParams(params).get("placer");
+  const aPlacer = aRanger.find((b) => b.id === idPlacer) || toutesBouteilles.find((b) => b.id === idPlacer);
+  if (aPlacer) commencerRangement(aPlacer);
   if (surligne) ($(".case-cave.surligne", main) || $(".liste li.surligne", main))?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
 }
 
@@ -1423,7 +1704,7 @@ async function dialogueRanger(cave, rangee, colonne) {
   const groupes = {};
   nonRangees.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, n: 0 }; groupes[b.vin_id].n++; });
   const ailleurs = Object.values(groupes);
-  dialogue(`<h2>Rangée ${rangee}, colonne ${colonne}</h2>
+  dialogue(`<span class="surtitre">${esc(nomCasier(cave))}</span><h2>Emplacement ${LETTRE_RANG(rangee)}${colonne}</h2>
     <div class="form">
       ${ailleurs.length ? `<label class="large">Ranger une bouteille déjà en stock (non rangée ou en vrac)
         <select name="bouteille_id"><option value="">—</option>${ailleurs.map((b) => `<option value="${b.id}">${titreVin(b)} (×${b.n}${b.cave_nom ? " — " + esc(b.cave_nom) : ""})</option>`).join("")}</select></label>
@@ -1434,7 +1715,7 @@ async function dialogueRanger(cave, rangee, colonne) {
     <div class="carte nouveau-vin-case">
       <b>Vin absent de la liste ?</b>
       <p class="muted petit-texte" style="margin:4px 0 8px">Scannez son code-barres ou photographiez la bouteille : il sera ajouté à la cave et rangé dans cette case.</p>
-      <button type="button" class="bouton primaire" id="case-nouveau">➕ Nouveau vin dans cette case</button>
+      <button type="button" class="bouton primaire" id="case-nouveau">${ic("plus")} Nouveau vin dans cette case</button>
     </div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Ranger ici</button></div>`,
   {
@@ -1447,7 +1728,7 @@ async function dialogueRanger(cave, rangee, colonne) {
     },
   });
   $("#case-nouveau").onclick = () => {
-    rangement = { cave_id: cave.id, cave_nom: cave.nom, rangee, colonne };
+    rangement = { cave_id: cave.id, cave_nom: nomCasier(cave), rangee, colonne };
     $("#dialogue").close();
     location.hash = "#/ajouter";
   };
@@ -1482,29 +1763,29 @@ const niveauAccord = (n) => n >= 75 ? "Accord parfait" : n >= 55 ? "Très bon ac
 async function pageCeSoir(main) {
   let plat = "", couleur = "";
   const icones = REF.plats_icones || {};
-  main.innerHTML = `<div class="entete"><h1>Mets &amp; Vins</h1></div>
-    <p class="muted" style="margin-top:-8px">Que mangez-vous ? La cave classe ses bouteilles de la mieux accordée à la moins accordée, et à accord égal, celles à boire en priorité.</p>
+  main.innerHTML = `${enTete("Accords", "Mets &amp; Vins")}
+    <p class="muted">Que mangez-vous ? La cave classe ses bouteilles de la mieux accordée à la moins accordée, et à accord égal, celles à boire en priorité.</p>
     <div class="plats-tuiles" id="plats" role="group" aria-label="Plat">
       ${Object.entries(REF.plats).map(([k, l]) => `<button type="button" class="tuile-plat${PLATS_CHAUDS.includes(k) ? " chaud" : ""}" data-plat="${k}" aria-pressed="false">
         <span class="fumee" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="emoji" aria-hidden="true">${icones[k] || "🍽️"}</span><span class="nom">${esc(l)}</span></button>`).join("")}
     </div>
-    <div class="filtres" style="margin:14px 0 0;max-width:280px"><select id="couleur" aria-label="Couleur">${options(REF.couleurs, "", "Toutes couleurs")}</select></div>
+    <div class="filtres filtre-couleur" style="max-width:280px"><select id="couleur" aria-label="Couleur">${options(REF.couleurs, "", "Toutes couleurs")}</select></div>
     <div id="suggestions" class="suggestions-liste"></div>`;
   const charger = async () => {
     const res = await api("GET", "suggestion?" + new URLSearchParams({ plat, couleur, limite: 10 }));
     $("#suggestions", main).innerHTML = res.length ? res.map((s, i) => `
       <div class="carte suggestion-vin${i === 0 && plat ? " meilleure" : ""}">
-        <a class="photo-vin" href="#/vins/${s.vin.id}" aria-hidden="true" tabindex="-1">${s.vin.a_photo ? `<img src="${urlPhoto(s.vin)}" alt="" loading="lazy">` : bouteilleSVG(s.vin.couleur)}</a>
+        <a class="photo-vin" href="#/vins/${s.vin.id}" aria-hidden="true" tabindex="-1">${vignetteVin(s.vin, "mini")}</a>
         <div class="grandit">
           ${s.accord != null ? `<div class="accord"><span class="jauge"><span style="width:${s.accord}%"></span></span>${niveauAccord(s.accord)}</div>` : ""}
           <a class="titre" href="#/vins/${s.vin.id}">${titreVin(s.vin)}</a>
           <div class="muted petit-texte">${sousTitre(s.vin)}</div>
           <div class="petit-texte raisons">${s.raisons.map(esc).join(" · ")}</div>
         </div>
-        <div class="cote"><span class="muted">×${s.vin.stock}</span><button class="bouton petit primaire" data-i="${i}">Déguster</button></div>
+        <div class="cote"><span class="qte">×${s.vin.stock}</span><button class="bouton petit primaire" data-i="${i}">${ic("soir")} Déguster</button></div>
       </div>`).join("")
-      : `<div class="carte vide">Aucune bouteille prête à boire ne s'accorde avec ce plat. Essayez une autre couleur ou un autre plat.</div>`;
+      : `<div class="carte vide"><span class="surtitre">Aucun accord</span>Aucune bouteille prête à boire ne s'accorde avec ce plat. Essayez une autre couleur ou un autre plat.</div>`;
     $$("[data-i]", main).forEach((b) => (b.onclick = () => dialogueSortie(res[+b.dataset.i].vin, null, charger)));
   };
   $("#plats", main).addEventListener("click", (e) => {
@@ -1520,17 +1801,17 @@ async function pageCeSoir(main) {
 
 async function pageEnvies(main) {
   const envies = await api("GET", "envies");
-  main.innerHTML = `<div class="entete"><h1>Envies & liste d'achats</h1></div>
-    <div class="carte">
+  main.innerHTML = `${enTete("À acheter, à goûter", "Envies")}
+    <div class="carte envies">
       <form class="filtres" id="ajout" style="margin-bottom:8px">
         <input name="nom" placeholder="Vin à acheter ou à goûter…" required style="flex:2 1 200px" aria-label="Nom">
         <input name="details" placeholder="Détails (millésime, caviste, prix…)" style="flex:3 1 200px" aria-label="Détails">
         <button class="bouton primaire" type="submit">Ajouter</button></form>
       ${envies.length ? `<ul class="liste">${envies.map((e) => `<li>
         <input type="checkbox" data-id="${e.id}" ${e.fait ? "checked" : ""} aria-label="Fait">
-        <div class="grandit" style="${e.fait ? "text-decoration:line-through;opacity:.6" : ""}"><span class="titre">${esc(e.nom)}</span>
+        <div class="grandit${e.fait ? " fait" : ""}"><span class="titre">${esc(e.nom)}</span>
         ${e.details ? `<div class="muted petit-texte">${esc(e.details)}</div>` : ""}</div>
-        <button class="bouton petit danger" data-suppr="${e.id}" aria-label="Supprimer">✕</button></li>`).join("")}</ul>`
+        <button class="bouton petit discret" data-suppr="${e.id}" aria-label="Supprimer">${ic("fermer")}</button></li>`).join("")}</ul>`
         : `<p class="muted">Votre liste est vide. Elle est aussi disponible dans Home Assistant (liste de tâches « Cave à vin – Envies »).</p>`}
     </div>`;
   $("#ajout", main).onsubmit = async (e) => {
@@ -1544,15 +1825,14 @@ async function pageEnvies(main) {
 
 async function pageHistorique(main) {
   let type = "";
-  main.innerHTML = `<div class="entete"><h1>Historique</h1>
-    <select id="type" style="width:auto" aria-label="Type">${options({ entree: "Entrées", sortie: "Sorties" }, "", "Entrées et sorties")}</select></div>
+  main.innerHTML = `${enTete("Entrées et sorties", "Historique", `<select id="type" style="width:auto;margin:0" aria-label="Type">${options({ entree: "Entrées", sortie: "Sorties" }, "", "Entrées et sorties")}</select>`)}
     <div class="carte defile" id="table"></div>`;
   const charger = async () => {
     const ms = await api("GET", "mouvements?" + new URLSearchParams({ limite: 1000, ...(type ? { type } : {}) }));
     $("#table", main).innerHTML = ms.length ? `<table class="tableau"><thead><tr><th>Date</th><th>Vin</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
       ${ms.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
         <td>${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</td>
-        <td style="white-space:nowrap">${m.type === "entree" ? "📥 +" : "🍷 −"}${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
+        <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
         <td>${etoiles(m.note)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table>` : `<p class="vide">Aucun mouvement pour l'instant.</p>`;
   };
   $("#type", main).onchange = (e) => { type = e.target.value; charger(); };
@@ -1576,15 +1856,15 @@ async function pageReglages(main) {
       ? `<p style="color:var(--ok)">✓ Connecté à Home Assistant (${capteurs.length} capteur(s) de température / humidité trouvé(s)).</p>`
       : `<p style="color:var(--danger)">Home Assistant ne répond pas, ou aucun capteur de température / humidité n'a été trouvé.</p>`;
   }
-  main.innerHTML = `<div class="entete"><h1>Réglages</h1></div>
-    <div class="grille g2">
-      <div class="carte"><h2>🍷 Ma cave</h2>
+  main.innerHTML = `${enTete("Tessvine", "Réglages")}
+    <div class="grille g2 reglages">
+      <div class="carte"><h2>${ic("vins")}Ma cave</h2>
         <form class="form" id="nom-cave">
           <label class="large">Nom de la cave<input name="nom_cave" value="${esc(r.nom_cave)}" maxlength="40" required placeholder="Tessvine"></label>
           <p class="large muted petit-texte" style="margin:0">Affiché en haut de l'application et dans l'onglet. Le nom dans la barre latérale de Home Assistant se change dans Home Assistant.</p>
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form></div>
-      <div class="carte"><h2>🔔 Notifications de fin de garde</h2>
+      <div class="carte"><h2>${ic("cloche")}Notifications de fin de garde</h2>
         <form class="form" id="notifs">
           <label class="large">Envoyer sur
             <select name="notif_service"><option value="">Désactivées</option>${servicesNotif.map((n) => `<option value="${esc(n)}"${n === r.notif_service ? " selected" : ""}>${esc(n.replace("notify.mobile_app_", "📱 ").replace("notify.", ""))}</option>`).join("")}
@@ -1592,7 +1872,7 @@ async function pageReglages(main) {
           <p class="large muted petit-texte" style="margin:0">Quand un vin entre dans sa dernière année de garde (« à boire vite »), Home Assistant vous prévient : au plus 2 rappels par vin, à 15 jours d'intervalle. Un vin dont la garde est dépassée n'est plus rappelé.</p>
           <div class="actions large"><button class="bouton" type="button" id="test-notif">Envoyer un test</button><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form></div>
-      <div class="carte"><h2>🏠 Home Assistant — capteurs de la cave</h2>
+      <div class="carte"><h2>${ic("maison")}Home Assistant — capteurs de la cave</h2>
         ${r.addon ? `<p class="muted">L'application tourne comme module complémentaire : la connexion à Home Assistant est automatique.</p>`
           : `<p class="muted">Pour afficher la température et l'humidité de la cave, indiquez l'adresse de Home Assistant et un jeton d'accès longue durée (Profil → Sécurité → Jetons d'accès longue durée).</p>`}
         ${etatHA}
@@ -1607,7 +1887,7 @@ async function pageReglages(main) {
           <label>Humidité max (%)<input name="hum_max" type="number" value="${esc(r.hum_max)}"></label>
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form></div>
-      <div class="carte"><h2>🤖 IA, photos & étiquettes</h2>
+      <div class="carte"><h2>${ic("etincelle")}IA, photos & étiquettes</h2>
         <form class="form" id="photos">
           <label class="large">IA de Home Assistant (lecture d'étiquette, garde)
             <select name="ia_active">${options({ 1: "Activée", 0: "Désactivée" }, r.ia_active)}</select></label>
@@ -1633,14 +1913,14 @@ async function pageReglages(main) {
         </form>
         <p class="muted petit-texte">Le modèle de détourage est téléchargé une seule fois, au premier usage, puis tout se fait sur votre installation. Pour la lecture d'étiquette, la photo est envoyée à l'IA configurée dans Home Assistant.</p>
       </div>
-      <div class="carte"><h2>🔌 Intégration Home Assistant</h2>
+      <div class="carte"><h2>${ic("maison")}Intégration Home Assistant</h2>
         <p>L'intégration <b>Tessvine</b> (dossier <code>custom_components/cave_a_vin</code>) crée dans Home Assistant :</p>
         <ul><li>des capteurs : bouteilles, valeur, vins à boire, à boire vite…</li>
           <li>la liste de tâches <b>Envies</b> (utilisable avec Assist : « ajoute Chablis à Cave à vin Envies »)</li>
           <li>les actions <code>cave_a_vin.sortir_bouteille</code>, <code>ajouter_bouteilles</code> et <code>suggerer_vin</code>.</li></ul>
         <p class="muted">Adresse à saisir lors de l'ajout de l'intégration : ${r.addon ? "<code>http://&lt;nom d'hôte du module&gt;:8099</code> (visible dans l'onglet Info du module)" : `<code>${esc(location.origin)}</code>`}.</p>
       </div>
-      <div class="carte"><h2>💾 Sauvegarde & import</h2>
+      <div class="carte"><h2>${ic("sauvegarde")}Sauvegarde & import</h2>
         <div class="actions">
           <a class="bouton" href="${avecCle("api/export.csv")}" download>Exporter en CSV (Excel)</a>
           <a class="bouton" href="${avecCle("api/export.json")}" download>Sauvegarde complète (JSON)</a></div>
@@ -1650,7 +1930,7 @@ async function pageReglages(main) {
         <label style="margin-top:12px">Restaurer une sauvegarde JSON (remplace toute la cave !)
           <input type="file" accept=".json,application/json" id="import-json"></label>
       </div>
-      <div class="carte"><h2>ℹ️ À propos</h2>
+      <div class="carte"><h2>${ic("info")}À propos</h2>
         <p>Tessvine version ${esc(REF.version)}${r.addon ? " — module complémentaire Home Assistant" : ""}.</p>
         ${cleAPI.lire() ? `<p>Une clé d'API est mémorisée sur cet appareil. <button class="bouton petit" id="oublier">Oublier la clé</button></p>` : ""}
       </div>
@@ -1668,9 +1948,9 @@ async function pageReglages(main) {
     if (!g) return;
     const derniere = g.derniere ? `Dernier passage : ${dateFr(g.derniere.slice(0, 10))}.` : "Pas encore de passage.";
     etatGardes.innerHTML = g.en_cours
-      ? `🤖 Estimation en cours : ${g.fait} / ${g.total} vins…`
+      ? `Estimation en cours : ${g.fait} / ${g.total} vins…`
       : `${derniere}${g.erreurs?.length ? ` ${g.erreurs.length} erreur(s) : ${esc(g.erreurs.slice(0, 3).join(" ; "))}` : ""}
-         ${g.ia?.possible ? `<button class="bouton petit" type="button" id="lancer-gardes">🤖 Réestimer la garde de toute la cave maintenant</button>`
+         ${g.ia?.possible ? `<button class="bouton petit" type="button" id="lancer-gardes">${ic("etincelle")} Réestimer la garde de toute la cave maintenant</button>`
            : `<br><span style="color:var(--danger)">IA indisponible : ${esc(g.ia?.raison || "inconnue")}.</span>`}`;
     const bouton = $("#lancer-gardes", etatGardes);
     if (bouton) bouton.onclick = async () => {
