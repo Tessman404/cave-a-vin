@@ -1,5 +1,7 @@
 # Tessvine 🍷
 
+[![Soutenir Tessvine sur Ko-fi](https://img.shields.io/badge/Soutenir%20le%20projet-Ko--fi-7a1b33?logo=ko-fi&logoColor=white)](https://ko-fi.com/tessman)
+
 Un logiciel de gestion de cave à vin, dans l'esprit d'Oeni, **qui s'intègre à Home Assistant** : il s'ouvre dans la barre latérale de Home Assistant, lit la température et l'humidité de votre cave, et crée des capteurs, une liste d'envies et des actions utilisables dans vos automatisations ou avec Assist.
 
 | Tableau de bord | Sur téléphone |
@@ -369,3 +371,9 @@ cd cave_a_vin && python3 -m unittest discover -s tests
 pip install pytest-homeassistant-custom-component
 python3 -m pytest -c tests_ha/pytest.ini --rootdir . tests_ha
 ```
+
+---
+
+## Soutenir le projet
+
+Tessvine est gratuit et développé sur mon temps libre. S'il vous rend service, vous pouvez [m'offrir un café sur Ko-fi](https://ko-fi.com/tessman) 🍷 Merci !
