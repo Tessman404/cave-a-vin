@@ -782,15 +782,16 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .modifier-etagere:hover, .modifier-etagere:focus-visible { opacity: 1; color: var(--nuit-texte); background: rgba(24, 22, 27, .9); }
 .casier-titre .modifier-etagere { margin-left: 2px; }
 
-.plan { display: grid; gap: 0; width: max-content; }
-.plan .entete-col, .plan .entete-rang { display: grid; place-items: center; font: 600 .62rem var(--sans); letter-spacing: .04em; color: var(--nuit-texte-3); }
-.plan .entete-col { padding-bottom: 4px; }
-.plan .entete-rang { padding-right: 6px; }
+/* un casier : chaque place est posée à sa position (étage, colonne, profondeur, quinconce) */
+.plan { position: relative; display: block; }
+.plan .repere { position: absolute; display: grid; place-items: center; width: var(--case); height: calc(var(--case) * .32);
+  font: 600 .62rem var(--sans); letter-spacing: .04em; color: var(--nuit-texte-3); pointer-events: none; }
+.plan .repere.rang { width: calc(var(--case) * .45); height: var(--case); }
 /* séparation fine sous chaque casier, juste pour se repérer */
-.plan::after { content: ""; grid-column: 2 / -1; height: 1px; margin-top: 6px; background: rgba(241, 233, 220, .22); }
+.plan .tablette { position: absolute; left: calc(var(--case) * .45); right: 0; bottom: 0; height: 1px; background: rgba(241, 233, 220, .22); }
 
 .plan .case-cave {
-  position: relative; display: block; width: var(--case); height: var(--case); padding: 0;
+  position: absolute; display: block; width: var(--case); height: var(--case); padding: 0;
   border: 0; border-radius: 0; background: none; box-shadow: none; outline: none; cursor: default;
   color: var(--fantome); --capsule: rgba(241, 233, 220, .1);
   pointer-events: none;  /* seule la forme de la bouteille est cliquable */
@@ -1007,3 +1008,43 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
   .cave-tete .seul-texte { display: none; }
   .cave-tete .actions { width: 100%; }
 }
+
+/* profondeurs : montrer un seul rang pour lire les bouteilles du fond */
+.profondeurs-choix { display: inline-flex; gap: 2px; padding: 2px; margin-left: 4px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); }
+.profondeurs-choix button { border: 0; background: none; color: var(--nuit-texte-2); font: 600 .66rem var(--sans); letter-spacing: .02em; padding: 3px 9px; border-radius: 999px; cursor: pointer; font-style: normal; }
+.profondeurs-choix button:hover { color: var(--nuit-texte); }
+.profondeurs-choix button.actif { background: var(--nuit-texte); color: #1c1a1e; }
+.plan .case-cave.masquee svg { opacity: .07 !important; filter: grayscale(1); }
+.plan .case-cave.masquee::after { opacity: 0; }
+.plan .case-cave.masquee use, .plan .case-cave.masquee .forme { pointer-events: none !important; }
+.plan .case-cave.au-premier-plan { z-index: 900 !important; }
+
+/* configurateur de disposition */
+.configurateur { display: grid; gap: 16px; }
+.configurateur .apercu-disposition { --case: 52px; display: grid; place-items: center; min-height: 170px; padding: 20px 16px 16px; overflow: auto; border-radius: 16px;
+  background: radial-gradient(90% 70% at 50% 0%, rgba(255, 236, 205, .1), transparent 70%), linear-gradient(180deg, #221f25, #161418); }
+.plan-apercu .case-cave { color: #8d8794; --capsule: #d9cfbf; pointer-events: none; }
+.plan-apercu .case-cave svg { opacity: 1 !important; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .45)); }
+.plan-apercu .case-cave[data-p="2"], .plan-apercu .case-cave[data-p="4"] { color: #6f6a76; }
+.plan-apercu .case-cave.actuelle { color: #b98a5e; --capsule: #f0dcc0; }
+.onglets-profondeur { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.onglets-profondeur button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--bord-fort);
+  background: transparent; color: var(--texte-2); font: 600 .84rem var(--sans); cursor: pointer; }
+.onglets-profondeur button.actif { background: var(--texte); border-color: var(--texte); color: var(--fond); }
+.onglets-profondeur button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.reglage-ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--bord); }
+.reglage-ligne .libelle b { display: block; font-weight: 600; }
+.reglage-ligne .libelle span { font-size: .8rem; color: var(--texte-3); }
+.pas-a-pas { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--bord); }
+.pas-a-pas button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--surface); box-shadow: var(--ombre); color: var(--texte); font: 600 1.15rem var(--sans); cursor: pointer; }
+.pas-a-pas button:disabled { opacity: .35; cursor: default; }
+.pas-a-pas output { min-width: 2.4ch; text-align: center; font: 600 1.35rem var(--serif); font-variant-numeric: lining-nums; }
+.empilements { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.empilements button { display: grid; justify-items: center; gap: 4px; padding: 10px 6px 9px; border-radius: 14px; border: 1px solid var(--bord-fort); background: var(--surface);
+  color: var(--texte-2); font: 600 .78rem var(--sans); cursor: pointer; }
+.empilements button.actif { border-color: var(--accent-lien); box-shadow: 0 0 0 1px var(--accent-lien); color: var(--texte); }
+.empilements button:disabled { opacity: .4; cursor: default; }
+.empilements .mini { --case: 30px; height: 70px; display: grid; place-items: center; }
+.configurateur .total-places { text-align: center; font-size: .86rem; color: var(--texte-2); }
+.configurateur .total-places b { font: 600 1.15rem var(--serif); color: var(--texte); font-variant-numeric: lining-nums; }
+.plan .repere.masquee { display: none; }

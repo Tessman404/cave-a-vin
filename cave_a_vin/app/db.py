@@ -128,7 +128,8 @@ class Database:
         for nom, definition in (("parent_id", "INTEGER REFERENCES caves(id) ON DELETE CASCADE"),
                                 ("position", "TEXT NOT NULL DEFAULT ''"), ("ref_id", "INTEGER"),
                                 ("nom_casier", "TEXT NOT NULL DEFAULT ''"),  # nom du casier principal (1.7.1)
-                                ("refrigere", "INTEGER NOT NULL DEFAULT 0")):  # cave électrique (1.8.1)
+                                ("refrigere", "INTEGER NOT NULL DEFAULT 0"),  # cave électrique (1.8.1)
+                                ("disposition", "TEXT")):  # profondeurs et empilement des bouteilles (1.13)
             if nom not in colonnes_caves:
                 self.conn.execute(f"ALTER TABLE caves ADD COLUMN {nom} {definition}")
         # 1.7.1 : le nom d'une étagère devient facultatif ; on efface les noms donnés automatiquement (« Étagère 2 »)

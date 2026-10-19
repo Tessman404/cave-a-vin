@@ -410,6 +410,60 @@ def supprimer_vin(db, vin_id):
 
 # --------------------------------------------------------------------------- caves & emplacements
 
+# Disposition d'un casier : une ou plusieurs profondeurs (rang de devant, rangs derrière), chacune avec sa largeur
+# (bouteilles côte à côte), sa hauteur (bouteilles empilées) et son empilement (aligné, ou décalé d'une demi-bouteille
+# vers la gauche ou la droite, en quinconce). Sans disposition, un casier est une simple grille rangées × colonnes,
+# c'est-à-dire une seule profondeur alignée.
+# Adresse d'une place : colonne = position dans la largeur ; rangee = (profondeur - 1) × 100 + étage (1 = en haut).
+# Le rang de devant garde donc exactement les adresses d'une grille simple.
+PAS_PROFONDEUR = 100
+EMPILEMENTS = ("aligne", "gauche", "droite")
+PROFONDEURS_MAX = 4
+
+
+def profondeurs(cave):
+    brut = cave["disposition"] if "disposition" in cave.keys() else None
+    if brut:
+        try:
+            liste = json.loads(brut).get("profondeurs") or []
+            if liste:
+                return liste
+        except (ValueError, AttributeError):
+            pass
+    if cave["rangees"] and cave["colonnes"]:
+        return [{"largeur": cave["colonnes"], "hauteur": cave["rangees"], "empilement": "aligne"}]
+    return []
+
+
+def cases(cave):
+    """Toutes les places d'un casier, du rang de devant au fond, de haut en bas, de gauche à droite."""
+    return [((p * PAS_PROFONDEUR) + n, c) for p, prof in enumerate(profondeurs(cave))
+            for n in range(1, prof["hauteur"] + 1) for c in range(1, prof["largeur"] + 1)]
+
+
+def _nettoyer_disposition(brut):
+    """Vérifie une disposition envoyée par l'application ; renvoie (json, rangees, colonnes) pour la table caves."""
+    liste = brut.get("profondeurs") if isinstance(brut, dict) else brut
+    if not isinstance(liste, list) or not 1 <= len(liste) <= PROFONDEURS_MAX:
+        raise ErreurAPI(f"Un casier a de 1 à {PROFONDEURS_MAX} profondeurs")
+    propres = []
+    for prof in liste:
+        if not isinstance(prof, dict):
+            raise ErreurAPI("Disposition invalide")
+        largeur = _entier(prof.get("largeur"), "largeur") or 0
+        hauteur = _entier(prof.get("hauteur"), "hauteur") or 0
+        if not (1 <= largeur <= 50 and 1 <= hauteur <= 50):
+            raise ErreurAPI("Largeur et hauteur : de 1 à 50 bouteilles")
+        empilement = prof.get("empilement") or "aligne"
+        if empilement not in EMPILEMENTS:
+            raise ErreurAPI("Empilement : aligné, décalé à gauche ou décalé à droite")
+        propres.append({"largeur": largeur, "hauteur": hauteur, "empilement": empilement})
+    rangees = max(p * PAS_PROFONDEUR + prof["hauteur"] for p, prof in enumerate(propres))
+    colonnes = max(prof["largeur"] for prof in propres)
+    simple = len(propres) == 1 and propres[0]["empilement"] == "aligne"
+    return (None if simple else json.dumps({"profondeurs": propres})), rangees, colonnes
+
+
 def _cases_libres(conn, cave_id, n):
     cave = conn.execute("SELECT * FROM caves WHERE id = ?", (cave_id,)).fetchone()
     if not cave:
@@ -418,8 +472,7 @@ def _cases_libres(conn, cave_id, n):
         return [(None, None)] * n  # cave « en vrac », sans plan
     occupees = {(r, c) for r, c in conn.execute(
         "SELECT rangee, colonne FROM bouteilles WHERE cave_id = ? AND rangee IS NOT NULL", (cave_id,))}
-    libres = [(r, c) for r in range(1, cave["rangees"] + 1) for c in range(1, cave["colonnes"] + 1)
-              if (r, c) not in occupees]
+    libres = [x for x in cases(cave) if x not in occupees]
     if len(libres) < n:
         raise ErreurAPI(f"Plus assez de place dans « {cave['nom']} » ({len(libres)} emplacement(s) libre(s))", 409)
     return libres[:n]
@@ -488,7 +541,7 @@ def _verifier_case(conn, cave_id, rangee, colonne, ignorer_bouteille=None):
     cave = conn.execute("SELECT * FROM caves WHERE id = ?", (cave_id,)).fetchone()
     if not cave:
         raise ErreurAPI("Cave introuvable", 404)
-    if not (1 <= rangee <= cave["rangees"] and 1 <= colonne <= cave["colonnes"]):
+    if (rangee, colonne) not in set(cases(cave)):
         raise ErreurAPI("Emplacement hors du plan de la cave")
     occupant = conn.execute("SELECT id FROM bouteilles WHERE cave_id = ? AND rangee = ? AND colonne = ?",
                             (cave_id, rangee, colonne)).fetchone()
@@ -631,7 +684,7 @@ def lister_caves(db):
                        FROM caves c LEFT JOIN caves p ON p.id = c.parent_id
                        LEFT JOIN bouteilles b ON b.cave_id = c.id GROUP BY c.id ORDER BY nom_complet""")
     for c in caves:
-        c["capacite_propre"] = c["rangees"] * c["colonnes"]
+        c["capacite_propre"] = len(cases(_Ligne(c)))
     for c in caves:
         groupe = [c] + ([x for x in caves if x["parent_id"] == c["id"]] if not c["parent_id"] else [])
         c["bouteilles"] = sum(x["bouteilles_propres"] for x in groupe)
@@ -643,7 +696,8 @@ def _lire_casier(db, cave_id):
     cave = db.one("SELECT * FROM caves WHERE id = ?", (cave_id,))
     if not cave:
         raise ErreurAPI("Cave introuvable", 404)
-    cave["capacite"] = cave["rangees"] * cave["colonnes"]
+    cave["profondeurs"] = profondeurs(_Ligne(cave))
+    cave["capacite"] = len(cases(_Ligne(cave)))
     annee = annee_courante()
     bouteilles = db.all(
         """SELECT b.id, b.rangee, b.colonne, b.vin_id, b.cave_id, v.nom, v.millesime, v.couleur, v.domaine,
@@ -668,6 +722,10 @@ def lire_cave(db, cave_id):
     return cave
 
 
+class _Ligne(dict):
+    """Un dict lu en base, utilisable comme une ligne sqlite (méthode keys et accès par clé)."""
+
+
 def _nettoyer_cave(data, etagere=False):
     nom = (data.get("nom") or "").strip()
     if not nom and not etagere:  # le nom d'une étagère est facultatif
@@ -676,7 +734,10 @@ def _nettoyer_cave(data, etagere=False):
     colonnes = _entier(data.get("colonnes"), "colonnes") or 0
     if not (0 <= rangees <= 100 and 0 <= colonnes <= 100):
         raise ErreurAPI("Le plan est limité à 100 rangées × 100 colonnes")
-    return nom, rangees, colonnes, (data.get("description") or "").strip()
+    disposition = None
+    if data.get("disposition"):
+        disposition, rangees, colonnes = _nettoyer_disposition(data["disposition"])
+    return nom, rangees, colonnes, (data.get("description") or "").strip(), disposition
 
 
 def _placement_etagere(db, data):
@@ -699,36 +760,38 @@ def creer_cave(db, data):
     etagere = data.get("parent_id") not in (None, "", 0, "0")
     if etagere:
         parent_id, ref_id, position = _placement_etagere(db, data)
-    nom, rangees, colonnes, description = _nettoyer_cave(data, etagere)
+    nom, rangees, colonnes, description, disposition = _nettoyer_cave(data, etagere)
     if etagere and not (rangees and colonnes):
         raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
     refrigere = 1 if data.get("refrigere") in (True, 1, "1", "true", "oui") else 0
     with db.transaction() as conn:
         if etagere:
-            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, parent_id, position, ref_id, refrigere) "
-                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                               (nom, rangees, colonnes, description, maintenant(), parent_id, position, ref_id, refrigere))
+            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, parent_id, position, ref_id, refrigere, disposition) "
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                               (nom, rangees, colonnes, description, maintenant(), parent_id, position, ref_id, refrigere, disposition))
         else:
-            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, refrigere) VALUES (?, ?, ?, ?, ?, ?)",
-                               (nom, rangees, colonnes, description, maintenant(), refrigere))
+            cur = conn.execute("INSERT INTO caves (nom, rangees, colonnes, description, created_at, refrigere, disposition) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                               (nom, rangees, colonnes, description, maintenant(), refrigere, disposition))
     return lire_cave(db, cur.lastrowid)
 
 
 def modifier_cave(db, cave_id, data):
     actuelle = _lire_casier(db, cave_id)
-    nom, rangees, colonnes, description = _nettoyer_cave(data, bool(actuelle["parent_id"]))
+    nom, rangees, colonnes, description, disposition = _nettoyer_cave(data, bool(actuelle["parent_id"]))
     if actuelle["parent_id"] and not (rangees and colonnes):
         raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
+    nouvelles = set(cases(_Ligne(rangees=rangees, colonnes=colonnes, disposition=disposition)))
     with db.transaction() as conn:
-        hors_plan = conn.execute(
-            "SELECT COUNT(*) FROM bouteilles WHERE cave_id = ? AND (rangee > ? OR colonne > ?)",
-            (cave_id, rangees, colonnes)).fetchone()[0]
+        # aucune bouteille ne doit se retrouver hors du nouveau plan (rien n'est déplacé sans le demander)
+        hors_plan = sum(1 for r, c in conn.execute(
+            "SELECT rangee, colonne FROM bouteilles WHERE cave_id = ? AND rangee IS NOT NULL", (cave_id,))
+            if (r, c) not in nouvelles)
         if hors_plan and rangees and colonnes:
             raise ErreurAPI(f"{hors_plan} bouteille(s) se trouvent en dehors du nouveau plan : déplacez-les d'abord", 409)
         if not rangees or not colonnes:
             conn.execute("UPDATE bouteilles SET rangee = NULL, colonne = NULL WHERE cave_id = ?", (cave_id,))
-        conn.execute("UPDATE caves SET nom = ?, rangees = ?, colonnes = ?, description = ? WHERE id = ?",
-                     (nom, rangees, colonnes, description, cave_id))
+        conn.execute("UPDATE caves SET nom = ?, rangees = ?, colonnes = ?, description = ?, disposition = ? WHERE id = ?",
+                     (nom, rangees, colonnes, description, disposition, cave_id))
         if "refrigere" in data:
             conn.execute("UPDATE caves SET refrigere = ? WHERE id = ?",
                          (1 if data["refrigere"] in (True, 1, "1", "true", "oui") else 0, cave_id))
@@ -904,12 +967,14 @@ def place_libre(db):
     if not candidats:
         return None
     suggestion = candidats[0]
-    casiers = db.all("""SELECT c.id, c.nom, c.nom_casier, c.parent_id, c.position, c.rangees * c.colonnes AS capacite,
+    casiers = db.all("""SELECT c.id, c.nom, c.nom_casier, c.parent_id, c.position, c.rangees, c.colonnes, c.disposition,
                                COALESCE(p.nom, c.nom) AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_id,
                                (SELECT COUNT(*) FROM bouteilles b WHERE b.cave_id = c.id AND b.rangee IS NOT NULL) AS occupees
                         FROM caves c LEFT JOIN caves p ON p.id = c.parent_id
                         WHERE c.rangees > 0 AND c.colonnes > 0 AND c.refrigere = 1  -- seules les caves électriques
                         ORDER BY COALESCE(c.parent_id, c.id), c.parent_id IS NOT NULL, c.id""")
+    for k in casiers:
+        k["capacite"] = len(cases(_Ligne(k)))
     for k in casiers:
         libres = k["capacite"] - k["occupees"]
         if libres > 0:

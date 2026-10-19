@@ -133,6 +133,36 @@ class TestCave(BaseTest):
         b = [x for x in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"] if x["cave_id"]]
         self.assertEqual([(x["cave_id"], x["rangee"]) for x in b], [(cave["id"], None)])
 
+    def test_disposition_profondeurs_et_empilement(self):
+        """Un casier avec un rang de devant (4 × 3, en quinconce) et un rang derrière (4 × 1)."""
+        disposition = {"profondeurs": [{"largeur": 4, "hauteur": 3, "empilement": "droite"},
+                                       {"largeur": 4, "hauteur": 1, "empilement": "aligne"}]}
+        cave = self.appel("POST", "api/caves", {"nom": "Frigo à vin", "disposition": disposition}, attendu=201)
+        self.assertEqual(cave["capacite"], 16)
+        self.assertEqual(cave["profondeurs"], disposition["profondeurs"])
+        self.assertEqual([c["capacite"] for c in self.appel("GET", "api/caves") if c["id"] == cave["id"]], [16])
+        vin = self.creer_vin(quantite=0)
+        # une bouteille au fond (profondeur 2 : rangée 101), une devant en haut à droite
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 2, "emplacements": [
+            {"cave_id": cave["id"], "rangee": 101, "colonne": 4}, {"cave_id": cave["id"], "rangee": 1, "colonne": 4}]}, attendu=200)
+        # hors plan : 2e étage du fond (le fond n'a qu'un étage), 5e colonne
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "cave_id": cave["id"], "rangee": 102, "colonne": 1}, attendu=400)
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "cave_id": cave["id"], "rangee": 1, "colonne": 5}, attendu=400)
+        # les places libres se remplissent devant d'abord
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "cave_id": cave["id"]}, attendu=200)
+        places = sorted((b["rangee"], b["colonne"]) for b in self.appel("GET", f"api/caves/{cave['id']}")["bouteilles"])
+        self.assertEqual(places, [(1, 1), (1, 4), (101, 4)])
+        # supprimer le rang du fond alors qu'une bouteille y est : refusé, rien ne bouge
+        self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Frigo à vin", "disposition": {"profondeurs": disposition["profondeurs"][:1]}},
+                   attendu=409)
+        # une disposition simple (1 profondeur alignée) redevient une grille ordinaire
+        autre = self.appel("POST", "api/caves", {"nom": "Grille", "disposition": [{"largeur": 3, "hauteur": 2}]}, attendu=201)
+        self.assertEqual((autre["rangees"], autre["colonnes"], autre["disposition"], autre["capacite"]), (2, 3, None, 6))
+        # valeurs refusées
+        self.appel("POST", "api/caves", {"nom": "X", "disposition": [{"largeur": 0, "hauteur": 2}]}, attendu=400)
+        self.appel("POST", "api/caves", {"nom": "X", "disposition": [{"largeur": 2, "hauteur": 2, "empilement": "biais"}]}, attendu=400)
+        self.appel("POST", "api/caves", {"nom": "X", "disposition": [{"largeur": 1, "hauteur": 1}] * 5}, attendu=400)
+
     def test_ranger_sur_les_emplacements_choisis(self):
         cave = self.appel("POST", "api/caves", {"nom": "Casier", "rangees": 2, "colonnes": 3}, attendu=201)
         etagere = self.appel("POST", "api/caves", {"parent_id": cave["id"], "position": "droite", "rangees": 2, "colonnes": 2},

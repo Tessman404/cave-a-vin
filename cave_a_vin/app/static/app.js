@@ -89,7 +89,11 @@ const vignetteVin = (v, taille = "mini", alt = "") => v.a_photo
 /** En-tête de page : surtitre, titre et actions. */
 const enTete = (surtitre, titre, actions = "") => `<div class="entete"><div>${surtitre ? `<span class="surtitre">${surtitre}</span>` : ""}<h1>${titre}</h1></div>${actions ? `<div class="actions">${actions}</div>` : ""}</div>`;
 const lienRetour = (href, texte) => `<a class="retour" href="${href}">${ic("retour")}${esc(texte)}</a>`;
-const positionCase = (b) => b.rangee ? `${LETTRE_RANG(b.rangee)}${b.colonne}` : "";
+const positionCase = (b) => {
+  if (!b.rangee) return "";
+  const { p, etage } = adresse(b.rangee);
+  return `${LETTRE_RANG(etage)}${b.colonne}${p > 1 ? (p === 2 ? " · derrière" : ` · rang ${p}`) : ""}`;
+};
 
 function options(dict, selection, vide) {
   return (vide !== undefined ? `<option value="">${esc(vide)}</option>` : "") +
@@ -241,7 +245,7 @@ async function dialogueEntree(vin, apres) {
     <div class="form">
       <label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="500" value="1" required></label>
       <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
-      ${place ? `<p class="large" style="margin:0">Rangée ${LETTRE_RANG(place.rangee)}, colonne ${place.colonne} de <b>${esc(place.cave_nom)}</b> (les bouteilles suivantes dans les cases libres)</p>`
+      ${place ? `<p class="large" style="margin:0">Emplacement ${positionCase(place)} de <b>${esc(place.cave_nom)}</b> (les bouteilles suivantes dans les cases libres)</p>`
         : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.filter((c) => !c.parent_id).map((c) =>
         `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
         <div class="large choix-emplacements"></div>`}
@@ -539,7 +543,7 @@ async function pageVin(main, id) {
   const v = await api("GET", `vins/${id}`);
   const recharger = () => route();
   const prop = (titre, valeur) => valeur || valeur === 0 ? `<div><dt>${titre}</dt><dd>${valeur}</dd></div>` : "";
-  const emplacement = (b) => b.cave_id ? `${esc(b.cave_nom)}${b.rangee ? ` — rangée ${LETTRE_RANG(b.rangee)}, colonne ${b.colonne}` : " — en vrac"}` : "Non rangée";
+  const emplacement = (b) => b.cave_id ? `${esc(b.cave_nom)}${b.rangee ? ` — ${positionCase(b)}` : " — en vrac"}` : "Non rangée";
   const groupes = {};
   v.bouteilles.forEach((b) => { const k = emplacement(b); groupes[k] = groupes[k] || { b, n: 0 }; groupes[k].n++; });
   const surtitre = [v.appellation, v.region, v.pays !== "France" ? v.pays : ""].filter(Boolean);
@@ -716,7 +720,7 @@ async function pageFormulaire(main, id) {
       </fieldset>
       ${id ? "" : `<fieldset><legend>Bouteilles</legend>
         <label>Nombre de bouteilles<input type="number" name="quantite" min="0" max="500" value="1"></label>
-        ${rangement ? `<p style="margin:0;align-self:end">${esc(rangement.cave_nom)}, rangée ${LETTRE_RANG(rangement.rangee)}, colonne ${rangement.colonne}</p>
+        ${rangement ? `<p style="margin:0;align-self:end">${esc(rangement.cave_nom)}, emplacement ${positionCase(rangement)}</p>
           <input type="hidden" name="cave_id" value="${rangement.cave_id}"><input type="hidden" name="rangee" value="${rangement.rangee}">
           <input type="hidden" name="colonne" value="${rangement.colonne}">`
         : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.filter((c) => !c.parent_id).map((c) => `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
@@ -1002,7 +1006,7 @@ async function pageAjouter(main) {
   CAPACITES = await api("GET", "capacites");
   main.innerHTML = `
     ${enTete("Nouvelle référence", "Ajouter un vin")}
-    ${rangement ? `<div class="carte bandeau-rangement">${ic("epingle")} La bouteille sera rangée dans <b>${esc(rangement.cave_nom)}</b>, rangée ${LETTRE_RANG(rangement.rangee)}, colonne ${rangement.colonne}.
+    ${rangement ? `<div class="carte bandeau-rangement">${ic("epingle")} La bouteille sera rangée dans <b>${esc(rangement.cave_nom)}</b>, emplacement ${positionCase(rangement)}.
       <button class="bouton petit" id="annuler-rangement">Ne pas la ranger</button></div>` : ""}
     <div class="tuiles-ajout">
       <label class="carte tuile-ajout"><span class="icone">${ic("camera")}</span><b>Photographier la bouteille</b>
@@ -1153,30 +1157,127 @@ const nomCasier = (k) => k.parent_id ? (k.nom || `Étagère ${POSITIONS_ETAGERE[
 const titreCasier = (k) => k.parent_id ? k.nom : k.nom_casier;  // affiché au-dessus du casier seulement s'il a un nom
 const LETTRE_RANG = (r) => `${String.fromCharCode(64 + ((r - 1) % 26) + 1)}${r > 26 ? Math.ceil(r / 26) : ""}`;
 
-/** Un casier = une grille de bouteilles couchées posée sur sa tablette.
- *  Chaque bouteille a la forme et les couleurs de son vin (bouteilles.js) : bordelaise, bourguignonne, flûte, champagne.
- *  surligne : vin dont les bouteilles clignotent ; choix : mode « choisir un emplacement » (seules les places libres réagissent). */
-function dessinerCasier(k, { surligne = null, choix = false } = {}) {
-  const parCase = {};
-  k.bouteilles.forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
-  let h = `<div class="plan${choix ? " plan-choix" : ""}" style="grid-template-columns: 22px repeat(${k.colonnes}, var(--case))"><span></span>`;
-  for (let col = 1; col <= k.colonnes; col++) h += `<span class="entete-col">${col}</span>`;
-  for (let r = 1; r <= k.rangees; r++) {
-    h += `<span class="entete-rang">${LETTRE_RANG(r)}</span>`;
-    for (let col = 1; col <= k.colonnes; col++) {
-      const b = parCase[`${r}-${col}`];
-      // les rangs du haut passent devant ceux du dessous (le goulot recouvre la bouteille du rang inférieur)
-      const z = `z-index:${k.rangees - r + 1}${r > 1 ? ";margin-top:calc(var(--case) * -.17)" : ""}`;
-      const lieu = `${esc(nomCasier(k))}, ${LETTRE_RANG(r)}${col}`;
-      if (b) {
-        const a = Bouteilles.couchee(b);
-        h += `<button type="button" class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" style="${z};color:${a.verre};--capsule:${a.capsule}" data-k="${k.id}" data-b="${b.id}"${choix ? " disabled" : ""} aria-label="${lieu} : ${esc(b.nom)}${b.millesime ? " " + b.millesime : ""}, ${esc(REF.statuts[b.statut] || "")}"><svg aria-hidden="true"><use href="#${a.symbole}"/></svg></button>`;
-      } else {
-        h += `<button type="button" class="case-cave" style="${z}" data-k="${k.id}" data-r="${r}" data-c="${col}" aria-label="${lieu} : libre"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></button>`;
+/* ------------------------------------------------------------------ disposition des casiers
+ * Un casier a une ou plusieurs profondeurs (rang de devant, rangs derrière). Chacune a une largeur (bouteilles côte à
+ * côte), une hauteur (bouteilles empilées) et un empilement : aligné, ou décalé d'une demi-bouteille vers la gauche ou
+ * la droite un étage sur deux (en quinconce). Adresse d'une place : colonne, et rangée = (profondeur - 1) × 100 + étage
+ * (étage 1 = en haut), comme sur le serveur. */
+const PAS_PROFONDEUR = 100;
+const PROFONDEURS_MAX = 4;
+const EMPILEMENTS = { gauche: "Décalé à gauche", aligne: "Aligné", droite: "Décalé à droite" };
+const profondeursDe = (k) => (k.profondeurs && k.profondeurs.length) ? k.profondeurs
+  : (k.rangees && k.colonnes ? [{ largeur: k.colonnes, hauteur: k.rangees, empilement: "aligne" }] : []);
+const adresse = (rangee) => ({ p: Math.floor((rangee - 1) / PAS_PROFONDEUR) + 1, etage: ((rangee - 1) % PAS_PROFONDEUR) + 1 });
+const NOMS_PROFONDEUR = (n) => n === 1 ? ["devant"] : n === 2 ? ["devant", "derrière"] : Array.from({ length: n }, (_, i) => i ? `rang ${i + 1}` : "devant");
+
+// géométrie, en tailles de case : une bouteille couchée chevauche l'étage du dessous et le rang de derrière
+const PAS_ETAGE = 0.83, DECALAGE_RANG = 0.5;
+
+/** Positions de toutes les places d'un casier (en cases), du fond vers l'avant. */
+function geometrieCasier(profs) {
+  const places = [];
+  profs.forEach((prof, i) => {
+    const p = i + 1;
+    for (let etage = 1; etage <= prof.hauteur; etage++) {
+      const niveau = prof.hauteur - etage;  // 0 = posé sur la tablette
+      const quinconce = niveau % 2 === 1 ? (prof.empilement === "droite" ? 0.5 : prof.empilement === "gauche" ? -0.5 : 0) : 0;
+      for (let col = 1; col <= prof.largeur; col++) {
+        places.push({ p, etage, col, rangee: i * PAS_PROFONDEUR + etage,
+          x: col - 1 + quinconce + i * DECALAGE_RANG, y: -niveau * PAS_ETAGE - i * DECALAGE_RANG,
+          z: (profs.length - p) * 200 + niveau + 1 });
       }
     }
+  });
+  if (!places.length) return { places, largeur: 0, hauteur: 0 };
+  const x0 = Math.min(...places.map((q) => q.x)), y0 = Math.min(...places.map((q) => q.y));
+  places.forEach((q) => { q.x -= x0; q.y -= y0; });
+  return { places, largeur: Math.max(...places.map((q) => q.x)) + 1, hauteur: Math.max(...places.map((q) => q.y)) + 1 };
+}
+
+/** Un casier dessiné : les bouteilles couchées, rang par rang, posées sur leur tablette.
+ *  surligne : vin dont les bouteilles clignotent ; choix : mode « choisir un emplacement » (seules les places libres réagissent) ;
+ *  apercu : dessin de démonstration (configurateur), toutes les places pleines de bouteilles neutres. */
+function dessinerCasier(k, { surligne = null, choix = false, apercu = false } = {}) {
+  const profs = profondeursDe(k);
+  const parCase = {};
+  (k.bouteilles || []).forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
+  const g = geometrieCasier(profs);
+  const MARGE_G = 0.45, MARGE_H = 0.32;  // place des repères (lettres à gauche, numéros en haut)
+  const pos = (x, y) => `left:calc(var(--case) * ${(x + MARGE_G).toFixed(3)});top:calc(var(--case) * ${(y + MARGE_H).toFixed(3)})`;
+  const noms = NOMS_PROFONDEUR(profs.length);
+  let h = `<div class="plan${choix ? " plan-choix" : ""}${apercu ? " plan-apercu" : ""}${profs.length > 1 ? " multi" : ""}" data-k="${k.id ?? ""}"
+    style="width:calc(var(--case) * ${(g.largeur + MARGE_G).toFixed(3)});height:calc(var(--case) * ${(g.hauteur + MARGE_H + 0.12).toFixed(3)})">`;
+  // repères de chaque rang : numéros de colonne en haut, lettre de chaque étage à gauche (seuls ceux du rang affiché se voient)
+  if (!apercu) profs.forEach((_, i) => {
+    const rang = g.places.filter((q) => q.p === i + 1);
+    const yHaut = Math.min(...rang.map((q) => q.y)), xGauche = Math.min(...rang.map((q) => q.x));
+    const cache = i ? " masquee" : "";
+    rang.filter((q) => q.etage === 1).forEach((q) => { h += `<span class="repere col${cache}" data-p="${i + 1}" style="${pos(q.x, yHaut - MARGE_H)}">${q.col}</span>`; });
+    rang.filter((q) => q.col === 1).forEach((q) => { h += `<span class="repere rang${cache}" data-p="${i + 1}" style="${pos(xGauche - MARGE_G, q.y)}">${LETTRE_RANG(q.etage)}</span>`; });
+  });
+  for (const q of g.places) {
+    const b = parCase[`${q.rangee}-${q.col}`];
+    const lieu = `${esc(nomCasier(k))}, ${LETTRE_RANG(q.etage)}${q.col}${profs.length > 1 ? ` (${noms[q.p - 1]})` : ""}`;
+    const style = `${pos(q.x, q.y)};z-index:${q.z}`;
+    const commun = `data-k="${k.id ?? ""}" data-p="${q.p}"`;
+    if (b) {
+      const a = Bouteilles.couchee(b);
+      h += `<button type="button" class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" style="${style};color:${a.verre};--capsule:${a.capsule}" ${commun} data-b="${b.id}"${choix ? " disabled" : ""} aria-label="${lieu} : ${esc(b.nom)}${b.millesime ? " " + b.millesime : ""}, ${esc(REF.statuts[b.statut] || "")}"><svg aria-hidden="true"><use href="#${a.symbole}"/></svg></button>`;
+    } else {
+      h += apercu  // aperçu : de simples dessins (il peut être placé dans un bouton)
+        ? `<span class="case-cave" style="${style}" data-p="${q.p}"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></span>`
+        : `<button type="button" class="case-cave" style="${style}" ${commun} data-r="${q.rangee}" data-c="${q.col}" aria-label="${lieu} : libre"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></button>`;
+    }
   }
-  return h + `</div>`;
+  return h + `<span class="tablette"></span></div>`;
+}
+
+/** Configurateur de disposition (dans la fenêtre d'un casier) : aperçu en direct, profondeurs, largeur, hauteur,
+ *  empilement. Renvoie { valeur } : { profondeurs: [...] } à envoyer au serveur. */
+function configurateurDisposition(zone, initiales) {
+  let profs = initiales.map((p) => ({ largeur: p.largeur, hauteur: p.hauteur, empilement: p.empilement || "aligne" }));
+  let actuel = 0;
+  const pas = (champ, v) => `<div class="pas-a-pas" role="group" aria-label="${champ}">
+    <button type="button" data-moins="${champ}" aria-label="Moins" ${v <= 1 ? "disabled" : ""}>−</button><output>${v}</output>
+    <button type="button" data-plus="${champ}" aria-label="Plus" ${v >= 50 ? "disabled" : ""}>+</button></div>`;
+  const rendre = () => {
+    const prof = profs[actuel];
+    const noms = NOMS_PROFONDEUR(profs.length);
+    const total = profs.reduce((n, p) => n + p.largeur * p.hauteur, 0);
+    const mini = (emp) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: 2, hauteur: 2, empilement: emp }] }, { apercu: true });
+    zone.innerHTML = `<div class="configurateur">
+      <div class="apercu-disposition" aria-hidden="true">${dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: profs }, { apercu: true })}</div>
+      <div class="total-places"><b>${total}</b> ${total > 1 ? "places" : "place"} dans ce casier</div>
+      <div class="onglets-profondeur" role="tablist" aria-label="Profondeurs">${profs.map((p, i) =>
+        `<button type="button" role="tab" aria-selected="${i === actuel}" data-prof="${i}" class="${i === actuel ? "actif" : ""}">Profondeur ${i + 1} · ${noms[i]}</button>`).join("")}
+        ${profs.length < PROFONDEURS_MAX ? `<button type="button" data-ajout-prof>${ic("plus")} Rang derrière</button>` : ""}</div>
+      <div>
+        <div class="reglage-ligne"><div class="libelle"><b>Largeur</b><span>bouteilles côte à côte</span></div>${pas("largeur", prof.largeur)}</div>
+        <div class="reglage-ligne"><div class="libelle"><b>Hauteur</b><span>bouteilles empilées les unes sur les autres</span></div>${pas("hauteur", prof.hauteur)}</div>
+        <div class="reglage-ligne" style="display:block"><div class="libelle" style="margin-bottom:10px"><b>Empilement</b>
+          <span>${prof.hauteur > 1 ? "comment chaque étage repose sur celui du dessous" : "à choisir dès 2 bouteilles de hauteur"}</span></div>
+          <div class="empilements" role="radiogroup" aria-label="Empilement">${Object.entries(EMPILEMENTS).map(([k, l]) =>
+            `<button type="button" role="radio" aria-checked="${prof.empilement === k}" data-emp="${k}" class="${prof.empilement === k ? "actif" : ""}" ${prof.hauteur < 2 ? "disabled" : ""}><span class="mini">${mini(k)}</span>${l}</button>`).join("")}</div></div>
+        ${profs.length > 1 ? `<button type="button" class="bouton petit discret" data-suppr-prof style="margin-top:6px">${ic("poubelle")} Supprimer la profondeur ${actuel + 1}</button>` : ""}
+      </div></div>`;
+    // la profondeur réglée ressort dans l'aperçu
+    if (profs.length > 1) $$(`.apercu-disposition .case-cave[data-p="${actuel + 1}"]`, zone).forEach((b) => b.classList.add("actuelle"));
+  };
+  zone.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.disabled) return;
+    const prof = profs[actuel];
+    if (b.dataset.prof) actuel = +b.dataset.prof;
+    else if (b.dataset.plus) prof[b.dataset.plus] = Math.min(50, prof[b.dataset.plus] + 1);
+    else if (b.dataset.moins) prof[b.dataset.moins] = Math.max(1, prof[b.dataset.moins] - 1);
+    else if (b.dataset.emp) prof.empilement = b.dataset.emp;
+    else if ("ajoutProf" in b.dataset) { profs.push({ ...profs[profs.length - 1] }); actuel = profs.length - 1; }
+    else if ("supprProf" in b.dataset) { profs.splice(actuel, 1); actuel = Math.max(0, actuel - 1); }
+    else return;
+    rendre();
+  });
+  rendre();
+  return { valeur: () => ({ profondeurs: profs.map((p) => ({ ...p })) }) };
 }
 
 /** Choix des emplacements sur le plan, dans un formulaire : la cave choisie s'affiche, on touche les places libres. */
@@ -1312,9 +1413,14 @@ async function pageCaves(main, id, params) {
     const taux = `<span class="casier-taux" title="Emplacements occupés">${pleines}/${k.capacite}</span>`;
     const modifier = `<button class="modifier-etagere" type="button" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>`;
     const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave électrique">❄</span>` : "";
+    // plusieurs profondeurs : on peut n'afficher qu'un rang pour lire les bouteilles du fond
+    const nbProf = profondeursDe(k).length;
+    const choixProf = nbProf > 1 ? `<span class="profondeurs-choix" role="group" aria-label="Rang affiché">
+      <button type="button" class="actif" data-voir-prof="0" data-casier="${k.id}">Tout</button>${NOMS_PROFONDEUR(nbProf).map((n, i) =>
+        `<button type="button" data-voir-prof="${i + 1}" data-casier="${k.id}">${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</span>` : "";
     // casier nommé : nom, taux, ❄ et ✎ sur la même ligne ; sinon discrets dans le coin
-    const tete = titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span>${froid}${taux}${modifier}</div>`
-      : `<div class="casier-coin">${froid}${plusieurs ? taux : ""}${modifier}</div>`;
+    const tete = titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span>${froid}${taux}${choixProf}${modifier}</div>`
+      : `${choixProf ? `<div class="casier-titre">${choixProf}</div>` : ""}<div class="casier-coin">${froid}${plusieurs ? taux : ""}${modifier}</div>`;
     return `<div class="casier-bloc${k.refrigere ? " refrigere" : ""}">${tete}${dessinerCasier(k, { surligne })}</div>`;
   };
 
@@ -1398,18 +1504,20 @@ async function pageCaves(main, id, params) {
   if (boutonCasier) boutonCasier.onclick = () => dialogue(`<span class="surtitre">Plan de cave</span><h2>${esc(nomCasier(c))}</h2>
     <div class="form"><label class="large">Nom (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
       <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p>
-      <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${c.rangees}" required></label>
-      <label>Colonnes<input type="number" name="colonnes" min="1" max="100" value="${c.colonnes}" required></label>
       <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
         <option value=""${c.refrigere === undefined ? " selected" : ""} disabled>Choisir…</option>
         <option value="1"${c.refrigere ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
-        <option value="0"${c.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label></div>
+        <option value="0"${c.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label>
+      <div class="large"><h3 style="margin:6px 0 10px">Disposition des bouteilles</h3><div id="config-disposition"></div></div></div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
-  { onSubmit: async (data) => {
-    await api("PUT", `caves/${c.id}`, { nom: c.nom, rangees: data.rangees, colonnes: data.colonnes, description: c.description, nom_casier: data.nom_casier, refrigere: data.refrigere });
+  { large: true, onSubmit: async (data) => {
+    await api("PUT", `caves/${c.id}`, { nom: c.nom, description: c.description, nom_casier: data.nom_casier, refrigere: data.refrigere,
+      disposition: configCasier.valeur() });
     toast("Casier modifié");
     route();
   } });
+  let configCasier = null;
+  if (boutonCasier) boutonCasier.addEventListener("click", () => { configCasier = configurateurDisposition($("#config-disposition"), profondeursDe(c)); });
   $$("[data-modifier-etagere]", main).forEach((b) => { b.onclick = () => dialogueEtagere(c, c.etageres.find((e) => e.id === +b.dataset.modifierEtagere)); });
   $("#supprimer", main).onclick = async () => {
     const n = toutesBouteilles.length;
@@ -1485,7 +1593,7 @@ async function pageCaves(main, id, params) {
     else if (deplacement) {
       try {
         await api("PUT", `bouteilles/${deplacement}`, { cave_id: k.id, rangee: +bouton.dataset.r, colonne: +bouton.dataset.c });
-        toast(`Bouteille rangée en ${LETTRE_RANG(+bouton.dataset.r)}${bouton.dataset.c}`);
+        toast(`Bouteille rangée en ${positionCase({ rangee: +bouton.dataset.r, colonne: +bouton.dataset.c })}`);
         location.hash = `#/caves/${c.id}`;
         route();
       } catch (err) { toast(err.message, true); finDeplacement(); }
@@ -1493,6 +1601,22 @@ async function pageCaves(main, id, params) {
       await dialogueRanger(k, +bouton.dataset.r, +bouton.dataset.c);
     }
   }));
+
+  /* --- profondeurs : n'afficher qu'un rang (les autres s'effacent) pour lire et toucher les bouteilles du fond */
+  const voirProfondeur = (casierId, p) => {
+    const plan = $(`.plan[data-k="${casierId}"]`, main);
+    if (!plan) return;
+    $$(".repere", plan).forEach((r) => r.classList.toggle("masquee", +r.dataset.p !== (p || 1)));
+    $$(".case-cave", plan).forEach((b) => {
+      b.classList.toggle("masquee", !!p && +b.dataset.p !== p);
+      b.classList.toggle("au-premier-plan", !!p && +b.dataset.p === p);
+    });
+    $$(`[data-voir-prof][data-casier="${casierId}"]`, main).forEach((x) => x.classList.toggle("actif", +x.dataset.voirProf === p));
+  };
+  $$("[data-voir-prof]", main).forEach((b) => (b.onclick = () => voirProfondeur(+b.dataset.casier, +b.dataset.voirProf)));
+  // une bouteille à localiser au fond : on montre directement son rang
+  const auFond = $(".case-cave.surligne:not([data-p='1'])", main);
+  if (auFond) voirProfondeur(+auFond.dataset.k, +auFond.dataset.p);
 
   /* --- vue liste */
   const conteneur = $("#plan-conteneur", main);
@@ -1669,25 +1793,28 @@ function dialogueEtagere(cave, etagere) {
   dialogue(`<span class="surtitre">Plan de cave</span><h2>${etagere ? esc(nomCasier(etagere)) : "Nouvelle étagère"}</h2>
     <div class="form">
       <label class="large">Nom (facultatif)<input name="nom" value="${esc(etagere?.nom || "")}" placeholder="Sans nom : rien n'est affiché au-dessus de l'étagère"></label>
-      <label>Rangées<input type="number" name="rangees" min="1" max="100" value="${etagere?.rangees ?? 6}" required></label>
-      <label>Colonnes<input type="number" name="colonnes" min="1" max="100" value="${etagere?.colonnes ?? cave.colonnes}" required></label>
       <label>Position<select name="position">${options(positions, etagere?.position || "bas")}</select></label>
       <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
         <option value=""${etagere?.refrigere === undefined ? " selected" : ""} disabled>Choisir…</option>
         <option value="1"${etagere?.refrigere ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
         <option value="0"${etagere?.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label>
       <label>Par rapport à<select name="ref_id">${casiers.map((k) => `<option value="${k.id}"${k.id === (etagere?.ref_id || cave.id) ? " selected" : ""}>${esc(k.nom)}</option>`).join("")}</select></label>
+      <div class="large"><h3 style="margin:6px 0 10px">Disposition des bouteilles</h3><div id="config-disposition"></div></div>
     </div>
     <div class="actions">${etagere ? `<button class="bouton danger" type="button" id="suppr-etagere">Supprimer</button>` : ""}
       <button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
   {
+    large: true,
     onSubmit: async (data) => {
+      data.disposition = config.valeur();
       if (etagere) await api("PUT", `caves/${etagere.id}`, { ...data, description: etagere.description });
       else await api("POST", "caves", { ...data, parent_id: cave.id });
       toast(etagere ? "Étagère modifiée" : "Étagère ajoutée");
       route();
     },
   });
+  const config = configurateurDisposition($("#config-disposition"),
+    etagere ? profondeursDe(etagere) : [{ largeur: Math.min(cave.colonnes || 6, 12), hauteur: 4, empilement: "aligne" }]);
   const suppr = $("#suppr-etagere");
   if (suppr) suppr.onclick = async () => {
     $("#dialogue").close();
@@ -1704,7 +1831,7 @@ async function dialogueRanger(cave, rangee, colonne) {
   const groupes = {};
   nonRangees.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, n: 0 }; groupes[b.vin_id].n++; });
   const ailleurs = Object.values(groupes);
-  dialogue(`<span class="surtitre">${esc(nomCasier(cave))}</span><h2>Emplacement ${LETTRE_RANG(rangee)}${colonne}</h2>
+  dialogue(`<span class="surtitre">${esc(nomCasier(cave))}</span><h2>Emplacement ${positionCase({ rangee, colonne })}</h2>
     <div class="form">
       ${ailleurs.length ? `<label class="large">Ranger une bouteille déjà en stock (non rangée ou en vrac)
         <select name="bouteille_id"><option value="">—</option>${ailleurs.map((b) => `<option value="${b.id}">${titreVin(b)} (×${b.n}${b.cave_nom ? " — " + esc(b.cave_nom) : ""})</option>`).join("")}</select></label>
