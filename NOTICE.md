@@ -29,7 +29,7 @@ Dites si c'est une **cave électrique** : Tessvine vous préviendra quand une pl
 ## 3. Ajouter un vin (1 minute)
 
 Bouton **+** → **Photographier la bouteille**, puis son verso (ou **Ignorer**).
-L'IA de Home Assistant remplit la fiche : nom, domaine, appellation, millésime, garde… *(il faut une IA configurée dans Home Assistant, par exemple Google Gemini gratuit ; sinon, saisissez la fiche à la main)*.
+L'IA de Home Assistant remplit la fiche : nom, domaine, appellation, millésime, garde… *(il faut une IA configurée dans Home Assistant, voir [Activer l'IA](#activer-lia-facultatif-gratuit-5-minutes) ; sinon, saisissez la fiche à la main)*.
 Choisissez la cave et **touchez la place** où vous rangez la bouteille sur le plan. C'est tout.
 
 ## 4. Au quotidien
@@ -43,6 +43,23 @@ Choisissez la cave et **touchez la place** où vous rangez la bouteille sur le p
 | Sur téléphone | Une bouteille du plan |
 |---|---|
 | ![Mes vins](docs/mobile.png) | ![Bouteille](docs/bouteille-mobile-sombre.png) |
+
+## Activer l'IA (facultatif, gratuit, 5 minutes)
+
+Sans IA, Tessvine marche très bien : vous saisissez la fiche à la main et la garde est estimée par une règle générale.
+Avec l'IA, une **photo de l'étiquette suffit** pour remplir la fiche, et la garde de chaque vin est estimée finement.
+Exemple avec **Google Gemini**, qui a une offre gratuite :
+
+1. **Obtenir une clé** : sur [aistudio.google.com](https://aistudio.google.com/apikey), connectez-vous avec un compte Google → **Create API key** → copiez la clé.
+2. **L'ajouter à Home Assistant** : *Paramètres → Appareils et services → Ajouter une intégration* → cherchez **Google Generative AI** (Gemini) → collez la clé.
+3. **Créer la « tâche IA »** : dans cette intégration, touchez **Ajouter une tâche IA** (bouton ou menu ⋮) et validez. C'est elle qu'utilise Tessvine.
+4. **Vérifier** : dans Tessvine, **Réglages → IA, photos & étiquettes** doit afficher « Lecture d'étiquette disponible ». Sinon, cette page explique ce qui manque.
+
+Bon à savoir :
+- il faut **Home Assistant 2025.8 ou plus récent** ;
+- ça marche aussi avec OpenAI, Anthropic ou une IA locale (Ollama avec un modèle qui comprend les images) ; il faut toujours une intégration qui propose « Ajouter une tâche IA » ;
+- une IA à laquelle Home Assistant est seulement *connecté* (Claude ou ChatGPT par abonnement, serveur MCP…) ne peut pas être utilisée par Tessvine ;
+- les photos d'étiquettes sont envoyées au service d'IA choisi ; avec l'offre gratuite de Google, elles peuvent servir à améliorer ses produits.
 
 ## 5. En option
 

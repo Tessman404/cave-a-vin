@@ -179,6 +179,8 @@ Bouton **+ Ajouter**, puis **Photographier la bouteille** :
 
 **Garde estimée par l'IA** : la même IA estime la fenêtre de dégustation de chaque vin en cave, au démarrage du module puis chaque mois, et chaque nouveau vin dès son ajout. La fiche indique l'origine de la garde (« estimée par l'IA », avec sa justification et sa confiance, ou « saisie à la main »). Si vous corrigez une garde, l'IA ne la touche plus et affiche seulement sa suggestion ; le bouton **Garde par l'IA** la remplace à votre demande. Statuts : *À garder* → *Prêt à boire* → *À l'apogée* (plateau) → *Après l'apogée* → *À boire vite* (dernière année) → *Garde dépassée*.
 
+**Pas à pas pour activer l'IA (Google Gemini gratuit)** : voir la [notice rapide](NOTICE.md#activer-lia-facultatif-gratuit-5-minutes).
+
 **Ce qu'il faut pour la lecture d'étiquette** : Home Assistant 2025.8 ou plus récent, avec une intégration d'IA qui fournit une entité **« AI Task »** et qui comprend les images : OpenAI, Google Gemini, Anthropic (Claude), ou Ollama avec un modèle de vision (par exemple `qwen2.5vl`). Dans la cave, **Réglages → IA, photos & étiquettes** indique si tout est prêt et permet de choisir l'IA. La photo est alors envoyée à cette IA (et donc à son fournisseur si elle est en ligne).
 
 **Le détourage** se fait sur votre installation, sans rien envoyer. Le modèle (45 Mo) est téléchargé au premier usage : la toute première photo prend environ une minute, les suivantes quelques secondes. Trois qualités au choix dans les réglages : *rapide* (5 Mo), *standard* et *précis* (180 Mo, pour un Raspberry Pi 5 ou un mini-PC).
