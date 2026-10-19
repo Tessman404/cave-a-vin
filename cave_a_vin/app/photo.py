@@ -11,18 +11,43 @@ import threading
 import urllib.request
 from pathlib import Path
 
-try:
-    import numpy as np
-    from PIL import Image, ImageDraw, ImageFilter, ImageOps
-except ImportError:  # installation minimale : photos acceptées telles quelles
-    np = Image = None
-
-try:
-    import onnxruntime as ort
-except ImportError:
-    ort = None
-
 log = logging.getLogger("cave_a_vin")
+
+
+def _processeur_trop_ancien():
+    """NumPy 2 et onnxruntime exigent, sur PC, un processeur « x86-64-v2 » (SSE4.2, POPCNT…). Une machine virtuelle
+    réglée sur un type de processeur générique (fréquent sous Proxmox) ne les annonce pas : on le détecte avant
+    d'importer ces bibliothèques, qui sinon arrêtent tout le module."""
+    import platform
+    if platform.machine().lower() not in ("x86_64", "amd64"):
+        return False
+    try:
+        drapeaux = next((l.split(":", 1)[1].split() for l in open("/proc/cpuinfo", encoding="utf-8") if l.startswith("flags")), None)
+    except OSError:
+        return False
+    return drapeaux is not None and not {"sse4_2", "popcnt", "ssse3"} <= set(drapeaux)
+
+
+# Bibliothèques facultatives. Quoi qu'il arrive à leur chargement (absentes, ou incompatibles avec ce processeur),
+# la cave démarre : seul le détourage des photos est désactivé, avec une raison claire dans le journal et les réglages.
+RAISON_SANS_DETOURAGE = ""
+try:
+    from PIL import Image, ImageDraw, ImageFilter, ImageOps
+except Exception as e:  # noqa: BLE001  installation minimale : photos acceptées telles quelles
+    Image = None
+    RAISON_SANS_DETOURAGE = f"bibliothèque d'images absente ({e})"
+np = ort = None
+if Image is not None:
+    if _processeur_trop_ancien():
+        RAISON_SANS_DETOURAGE = ("le processeur ne gère pas les instructions SSE4.2 (x86-64-v2). Machine virtuelle : "
+                                 "choisissez le type de processeur « host » (Proxmox : Matériel → Processeurs → Type)")
+    else:
+        try:
+            import numpy as np
+            import onnxruntime as ort
+        except Exception as e:  # noqa: BLE001  ImportError, ou RuntimeError de NumPy sur un processeur trop ancien
+            np = ort = None
+            RAISON_SANS_DETOURAGE = f"bibliothèques de détourage inutilisables ({str(e).splitlines()[0][:200]})"
 
 IMAGENET = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 QUALITES = {
@@ -52,7 +77,7 @@ def pil_disponible():
 
 
 def detourage_disponible():
-    return Image is not None and ort is not None
+    return Image is not None and np is not None and ort is not None
 
 
 def ouvrir(contenu):

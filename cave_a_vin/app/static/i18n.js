@@ -187,7 +187,7 @@ const I18N = (() => {
     "Cave voûtée": "Vaulted cellar", "Casier en bois": "Wooden rack", "Studio bordeaux": "Burgundy studio", "Pierre claire": "Light stone", "Choisir le fond": "Choose the background",
     "Choisissez maintenant un fond.": "Now choose a background.", "Détourage et mise en scène…": "Cutting out and staging…", "Photo": "Photo",
     "Le modèle de détourage est téléchargé une seule fois, au premier usage, puis tout se fait sur votre installation. Pour la lecture d'étiquette, la photo est envoyée à l'IA configurée dans Home Assistant.": "The cut-out model is downloaded once, on first use, then everything runs on your installation. For label reading, the photo is sent to the AI configured in Home Assistant.",
-    "Le détourage n'est pas disponible sur cette installation (bibliothèques de traitement d'image absentes) : les photos sont gardées telles quelles.": "Cut-out isn't available on this installation (image libraries missing): photos are kept as they are.",
+    "Le détourage n'est pas disponible sur cette installation : les photos sont gardées telles quelles.": "Cut-out isn't available on this installation: photos are kept as they are.",
     "Intégration Home Assistant": "Home Assistant integration", "L'intégration": "The", ") crée dans Home Assistant :": ") integration creates in Home Assistant:",
     "(dossier": "(folder", "des capteurs : bouteilles, valeur, vins à boire, à boire vite…": "sensors: bottles, value, wines to drink, drink soon…",
     "la liste de tâches": "the to-do list", "(utilisable avec Assist : « ajoute Chablis à Cave à vin Envies »)": "(usable with Assist: “add Chablis to Tessvine Wishlist”)",
@@ -341,6 +341,8 @@ const I18N = (() => {
     [/^(\d) rangs$/, (m) => `${m[1]} rows deep`],
     [/^rang (\d)$/, (m) => `row ${m[1]}`],
     [/^Voir ce casier de près(.*)$/, (m) => `Look at this rack up close${m[1] ? ": its rows move apart to show the bottles at the back" : ""}`],
+    [/^Raison : le processeur ne gère pas les instructions SSE4\.2 \(x86-64-v2\)\..*$/, () => "Reason: the processor doesn't support SSE4.2 instructions (x86-64-v2). Virtual machine: choose the “host” CPU type (Proxmox: Hardware → Processors → Type)."],
+    [/^Raison : (.*)$/, (m) => `Reason: ${m[1]}`],
     [/^Envoi impossible : (.+)$/, (m) => `Couldn't send: ${m[1]}`],
     [/^Accord : (.+)$/, (m) => `Pairing: ${m[1]}`],
   ];

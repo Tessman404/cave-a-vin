@@ -2167,7 +2167,7 @@ async function pageReglages(main) {
             <select name="fond_defaut">${options(Object.fromEntries(CAPACITES.fonds.map((f) => [f.id, f.label])), r.fond_defaut)}</select></label>
           <label class="large">Cadrage par défaut
             <select name="cadrage_defaut">${options(Object.fromEntries((CAPACITES.cadrages || []).map((c) => [c.id, c.label])), r.cadrage_defaut)}</select></label>
-          ${CAPACITES.detourage ? "" : `<p class="large petit-texte muted" style="margin:0">Le détourage n'est pas disponible sur cette installation (bibliothèques de traitement d'image absentes) : les photos sont gardées telles quelles.</p>`}
+          ${CAPACITES.detourage ? "" : `<p class="large petit-texte muted" style="margin:0">Le détourage n'est pas disponible sur cette installation : les photos sont gardées telles quelles.${CAPACITES.detourage_raison ? `<br>Raison : ${esc(CAPACITES.detourage_raison)}.` : ""}</p>`}
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form>
         <p class="muted petit-texte">Le modèle de détourage est téléchargé une seule fois, au premier usage, puis tout se fait sur votre installation. Pour la lecture d'étiquette, la photo est envoyée à l'IA configurée dans Home Assistant.</p>

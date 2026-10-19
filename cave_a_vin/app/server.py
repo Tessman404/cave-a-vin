@@ -252,6 +252,7 @@ def _capacites(app, req):
     reglages = app.reglages()
     return {
         "detourage": photo.detourage_disponible(),
+        "detourage_raison": photo.RAISON_SANS_DETOURAGE,
         "qualite_detourage": reglages.get("detourage_qualite"),
         "fonds": [{"id": k, "label": v} for k, v in photo.FONDS.items()],
         "fond_defaut": reglages.get("fond_defaut") or "cave-voutee",

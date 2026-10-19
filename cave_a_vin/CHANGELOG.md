@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.14.2
+
+- Correction : le module **ne plantait plus au démarrage** sur un processeur sans instructions SSE4.2 (x86-64-v2),
+  fréquent dans une machine virtuelle Proxmox avec un type de processeur générique. La cave démarre normalement ;
+  seul le détourage des photos est désactivé, avec la raison et la solution dans le journal et dans **Réglages → IA,
+  photos & étiquettes** (machine virtuelle : type de processeur « host »). Merci pour le signalement détaillé !
+
 ## 1.14.1
 
 - **Sens des bouteilles**, rang par rang, comme dans une vraie cave : *Avant* (goulot vers vous), *Arrière* (fond vers

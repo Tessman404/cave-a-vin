@@ -8,7 +8,7 @@ import threading
 import urllib.request
 from pathlib import Path
 
-from . import __version__
+from . import __version__, photo
 from .db import Database
 from .server import Application, creer_serveur
 
@@ -56,6 +56,9 @@ def main():
     application.surveillance.demarrer()  # notifications de fin de garde
     logging.info("Tessvine %s démarrée sur le port %s (données : %s)%s", __version__, port, dossier.resolve(),
                  " — clé d'API activée" if api_key else "")
+    if photo.RAISON_SANS_DETOURAGE:
+        logging.warning("Détourage des photos désactivé : %s. La cave fonctionne normalement, les photos sont gardées "
+                        "telles quelles.", photo.RAISON_SANS_DETOURAGE)
     threading.Thread(target=annoncer_a_home_assistant, args=(port, api_key), daemon=True).start()
     try:
         serveur.serve_forever()
