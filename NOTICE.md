@@ -26,6 +26,7 @@ Il faut **Home Assistant OS** (le cas de la plupart des installations : Raspberr
 
 - **Largeur** et **Hauteur** : combien de bouteilles côte à côte, et combien d'étages ;
 - **Empilement** : *Aligné* (chaque bouteille dans sa case) ou *Décalé à gauche / à droite* (les bouteilles se calent dans les creux de l'étage du dessous, comme dans une cave électrique) ;
+- **Sens des bouteilles** : *Avant* (goulot vers vous), *Arrière* (fond vers vous), *Alterné*, ou *Allongé* (de côté, goulot à droite ou à gauche) ;
 - **Rang derrière** : un deuxième rang de bouteilles derrière le premier, si vos étagères sont profondes. Sur le plan, touchez le nom du casier : ses rangs s'écartent, chacun sur sa tablette, et vous voyez toutes les bouteilles, même celles du fond.
 
 Vous avez plusieurs casiers ? **+ Rangée** pour ajouter une étagère dessous ou dessus, ou une colonne à côté ; le compteur « Rangées identiques » en ajoute plusieurs d'un coup.

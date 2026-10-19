@@ -1083,3 +1083,15 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 @media (prefers-reduced-motion: reduce) {
   .plan, .plan .case-cave, .plan .repere, .plan .tablette, .plan .nom-rang, .casier-bloc { transition: none; }
 }
+
+/* bouteilles allongées (vue de côté) : 3,2 cases de large ; goulot à gauche = dessin retourné */
+.plan .case-cave.allonge, .plan .case-cave.allonge svg { width: calc(var(--case) * 3.2); }
+/* choix du sens des bouteilles : cartes avec un petit aperçu, comme l'empilement */
+.sens-choix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sens-choix button { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 10px 6px 9px; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--bord); background: var(--surface); color: var(--texte); font: 600 .78rem var(--sans); }
+.sens-choix button small { font: 500 .66rem var(--sans); color: var(--texte-2); text-align: center; line-height: 1.25; }
+.sens-choix button.actif { border-color: #b8784a; box-shadow: 0 0 0 2px rgba(184, 120, 74, .35); }
+.sens-choix .mini { --case: 30px; display: grid; place-items: center; height: 54px; width: 100%; margin-bottom: 4px; border-radius: 10px;
+  background: linear-gradient(180deg, #221f25, #161418); overflow: hidden; }
+@media (max-width: 520px) { .sens-choix { grid-template-columns: repeat(2, 1fr); } }

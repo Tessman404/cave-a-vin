@@ -418,6 +418,8 @@ def supprimer_vin(db, vin_id):
 # Le rang de devant garde donc exactement les adresses d'une grille simple.
 PAS_PROFONDEUR = 100
 EMPILEMENTS = ("aligne", "gauche", "droite")
+# sens des bouteilles dans un rang : goulot vers soi (avant), fond vers soi (arrière), alternés, ou allongées de côté
+SENS = ("avant", "arriere", "alterne_avant", "alterne_arriere", "allonge_droite", "allonge_gauche")
 PROFONDEURS_MAX = 4
 
 
@@ -457,10 +459,16 @@ def _nettoyer_disposition(brut):
         empilement = prof.get("empilement") or "aligne"
         if empilement not in EMPILEMENTS:
             raise ErreurAPI("Empilement : aligné, décalé à gauche ou décalé à droite")
-        propres.append({"largeur": largeur, "hauteur": hauteur, "empilement": empilement})
+        sens = prof.get("sens") or "avant"
+        if sens not in SENS:
+            raise ErreurAPI("Sens des bouteilles inconnu")
+        propre = {"largeur": largeur, "hauteur": hauteur, "empilement": empilement}
+        if sens != "avant":
+            propre["sens"] = sens
+        propres.append(propre)
     rangees = max(p * PAS_PROFONDEUR + prof["hauteur"] for p, prof in enumerate(propres))
     colonnes = max(prof["largeur"] for prof in propres)
-    simple = len(propres) == 1 and propres[0]["empilement"] == "aligne"
+    simple = len(propres) == 1 and propres[0]["empilement"] == "aligne" and "sens" not in propres[0]
     return (None if simple else json.dumps({"profondeurs": propres})), rangees, colonnes
 
 

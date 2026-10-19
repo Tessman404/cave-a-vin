@@ -2,6 +2,10 @@
 
 ## 1.14.1
 
+- **Sens des bouteilles**, rang par rang, comme dans une vraie cave : *Avant* (goulot vers vous), *Arrière* (fond vers
+  vous), *Alterné* (goulot et fond l'un après l'autre, en commençant par l'un ou l'autre), *Allongé* (couchées de
+  côté, goulot à droite ou à gauche). Choix avec aperçu dans « Personnalisez votre rangée » ; nouvelles bouteilles
+  dessinées vues par le fond et de côté.
 - Correction : **supprimer une étagère** fonctionne de nouveau (la confirmation se fermait toute seule).
 - Casier avec des rangs derrière : le **premier toucher** sur une bouteille ouvre la vue éclatée ; le suivant agit sur
   la bouteille, même au fond.

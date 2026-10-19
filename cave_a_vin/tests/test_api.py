@@ -133,6 +133,19 @@ class TestCave(BaseTest):
         b = [x for x in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"] if x["cave_id"]]
         self.assertEqual([(x["cave_id"], x["rangee"]) for x in b], [(cave["id"], None)])
 
+    def test_sens_des_bouteilles(self):
+        disposition = {"profondeurs": [{"largeur": 3, "hauteur": 2, "empilement": "aligne", "sens": "alterne_arriere"},
+                                       {"largeur": 2, "hauteur": 1, "empilement": "aligne", "sens": "allonge_gauche"}]}
+        cave = self.appel("POST", "api/caves", {"nom": "Cave mixte", "disposition": disposition}, attendu=201)
+        self.assertEqual(cave["profondeurs"], disposition["profondeurs"])
+        self.assertEqual(cave["capacite"], 8)
+        # un seul rang « avant » aligné reste une grille simple (sans disposition enregistrée)
+        simple = self.appel("POST", "api/caves", {"nom": "Simple", "disposition": {"profondeurs": [
+            {"largeur": 4, "hauteur": 2, "sens": "avant"}]}}, attendu=201)
+        self.assertEqual(simple["profondeurs"], [{"largeur": 4, "hauteur": 2, "empilement": "aligne"}])
+        self.appel("POST", "api/caves", {"nom": "Faux", "disposition": {"profondeurs": [
+            {"largeur": 2, "hauteur": 1, "sens": "debout"}]}}, attendu=400)
+
     def test_renommer_une_cave_garde_sa_disposition(self):
         disposition = {"profondeurs": [{"largeur": 3, "hauteur": 2, "empilement": "gauche"},
                                        {"largeur": 3, "hauteur": 2, "empilement": "aligne"}]}

@@ -1182,7 +1182,25 @@ const NOMS_PROFONDEUR = (n) => n === 1 ? ["devant"] : n === 2 ? ["devant", "derr
 // géométrie, en tailles de case. Une bouteille couchée, vue presque de face, occupe 84 % d'une case : les bouteilles
 // d'un étage se touchent presque ; en quinconce, l'étage du dessus se cale dans les creux (pas vertical plus court).
 const PAS_ETAGE = 0.86, PAS_QUINCONCE = 0.72, DECALAGE_RANG = 0.5, ECART_ECLATE = 0.85;
-const pasEtage = (prof) => prof.empilement && prof.empilement !== "aligne" ? PAS_QUINCONCE : PAS_ETAGE;
+const allonge = (prof) => (prof.sens || "").startsWith("allonge");
+const pasEtage = (prof) => !allonge(prof) && prof.empilement && prof.empilement !== "aligne" ? PAS_QUINCONCE : PAS_ETAGE;
+// sens des bouteilles d'un rang (comme dans une vraie cave) ; une bouteille allongée occupe 3,2 cases de large
+const SENS = {
+  arriere: "Arrière", avant: "Avant", alterne_arriere: "Alterné (arrière)", alterne_avant: "Alterné (avant)",
+  allonge_droite: "Allongé (droite)", allonge_gauche: "Allongé (gauche)",
+};
+const SENS_AIDE = {
+  arriere: "fond vers vous", avant: "goulot vers vous", alterne_arriere: "fond, goulot, fond…", alterne_avant: "goulot, fond, goulot…",
+  allonge_droite: "de côté, goulot à droite", allonge_gauche: "de côté, goulot à gauche",
+};
+const LONGUEUR_ALLONGE = 3.2, PAS_ALLONGE = 3.28;
+/** Vue d'une place : « avant » (goulot vers nous), « fond » (cul de la bouteille vers nous) ou « cote » (allongée). */
+function vuePlace(prof, col) {
+  const sens = prof.sens || "avant";
+  if (sens.startsWith("allonge")) return { vue: "cote", miroir: sens === "allonge_gauche", sfx: "-cote" };
+  const fond = sens === "arriere" || (sens === "alterne_arriere" && col % 2 === 1) || (sens === "alterne_avant" && col % 2 === 0);
+  return { vue: fond ? "fond" : "avant", miroir: false, sfx: fond ? "-fond" : "" };
+}
 
 /** Positions de toutes les places d'un casier (en cases).
  *  Normal : les rangs de derrière sont cachés derrière celui de devant (décalés d'une demi-bouteille).
@@ -1191,24 +1209,25 @@ function geometrieCasier(profs, eclate = false) {
   const places = [], tablettes = [];
   let monte = 0;  // éclaté : hauteur déjà occupée par les rangs de devant
   profs.forEach((prof, i) => {
-    const p = i + 1, pas = pasEtage(prof);
+    const p = i + 1, pas = pasEtage(prof), long = allonge(prof);
     const dx = i * DECALAGE_RANG, dy = eclate ? -monte : -i * DECALAGE_RANG;
     for (let etage = 1; etage <= prof.hauteur; etage++) {
       const niveau = prof.hauteur - etage;  // 0 = posé sur la tablette
-      const quinconce = niveau % 2 === 1 ? (prof.empilement === "droite" ? 0.5 : prof.empilement === "gauche" ? -0.5 : 0) : 0;
+      const quinconce = !long && niveau % 2 === 1 ? (prof.empilement === "droite" ? 0.5 : prof.empilement === "gauche" ? -0.5 : 0) : 0;
       for (let col = 1; col <= prof.largeur; col++) {
-        places.push({ p, etage, col, rangee: i * PAS_PROFONDEUR + etage,
-          x: col - 1 + quinconce + dx, y: -niveau * pas + dy, z: (profs.length - p) * 200 + niveau + 1 });
+        places.push({ p, etage, col, rangee: i * PAS_PROFONDEUR + etage, w: long ? LONGUEUR_ALLONGE : 1, ...vuePlace(prof, col),
+          x: (col - 1) * (long ? PAS_ALLONGE : 1) + quinconce + dx, y: -niveau * pas + dy, z: (profs.length - p) * 200 + niveau + 1 });
       }
     }
-    const xs = places.filter((q) => q.p === p).map((q) => q.x);
-    tablettes.push({ p, x: Math.min(...xs), largeur: Math.max(...xs) - Math.min(...xs) + 1, y: dy + 0.92, z: (profs.length - p) * 200 });
+    const rang = places.filter((q) => q.p === p);
+    const gauche = Math.min(...rang.map((q) => q.x)), droite = Math.max(...rang.map((q) => q.x + q.w));
+    tablettes.push({ p, x: gauche, largeur: droite - gauche, y: dy + 0.92, z: (profs.length - p) * 200 });
     monte += (prof.hauteur - 1) * pas + 1 + ECART_ECLATE;
   });
   if (!places.length) return { places, tablettes, largeur: 0, hauteur: 0 };
   const x0 = Math.min(...places.map((q) => q.x)), y0 = Math.min(...places.map((q) => q.y));
   [...places, ...tablettes].forEach((q) => { q.x -= x0; q.y -= y0; });
-  return { places, tablettes, largeur: Math.max(...places.map((q) => q.x)) + (eclate && profs.length > 1 ? 1.9 : 1.15), hauteur: Math.max(...places.map((q) => q.y)) + 1.08 };
+  return { places, tablettes, largeur: Math.max(...places.map((q) => q.x + q.w)) + (eclate && profs.length > 1 ? 0.9 : 0.15), hauteur: Math.max(...places.map((q) => q.y)) + 1.08 };
 }
 
 /** Un casier dessiné : les bouteilles couchées, rang par rang, posées sur leur tablette.
@@ -1250,14 +1269,18 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false, ecl
     const b = parCase[`${q.rangee}-${q.col}`];
     const lieu = `${esc(nomCasier(k))}, ${LETTRE_RANG(q.etage)}${q.col}${multi ? ` (${noms[q.p - 1]})` : ""}`;
     const style = `${vars(q, ge.places[j])};z-index:${q.z}`;
-    const commun = `data-k="${k.id ?? ""}" data-p="${q.p}"`;
+    const commun = `data-k="${k.id ?? ""}" data-p="${q.p}" data-sfx="${q.sfx}"`;
+    const forme = q.vue === "cote" ? ` allonge${q.miroir ? " miroir" : ""}` : "";
+    const dessin = (symbole) => q.miroir  // allongée, goulot à gauche : le dessin est retourné
+      ? `<svg aria-hidden="true" viewBox="0 0 ${LONGUEUR_ALLONGE} 1" preserveAspectRatio="none"><use href="#${symbole}${q.sfx}" width="${LONGUEUR_ALLONGE}" height="1" transform="matrix(-1 0 0 1 ${LONGUEUR_ALLONGE} 0)"/></svg>`
+      : `<svg aria-hidden="true"><use href="#${symbole}${q.sfx}"/></svg>`;
     if (b) {
       const a = Bouteilles.couchee(b);
-      h += `<button type="button" class="case-cave pleine ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" style="${style};color:${a.verre};--capsule:${a.capsule}" ${commun} data-b="${b.id}"${choix ? " disabled" : ""} aria-label="${lieu} : ${esc(b.nom)}${b.millesime ? " " + b.millesime : ""}, ${esc(REF.statuts[b.statut] || "")}"><svg aria-hidden="true"><use href="#${a.symbole}"/></svg></button>`;
+      h += `<button type="button" class="case-cave pleine${forme} ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" style="${style};color:${a.verre};--capsule:${a.capsule}" ${commun} data-b="${b.id}"${choix ? " disabled" : ""} aria-label="${lieu} : ${esc(b.nom)}${b.millesime ? " " + b.millesime : ""}, ${esc(REF.statuts[b.statut] || "")}">${dessin(a.symbole)}</button>`;
     } else {
       h += apercu  // aperçu : de simples dessins (il peut être placé dans un bouton)
-        ? `<span class="case-cave" style="${style}" data-p="${q.p}"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></span>`
-        : `<button type="button" class="case-cave" style="${style}" ${commun} data-r="${q.rangee}" data-c="${q.col}" aria-label="${lieu} : libre"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></button>`;
+        ? `<span class="case-cave${forme}" style="${style}" data-p="${q.p}">${dessin("bouteille-couchee")}</span>`
+        : `<button type="button" class="case-cave${forme}" style="${style}" ${commun} data-r="${q.rangee}" data-c="${q.col}" aria-label="${lieu} : libre">${dessin("bouteille-couchee")}</button>`;
     }
   });
   return h + `</div>`;
@@ -1266,7 +1289,7 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false, ecl
 /** Configurateur de disposition (dans la fenêtre d'un casier) : aperçu en direct, profondeurs, largeur, hauteur,
  *  empilement. Renvoie { valeur } : { profondeurs: [...] } à envoyer au serveur. */
 function configurateurDisposition(zone, initiales) {
-  let profs = initiales.map((p) => ({ largeur: p.largeur, hauteur: p.hauteur, empilement: p.empilement || "aligne" }));
+  let profs = initiales.map((p) => ({ largeur: p.largeur, hauteur: p.hauteur, empilement: p.empilement || "aligne", sens: p.sens || "avant" }));
   let actuel = 0;
   const pas = (champ, v) => `<div class="pas-a-pas" role="group" aria-label="${champ}">
     <button type="button" data-moins="${champ}" aria-label="Moins" ${v <= 1 ? "disabled" : ""}>−</button><output>${v}</output>
@@ -1275,6 +1298,7 @@ function configurateurDisposition(zone, initiales) {
     const prof = profs[actuel];
     const noms = NOMS_PROFONDEUR(profs.length);
     const total = profs.reduce((n, p) => n + p.largeur * p.hauteur, 0);
+    const miniSens = (sens) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: sens.startsWith("allonge") ? 1 : 2, hauteur: 1, empilement: "aligne", sens }] }, { apercu: true });
     const mini = (emp) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: 2, hauteur: 2, empilement: emp }] }, { apercu: true });
     zone.innerHTML = `<div class="configurateur">
       <div class="apercu-disposition" aria-hidden="true">${dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: profs }, { apercu: true, eclate: true })}</div>
@@ -1285,10 +1309,14 @@ function configurateurDisposition(zone, initiales) {
       <div>
         <div class="reglage-ligne"><div class="libelle"><b>Largeur</b><span>bouteilles côte à côte</span></div>${pas("largeur", prof.largeur)}</div>
         <div class="reglage-ligne"><div class="libelle"><b>Hauteur</b><span>bouteilles empilées les unes sur les autres</span></div>${pas("hauteur", prof.hauteur)}</div>
+        <div class="reglage-ligne" style="display:block"><div class="libelle" style="margin-bottom:10px"><b>Sens des bouteilles</b>
+          <span>comment elles sont posées dans ce rang</span></div>
+          <div class="sens-choix" role="radiogroup" aria-label="Sens des bouteilles">${Object.entries(SENS).map(([cle, l]) =>
+            `<button type="button" role="radio" aria-checked="${prof.sens === cle}" data-sens="${cle}" class="${prof.sens === cle ? "actif" : ""}"><span class="mini">${miniSens(cle)}</span><b>${l}</b><small>${SENS_AIDE[cle]}</small></button>`).join("")}</div></div>
         <div class="reglage-ligne" style="display:block"><div class="libelle" style="margin-bottom:10px"><b>Empilement</b>
-          <span>${prof.hauteur > 1 ? "comment chaque étage repose sur celui du dessous" : "à choisir dès 2 bouteilles de hauteur"}</span></div>
+          <span>${allonge(prof) ? "les bouteilles allongées s'empilent droites" : prof.hauteur > 1 ? "comment chaque étage repose sur celui du dessous" : "à choisir dès 2 bouteilles de hauteur"}</span></div>
           <div class="empilements" role="radiogroup" aria-label="Empilement">${Object.entries(EMPILEMENTS).map(([k, l]) =>
-            `<button type="button" role="radio" aria-checked="${prof.empilement === k}" data-emp="${k}" class="${prof.empilement === k ? "actif" : ""}" ${prof.hauteur < 2 ? "disabled" : ""}><span class="mini">${mini(k)}</span>${l}</button>`).join("")}</div></div>
+            `<button type="button" role="radio" aria-checked="${prof.empilement === k}" data-emp="${k}" class="${prof.empilement === k ? "actif" : ""}" ${prof.hauteur < 2 || allonge(prof) ? "disabled" : ""}><span class="mini">${mini(k)}</span>${l}</button>`).join("")}</div></div>
         ${profs.length > 1 ? `<button type="button" class="bouton petit discret" data-suppr-prof style="margin-top:6px">${ic("poubelle")} Supprimer la profondeur ${actuel + 1}</button>` : ""}
       </div></div>`;
     // l'aperçu tient dans la largeur disponible (téléphone)
@@ -1306,6 +1334,7 @@ function configurateurDisposition(zone, initiales) {
     else if (b.dataset.plus) prof[b.dataset.plus] = Math.min(50, prof[b.dataset.plus] + 1);
     else if (b.dataset.moins) prof[b.dataset.moins] = Math.max(1, prof[b.dataset.moins] - 1);
     else if (b.dataset.emp) prof.empilement = b.dataset.emp;
+    else if (b.dataset.sens) prof.sens = b.dataset.sens;
     else if ("ajoutProf" in b.dataset) { profs.push({ ...profs[profs.length - 1] }); actuel = profs.length - 1; }
     else if ("supprProf" in b.dataset) { profs.splice(actuel, 1); actuel = Math.max(0, actuel - 1); }
     else return;
@@ -1336,7 +1365,7 @@ function selecteurEmplacements(select, zone, { quantite, couleur }) {
       b.classList.toggle("choisie", pris);
       b.style.color = pris ? a.verre : "";
       b.style.setProperty("--capsule", pris ? a.capsule : "");
-      $("use", b).setAttribute("href", "#" + (pris ? a.symbole : "bouteille-couchee"));
+      $("use", b).setAttribute("href", "#" + (pris ? a.symbole : "bouteille-couchee") + (b.dataset.sfx || ""));
       b.setAttribute("aria-pressed", pris ? "true" : "false");
     });
     resume();
@@ -1646,9 +1675,9 @@ async function pageCaves(main, id, params) {
   const conteneurPlan = $("#plan-conteneur", main);
   const selectionner = (id) => {
     if (!conteneurPlan) return;
-    const actuel = conteneurPlan.dataset.selection || "";
+    const actuel = conteneurPlan.dataset.casierChoisi || "";
     const choisi = id && String(id) !== actuel ? String(id) : "";
-    conteneurPlan.dataset.selection = choisi;
+    conteneurPlan.dataset.casierChoisi = choisi;
     conteneurPlan.classList.toggle("avec-selection", !!choisi);
     $$(".casier-bloc", conteneurPlan).forEach((bloc) => {
       const lui = bloc.dataset.casierBloc === choisi;
@@ -1675,9 +1704,9 @@ async function pageCaves(main, id, params) {
       // le suivant agit sur la bouteille (maintenant bien visible, même au fond)
       const fermee = e.target.closest(".case-cave") && e.target.closest(".plan.multi:not(.eclate)");
       if (fermee) { e.preventDefault(); e.stopPropagation(); selectionner(+fermee.dataset.k); return; }
-      if (conteneurPlan.dataset.selection && (e.target === conteneurPlan || e.target.matches(".casiers, .colonne-casiers"))) selectionner(null);
+      if (conteneurPlan.dataset.casierChoisi && (e.target === conteneurPlan || e.target.matches(".casiers, .colonne-casiers"))) selectionner(null);
     }, true);
-    main.addEventListener("keydown", (e) => { if (e.key === "Escape" && conteneurPlan.dataset.selection) selectionner(null); });
+    main.addEventListener("keydown", (e) => { if (e.key === "Escape" && conteneurPlan.dataset.casierChoisi) selectionner(null); });
   }
   // une bouteille à localiser au fond : son casier s'ouvre directement en vue éclatée
   const auFond = $(".case-cave.surligne:not([data-p='1'])", main);
