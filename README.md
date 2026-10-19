@@ -158,7 +158,7 @@ Sans le module complémentaire, renseignez aussi l'adresse de Home Assistant et 
 ## 4. Premiers pas
 
 1. **Plan de cave → + Nouvelle cave** : donnez un nom et décrivez la disposition : largeur, hauteur, empilement (aligné ou décalé), et **rang derrière** si vos étagères sont profondes (ou choisissez un rangement libre, sans plan). Le crayon au-dessus d'un casier permet de la modifier ensuite. Créez-en autant que vous avez d'emplacements (cave, armoire à vin, cellier…).
-2. Ajoutez des **étagères** (bouton **+ Étagère**) en haut, en bas, à gauche ou à droite d'un casier pour reproduire votre cave ; indiquez si c'est une **cave électrique** pour être prévenu de ses places libres.
+2. Ajoutez des **étagères** (bouton **+ Rangée**, avec le nombre de rangées identiques à ajouter d'un coup) en haut, en bas, à gauche ou à droite d'un casier pour reproduire votre cave ; indiquez si c'est une **cave électrique** pour être prévenu de ses places libres.
 3. **+ Ajouter** : photographiez la bouteille ou saisissez la fiche à la main (voir ci-dessous). Le bouton **Estimer** propose une fenêtre de garde ; corrigez-la si votre caviste vous a donné d'autres conseils. Indiquez le nombre de bouteilles et la cave : le plan s'affiche, touchez les places où vous les rangez.
 4. Sur la fiche, **Photo de l'étiquette** pour prendre ou changer la photo, **Fond** pour changer de décor. Sans photo, la fiche montre la bouteille dessinée d'après le vin.
 5. Pour boire une bouteille : bouton **−** ou **Déguster / sortir** sur la fiche, toucher sa place dans le plan, ou **Sortir par code-barres**. Ajoutez une note et vos impressions : elles restent dans l'historique, même si le vin n'est plus en cave. Une sortie par erreur s'annule avec **Annuler** dans le message qui suit.

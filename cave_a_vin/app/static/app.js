@@ -1260,6 +1260,10 @@ function configurateurDisposition(zone, initiales) {
             `<button type="button" role="radio" aria-checked="${prof.empilement === k}" data-emp="${k}" class="${prof.empilement === k ? "actif" : ""}" ${prof.hauteur < 2 ? "disabled" : ""}><span class="mini">${mini(k)}</span>${l}</button>`).join("")}</div></div>
         ${profs.length > 1 ? `<button type="button" class="bouton petit discret" data-suppr-prof style="margin-top:6px">${ic("poubelle")} Supprimer la profondeur ${actuel + 1}</button>` : ""}
       </div></div>`;
+    // l'aperçu tient dans la largeur disponible (téléphone)
+    const ap = $(".apercu-disposition", zone), plan = $(".plan", ap);
+    const dispo = ap.clientWidth - 32, besoin = plan.offsetWidth;
+    if (dispo > 0 && besoin > dispo) ap.style.setProperty("--case", `${Math.max(14, Math.floor(52 * dispo / besoin))}px`);
     // la profondeur réglée ressort dans l'aperçu
     if (profs.length > 1) $$(`.apercu-disposition .case-cave[data-p="${actuel + 1}"]`, zone).forEach((b) => b.classList.add("actuelle"));
   };
@@ -1411,7 +1415,7 @@ async function pageCaves(main, id, params) {
   const blocCasier = (k) => {
     const pleines = k.bouteilles.filter((b) => b.rangee).length;
     const taux = `<span class="casier-taux" title="Emplacements occupés">${pleines}/${k.capacite}</span>`;
-    const modifier = `<button class="modifier-etagere" type="button" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>`;
+    const modifier = `<button class="modifier-etagere" type="button" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Régler la disposition de ${esc(nomCasier(k))}">✎ Régler</button>`;
     const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave réfrigérée">❄</span>` : "";
     // plusieurs profondeurs : on peut n'afficher qu'un rang pour lire les bouteilles du fond
     const nbProf = profondeursDe(k).length;
@@ -1488,7 +1492,7 @@ async function pageCaves(main, id, params) {
         <h2>${esc(c.nom)}</h2>
         <div class="remplissage">${capacite ? `<span class="jauge" aria-hidden="true"><span style="width:${pourcent}%"></span></span>${occupees} / ${capacite} emplacements occupés${plusieurs ? ` · ${pluriel(disposition.length, "casier")}` : ` · ${c.rangees} rangées × ${c.colonnes} colonnes`}` : pluriel(c.bouteilles.length, "bouteille") + " (rangement libre)"}</div>
         ${c.description ? `<p class="muted petit-texte" style="margin:6px 0 0">${esc(c.description)}</p>` : ""}</div>
-        <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">${ic("plus")} Étagère</button>` : ""}<button class="bouton petit" id="modifier">${ic("crayon")} Modifier</button><button class="bouton petit discret" id="supprimer" title="Supprimer la cave">${ic("poubelle")}<span class="seul-texte">Supprimer</span></button></div></div>
+        <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">${ic("plus")} Rangée</button>` : ""}<button class="bouton petit" id="modifier">${ic("crayon")} Modifier</button><button class="bouton petit discret" id="supprimer" title="Supprimer la cave">${ic("poubelle")}<span class="seul-texte">Supprimer</span></button></div></div>
       ${aRanger.length ? `<p style="margin:0 0 14px"><button type="button" class="pastille-ranger" id="voir-a-ranger">${ic("boite")} ${pluriel(aRanger.length, "bouteille non rangée", "bouteilles non rangées")} <span aria-hidden="true">›</span></button></p>` : ""}
       <div id="mode-deplacement" hidden><span class="grandit" id="texte-deplacement">Choisissez l'emplacement de destination…</span> <button class="bouton petit" id="annuler-depl">Annuler</button></div>
       ${plan}
@@ -1497,12 +1501,15 @@ async function pageCaves(main, id, params) {
       ${!c.bouteilles.length && !c.capacite ? `<p class="muted">Aucune bouteille. Ajoutez-en depuis la fiche d'un vin.</p>` : ""}
     </section>`;
   $("#nouvelle", main).onclick = () => dialogueCave();
-  $("#modifier", main).onclick = () => dialogueCave(c);
+  // « Modifier » ouvre le réglage complet du casier principal (nom, disposition, rangs derrière) quand la cave a un plan
+  $("#modifier", main).onclick = () => { const b = $("[data-modifier-casier]", main); b ? b.click() : dialogueCave(c); };
   const boutonEtagere = $("#etagere", main);
   if (boutonEtagere) boutonEtagere.onclick = () => dialogueEtagere(c);
   const boutonCasier = $("[data-modifier-casier]", main);
   if (boutonCasier) boutonCasier.onclick = () => dialogue(`<span class="surtitre">Plan de cave</span><h2>${esc(nomCasier(c))}</h2>
-    <div class="form"><label class="large">Nom (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
+    <div class="form"><label class="large">Nom de la cave<input name="nom" required value="${esc(c.nom)}"></label>
+      <label class="large">Description<input name="description" value="${esc(c.description || "")}" placeholder="Température, emplacement…"></label>
+      <label class="large">Nom du casier (facultatif)<input name="nom_casier" maxlength="60" value="${esc(c.nom_casier || "")}" placeholder="Cave électrique, armoire du garage…"></label>
       <p class="large muted petit-texte" style="margin:0">Affiché au-dessus du casier et dans les alertes de place libre.</p>
       <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
         <option value=""${c.refrigere === undefined ? " selected" : ""} disabled>Choisir…</option>
@@ -1511,7 +1518,7 @@ async function pageCaves(main, id, params) {
       <div class="large"><h3 style="margin:6px 0 10px">Disposition des bouteilles</h3><div id="config-disposition"></div></div></div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
   { large: true, onSubmit: async (data) => {
-    await api("PUT", `caves/${c.id}`, { nom: c.nom, description: c.description, nom_casier: data.nom_casier, refrigere: data.refrigere,
+    await api("PUT", `caves/${c.id}`, { nom: data.nom, description: data.description, nom_casier: data.nom_casier, refrigere: data.refrigere,
       disposition: configCasier.valeur() });
     toast("Casier modifié");
     route();
@@ -1788,33 +1795,55 @@ async function pageCaves(main, id, params) {
 
 /** Ajouter (ou modifier) une étagère : en haut, en bas, à gauche ou à droite d'un casier de la cave. */
 function dialogueEtagere(cave, etagere) {
+  // « Personnalisez votre rangée » : une étagère (ou une colonne à côté), sa disposition et ses rangs derrière,
+  // et le nombre de rangées identiques à ajouter d'un coup, empilées les unes sous les autres.
   const casiers = [{ id: cave.id, nom: "Casier principal" }, ...cave.etageres.filter((e) => e.id !== etagere?.id).map((e) => ({ id: e.id, nom: nomCasier(e) }))];
-  const positions = { droite: "À droite", bas: "En dessous", haut: "Au-dessus", gauche: "À gauche" };
-  dialogue(`<span class="surtitre">Plan de cave</span><h2>${etagere ? esc(nomCasier(etagere)) : "Nouvelle étagère"}</h2>
+  const positions = { bas: "En dessous (nouvelle rangée)", haut: "Au-dessus (nouvelle rangée)", droite: "À droite (nouvelle colonne)", gauche: "À gauche (nouvelle colonne)" };
+  const derniere = cave.etageres.length ? cave.etageres[cave.etageres.length - 1].id : cave.id;
+  let nombre = 1;
+  dialogue(`<span class="surtitre">Plan de cave</span><h2>${etagere ? esc(nomCasier(etagere)) : "Personnalisez votre rangée"}</h2>
     <div class="form">
-      <label class="large">Nom (facultatif)<input name="nom" value="${esc(etagere?.nom || "")}" placeholder="Sans nom : rien n'est affiché au-dessus de l'étagère"></label>
       <label>Position<select name="position">${options(positions, etagere?.position || "bas")}</select></label>
-      <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
-        <option value=""${etagere?.refrigere === undefined ? " selected" : ""} disabled>Choisir…</option>
-        <option value="1"${etagere?.refrigere ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
-        <option value="0"${etagere?.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label>
-      <label>Par rapport à<select name="ref_id">${casiers.map((k) => `<option value="${k.id}"${k.id === (etagere?.ref_id || cave.id) ? " selected" : ""}>${esc(k.nom)}</option>`).join("")}</select></label>
+      <label>Par rapport à<select name="ref_id">${casiers.map((k) => `<option value="${k.id}"${k.id === (etagere?.ref_id || derniere) ? " selected" : ""}>${esc(k.nom)}</option>`).join("")}</select></label>
       <div class="large"><h3 style="margin:6px 0 10px">Disposition des bouteilles</h3><div id="config-disposition"></div></div>
+      <label class="large">Nom (facultatif)<input name="nom" value="${esc(etagere?.nom || "")}" placeholder="Sans nom : rien n'est affiché au-dessus de l'étagère"></label>
+      <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
+        <option value=""${etagere?.refrigere === undefined && !cave.refrigere ? " selected" : ""} disabled>Choisir…</option>
+        <option value="1"${etagere?.refrigere || (!etagere && cave.refrigere) ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
+        <option value="0"${etagere?.refrigere === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label>
+      ${etagere ? "" : `<div class="large reglage-ligne nombre-rangees"><div class="libelle"><b>Rangées identiques</b><span>ajoutées les unes sous les autres</span></div>
+        <div class="pas-a-pas" role="group" aria-label="Rangées identiques"><button type="button" data-nb="-1" aria-label="Moins" disabled>−</button><output id="nb-rangees">1</output><button type="button" data-nb="1" aria-label="Plus">+</button></div></div>`}
     </div>
     <div class="actions">${etagere ? `<button class="bouton danger" type="button" id="suppr-etagere">Supprimer</button>` : ""}
-      <button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
+      <button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">${etagere ? "Enregistrer" : "Enregistrer la rangée"}</button></div>`,
   {
     large: true,
     onSubmit: async (data) => {
       data.disposition = config.valeur();
-      if (etagere) await api("PUT", `caves/${etagere.id}`, { ...data, description: etagere.description });
-      else await api("POST", "caves", { ...data, parent_id: cave.id });
-      toast(etagere ? "Étagère modifiée" : "Étagère ajoutée");
+      if (etagere) {
+        await api("PUT", `caves/${etagere.id}`, { ...data, description: etagere.description });
+        toast("Étagère modifiée");
+      } else {
+        // la 1re à la position choisie, les suivantes juste en dessous de la précédente
+        let ref = data.ref_id;
+        for (let i = 0; i < nombre; i++) {
+          const nom = data.nom && nombre > 1 ? `${data.nom} ${i + 1}` : data.nom;
+          const r = await api("POST", "caves", { ...data, nom, parent_id: cave.id, ref_id: ref, position: i ? "bas" : data.position });
+          ref = r.id;
+        }
+        toast(nombre > 1 ? `${nombre} rangées ajoutées` : "Rangée ajoutée");
+      }
       route();
     },
   });
+  $$("#dialogue [data-nb]").forEach((b) => b.addEventListener("click", () => {
+    nombre = Math.max(1, Math.min(20, nombre + +b.dataset.nb));
+    $("#nb-rangees").textContent = nombre;
+    $('#dialogue [data-nb="-1"]').disabled = nombre <= 1;
+    $('#dialogue [data-nb="1"]').disabled = nombre >= 20;
+  }));
   const config = configurateurDisposition($("#config-disposition"),
-    etagere ? profondeursDe(etagere) : [{ largeur: Math.min(cave.colonnes || 6, 12), hauteur: 4, empilement: "aligne" }]);
+    etagere ? profondeursDe(etagere) : [{ largeur: Math.min(profondeursDe(cave)[0]?.largeur || 6, 12), hauteur: 1, empilement: "aligne" }]);
   const suppr = $("#suppr-etagere");
   if (suppr) suppr.onclick = async () => {
     $("#dialogue").close();

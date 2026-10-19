@@ -152,7 +152,7 @@ Without the add-on, also enter Home Assistant's address and a **long-lived acces
 ## 4. Getting started
 
 1. **Cellar map → + New cellar**: give it a name and describe the layout — width, height, stacking, and rows behind if your shelves are deep (or a loose storage area without a map). Create as many as you have places (cellar, wine fridge, pantry…).
-2. Add **racks** (**+ Rack** button) above, below, left or right of a rack to recreate your cellar; say whether it's a **wine fridge** to be told about free spots.
+2. Add **racks** (**+ Shelf** button, with the number of identical shelves to add at once) above, below, left or right of a rack to recreate your cellar; say whether it's a **wine fridge** to be told about free spots.
 3. **+ Add**: photograph the bottle or fill in the form by hand (see below). The **Estimate** button suggests a drinking window; correct it if your wine shop gave you other advice. Enter the number of bottles and the cellar: the map appears, tap the spots where you put them.
 4. On the wine page, **Label photo** takes or changes the photo, **Background** changes the setting. Without a photo, the page shows the bottle drawn from the wine.
 5. To drink a bottle: **−** button or **Drink / take out** on the wine page, tap its spot on the map, or **Take out by barcode**. Add a rating and your impressions: they stay in the history, even when the wine is gone. A mistake can be undone with **Undo** in the message that follows.

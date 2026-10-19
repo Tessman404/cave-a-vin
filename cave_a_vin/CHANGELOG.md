@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.13.1
+
+- **« Personnalisez votre rangée »** : le bouton **+ Rangée** ajoute une étagère dessous ou dessus, ou une colonne à côté,
+  avec sa disposition et ses rangs derrière ; le compteur **Rangées identiques** en ajoute plusieurs d'un coup.
+- Le réglage d'un casier est plus visible : bouton **✎ Régler** sur chaque casier, et **Modifier** ouvre le réglage
+  complet (nom, disposition, rangs derrière).
+- L'aperçu de la disposition tient dans la largeur d'un téléphone.
+
 ## 1.13.0
 
 - **Disposition réelle des casiers** : largeur, hauteur et **empilement** (aligné, décalé à gauche ou à droite quand

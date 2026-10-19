@@ -28,7 +28,7 @@ You need **Home Assistant OS** (most installations: Raspberry Pi, Home Assistant
 - **Stacking**: *Aligned* (each bottle in its own slot) or *Offset left / right* (bottles nested in the gaps of the layer below, like in a wine fridge);
 - **Row behind**: add a second row of bottles behind the first one, if your shelves are deep enough. On the map, **All / Front / Back** shows each row separately, so you always know exactly which bottle is where.
 
-Several racks? **+ Rack** adds one next to it (above, below, left, right).
+Several racks? **+ Shelf** adds a shelf below or above, or a column next to it; the “Identical shelves” counter adds several at once.
 Tell Tessvine if it's a **wine fridge**: it will let you know when a spot frees up.
 
 ![Cellar map](docs/en/cellar-map.png)

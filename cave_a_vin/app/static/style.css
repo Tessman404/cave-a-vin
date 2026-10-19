@@ -776,11 +776,11 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .casier-coin .casier-taux { writing-mode: vertical-rl; transform: rotate(180deg); }
 .casier-bloc.refrigere .casier-coin { right: -30px; }
 .modifier-etagere {
-  display: inline-grid; place-items: center; width: 26px; height: 26px; min-height: 0; padding: 0; border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, .14); background: rgba(24, 22, 27, .7); color: var(--nuit-texte-2); font-size: .78rem; cursor: pointer;
-  opacity: .75; transition: opacity .15s, color .15s;
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; min-height: 0; padding: 0 10px; border-radius: 999px;
+  border: 1px solid rgba(214, 178, 106, .45); background: rgba(24, 22, 27, .75); color: var(--or-vif, #d6b26a);
+  font: 600 .72rem var(--sans); letter-spacing: .02em; white-space: nowrap; cursor: pointer; transition: background .15s, color .15s;
 }
-.modifier-etagere:hover, .modifier-etagere:focus-visible { opacity: 1; color: var(--nuit-texte); background: rgba(24, 22, 27, .9); }
+.modifier-etagere:hover, .modifier-etagere:focus-visible { color: var(--nuit-texte); background: rgba(24, 22, 27, .95); border-color: rgba(214, 178, 106, .8); }
 .casier-titre .modifier-etagere { margin-left: 2px; }
 
 /* un casier : chaque place est posée à sa position (étage, colonne, profondeur, quinconce) */
@@ -1049,3 +1049,5 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .configurateur .total-places { text-align: center; font-size: .86rem; color: var(--texte-2); }
 .configurateur .total-places b { font: 600 1.15rem var(--serif); color: var(--texte); font-variant-numeric: lining-nums; }
 .plan .repere.masquee { display: none; }
+
+.nombre-rangees { margin-top: 4px; border-top: 1px solid var(--bord); border-bottom: 0; }
