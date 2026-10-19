@@ -10,18 +10,27 @@ Un logiciel de gestion de cave à vin, dans l'esprit d'Oeni, **qui s'intègre à
 |---|---|
 | ![Plan de cave](docs/plan-de-cave.png) | ![Fiche d'un vin](docs/fiche-vin.png) |
 
+| Plan sur téléphone (thème sombre) | Une bouteille du plan | Mets & Vins |
+|---|---|---|
+| ![Plan de cave sur téléphone](docs/plan-mobile-sombre.png) | ![Fenêtre d'une bouteille](docs/bouteille-mobile-sombre.png) | ![Mets & Vins sur téléphone](docs/ce-soir-mobile.png) |
+
+*Captures réalisées avec une cave de démonstration.*
+
 Ce qu'il fait :
 
-- **ajout en un geste** : **scannez le code-barres** avec le téléphone ; si le vin est inconnu, **photographiez la bouteille** : l'**IA de Home Assistant lit l'étiquette** et remplit la fiche, et la bouteille est **détourée et posée sur un fond de cave** (cave voûtée, casier en bois, studio, pierre claire) ;
-- **inventaire complet** : cuvée, domaine, appellation, région, couleur, millésime, cépages, format, prix d'achat, valeur estimée, fournisseur, accords, notes, code-barres, photo ;
-- **plan de cave visuel** : décrivez vos casiers ou votre armoire à vin (rangées × colonnes), chaque bouteille a sa case ; un clic pour la sortir ou la déplacer. Plusieurs caves possibles, et rangement « en vrac » pour les cartons ;
+- **ajout en un geste** : **photographiez la bouteille**, puis son verso : l'**IA de Home Assistant lit l'étiquette** et remplit la fiche, le **code-barres** est lu sur le verso, et la bouteille est **détourée et posée sur un fond de cave** (cave voûtée, casier en bois, studio, pierre claire) ;
+- **inventaire complet** : cuvée, domaine, appellation, région, couleur, millésime, cépages, format, prix d'achat, valeur estimée, fournisseur, accords, notes, note personnelle datée, code-barres, photo ;
+- **bouteilles dessinées** d'après chaque vin : bordelaise, bourguignonne, flûte d'Alsace ou champagne, verre et capsule selon le vin, étiquette avec le domaine, le nom, l'appellation et le millésime ;
+- **plan de cave fidèle** : une cave principale et ses étagères, placées en haut, en bas, à gauche ou à droite ; bouteilles couchées vues par le goulot. Zoom, recherche (nom, millésime ou position comme « B4 »), mise en évidence par couleur ou par garde, vue en liste, **localisation** d'un vin (ses bouteilles clignotent). Toucher une bouteille pour la sortir ou la déplacer, une place vide pour y ranger une bouteille. Les **places libres d'une cave électrique** sont signalées, avec le vin à y mettre en priorité ;
+- **sortie par code-barres** : scannez la bouteille pour la sortir ; une sortie par erreur s'annule d'un geste ;
 - **garde** : « à boire à partir de », « apogée », « à boire avant », **estimée par l'IA de Home Assistant** (producteur, appellation, qualité du millésime, prix) et réévaluée chaque mois, ou par une règle générale sans IA. Une garde corrigée à la main est toujours respectée. Les vins à boire vite sont signalés partout ;
 - **dégustations** : chaque bouteille sortie peut recevoir une note sur 5 et un commentaire, conservés dans l'historique ;
-- **« Mets & Vins »** : choisissez le plat, la cave propose les meilleures bouteilles, en privilégiant celles à boire en priorité ;
-- **statistiques** : bouteilles, valeur de la cave, répartition par couleur, région, millésime, garde et cave ;
+- **notifications Home Assistant** : un vin qui arrive en fin de garde (au plus deux rappels, à quinze jours d'écart), et une occasion notée sur un vin, sept jours avant ;
+- **« Mets & Vins »** : choisissez le plat (bœuf, agneau, canard, poisson, fromages…), la cave classe les bouteilles de la mieux accordée à la moins accordée, puis celles à boire en priorité ;
+- **statistiques** : bouteilles, valeur estimée et prix payé, répartition par couleur, région, millésime, garde et cave ; chaque ligne ouvre les vins correspondants ;
 - **liste d'envies** (vins à acheter), visible aussi dans Home Assistant ;
 - **sauvegarde** : export CSV (Excel), sauvegarde complète JSON, import CSV ;
-- fonctionne sur ordinateur, tablette et téléphone, en thème clair ou sombre ;
+- fonctionne sur ordinateur, tablette et téléphone, en thème clair (ivoire) ou sombre (anthracite) selon l'appareil ;
 - **léger** : Python, tourne sur un Raspberry Pi 4 ou 5 ; le détourage des photos se fait sur votre installation, sans service extérieur.
 
 ---
@@ -52,7 +61,7 @@ Cliquez sur le bouton ci-dessus, ou à la main :
 
 1. *Paramètres → Modules complémentaires → Boutique des modules complémentaires*.
 2. Menu **⋮** en haut à droite → **Dépôts** → collez `https://github.com/Tessman404/cave-a-vin` → **Ajouter**.
-3. Cherchez **Cave à vin** dans la boutique → **Installer** (la construction prend une à deux minutes sur un Raspberry Pi).
+3. Cherchez **Tessvine** dans la boutique → **Installer** (la construction prend une à deux minutes sur un Raspberry Pi).
 
 Les nouvelles versions apparaîtront ensuite comme des mises à jour classiques.
 
@@ -61,12 +70,12 @@ Les nouvelles versions apparaîtront ensuite comme des mises à jour classiques.
 1. Installez le module **Samba share** ou **Advanced SSH & Web Terminal** pour accéder aux fichiers de Home Assistant.
 2. Copiez le dossier **`cave_a_vin`** (celui qui contient `config.yaml`) dans le dossier **`addons`** de Home Assistant. Vous devez obtenir `addons/cave_a_vin/config.yaml`.
 3. *Paramètres → Modules complémentaires → Boutique* → menu **⋮** → **Rechercher des mises à jour**.
-4. **Cave à vin** apparaît dans la section **Modules complémentaires locaux** → **Installer** (la construction prend une à deux minutes sur un Raspberry Pi).
+4. **Tessvine** apparaît dans la section **Modules complémentaires locaux** → **Installer** (la construction prend une à deux minutes sur un Raspberry Pi).
 
 ### Ensuite
 
 1. Dans l'onglet **Info** du module, activez **Afficher dans la barre latérale** et **Démarrer au démarrage**, puis **Démarrer**.
-2. L'entrée **Cave à vin** 🍷 apparaît dans la barre latérale : c'est votre cave, accessible aussi depuis l'application mobile Home Assistant, y compris hors de chez vous.
+2. L'entrée **Tessvine** 🍷 apparaît dans la barre latérale : c'est votre cave, accessible aussi depuis l'application mobile Home Assistant, y compris hors de chez vous.
 
 Vos données (base de données et photos) sont stockées dans le module et **incluses dans les sauvegardes Home Assistant**.
 
@@ -89,15 +98,15 @@ Le module complémentaire donne l'interface ; l'**intégration** donne les capte
 
   [![Ouvrir dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Tessman404&repository=cave-a-vin&category=integration)
 
-  ou à la main : *HACS → ⋮ → Dépôts personnalisés* → `https://github.com/Tessman404/cave-a-vin`, catégorie **Intégration** → installez **Cave à vin**.
+  ou à la main : *HACS → ⋮ → Dépôts personnalisés* → `https://github.com/Tessman404/cave-a-vin`, catégorie **Intégration** → installez **Tessvine**.
 - **À la main** : copiez le dossier **`custom_components/cave_a_vin`** dans le dossier `config/custom_components/` de Home Assistant (créez `custom_components` s'il n'existe pas).
 
 Puis **redémarrez Home Assistant**.
 
 ### Configuration
 
-- **Avec le module complémentaire**, la cave est **détectée automatiquement** : une notification « Nouvel appareil détecté : Cave à vin » apparaît dans *Paramètres → Appareils et services*. Cliquez sur **Configurer**, c'est tout.
-- Sinon : *Paramètres → Appareils et services → Ajouter une intégration → Cave à vin*, puis saisissez l'adresse :
+- **Avec le module complémentaire**, la cave est **détectée automatiquement** : une notification « Nouvel appareil détecté : Tessvine » apparaît dans *Paramètres → Appareils et services*. Cliquez sur **Configurer**, c'est tout.
+- Sinon : *Paramètres → Appareils et services → Ajouter une intégration → Tessvine*, puis saisissez l'adresse :
   - module complémentaire : `http://<nom d'hôte>:8099`, le nom d'hôte étant indiqué dans l'onglet **Info** du module (par exemple `local-cave-a-vin`) ;
   - installation Docker : `http://<ip-de-la-machine>:8099`.
   - Si vous avez défini une clé d'API, saisissez-la aussi.
@@ -106,17 +115,17 @@ Puis **redémarrez Home Assistant**.
 
 | Entité | Contenu |
 |---|---|
-| `sensor.cave_a_vin_bouteilles` | Nombre de bouteilles (attributs : par couleur, par cave, par garde) |
-| `sensor.cave_a_vin_references` | Nombre de vins différents |
-| `sensor.cave_a_vin_valeur_de_la_cave` | Valeur estimée en € |
-| `sensor.cave_a_vin_pretes_a_boire` | Bouteilles dans leur fenêtre de garde (attribut `vins` : la liste) |
-| `sensor.cave_a_vin_a_boire_vite` | Bouteilles en dernière année de garde ou dépassées (attribut `vins`) |
-| `sensor.cave_a_vin_bues_cette_annee` | Bouteilles bues depuis le 1er janvier |
-| `sensor.cave_a_vin_dernier_mouvement` | Dernière entrée/sortie (attributs : note, commentaire, date…) |
+| `sensor.tessvine_bouteilles` | Nombre de bouteilles (attributs : par couleur, par cave, par garde) |
+| `sensor.tessvine_references` | Nombre de vins différents |
+| `sensor.tessvine_valeur_de_la_cave` | Valeur estimée en € |
+| `sensor.tessvine_pretes_a_boire` | Bouteilles dans leur fenêtre de garde (attribut `vins` : la liste) |
+| `sensor.tessvine_a_boire_vite` | Bouteilles en dernière année de garde ou dépassées (attribut `vins`) |
+| `sensor.tessvine_bues_cette_annee` | Bouteilles bues depuis le 1er janvier |
+| `sensor.tessvine_dernier_mouvement` | Dernière entrée/sortie (attributs : note, commentaire, date…) |
 | un capteur par cave | Bouteilles dans chaque cave (attributs : capacité, places libres, taux de remplissage) |
-| `todo.cave_a_vin_envies` | Votre liste d'envies, modifiable depuis Home Assistant et **avec Assist** : « Ajoute Meursault à Cave à vin Envies » |
+| `todo.tessvine_envies` | Votre liste d'envies, modifiable depuis Home Assistant et **avec Assist** : « Ajoute Meursault à Tessvine Envies » |
 
-Les noms exacts des entités dépendent de la langue de Home Assistant : vérifiez-les dans *Paramètres → Appareils et services → Cave à vin*.
+Les noms exacts des entités dépendent de la langue de Home Assistant : vérifiez-les dans *Paramètres → Appareils et services → Tessvine*. Sur une installation antérieure au changement de nom, elles commencent par `cave_a_vin_` au lieu de `tessvine_`.
 
 | Action | Rôle |
 |---|---|
@@ -142,10 +151,11 @@ Sans le module complémentaire, renseignez aussi l'adresse de Home Assistant et 
 ## 4. Premiers pas
 
 1. **Plan de cave → + Nouvelle cave** : donnez un nom et le nombre de rangées et de colonnes de vos casiers (0 pour un rangement libre). Créez-en autant que vous avez d'emplacements (cave, armoire à vin, cellier…).
-2. **+ Ajouter** : scannez le code-barres, photographiez la bouteille ou saisissez la fiche à la main (voir ci-dessous). Le bouton **✨ Estimer** propose une fenêtre de garde ; corrigez-la si votre caviste vous a donné d'autres conseils. Indiquez le nombre de bouteilles et la cave : elles sont rangées automatiquement dans les premières cases libres.
-3. Sur la fiche, **📷** pour prendre ou changer la photo, **🎨 Fond** pour changer de décor.
-4. Pour boire une bouteille : bouton **−** ou **🍷 Déguster / sortir** sur la fiche, ou clic sur sa case dans le plan. Ajoutez une note et vos impressions : elles restent dans l'historique, même si le vin n'est plus en cave.
-5. Dans le plan, cliquez sur une **case vide** pour y ranger une bouteille non rangée, ou sur une bouteille puis **↔ Déplacer** pour changer sa place.
+2. Ajoutez des **étagères** (bouton **+ Étagère**) en haut, en bas, à gauche ou à droite d'un casier pour reproduire votre cave ; indiquez si c'est une **cave électrique** pour être prévenu de ses places libres.
+3. **+ Ajouter** : photographiez la bouteille ou saisissez la fiche à la main (voir ci-dessous). Le bouton **Estimer** propose une fenêtre de garde ; corrigez-la si votre caviste vous a donné d'autres conseils. Indiquez le nombre de bouteilles et la cave : le plan s'affiche, touchez les places où vous les rangez.
+4. Sur la fiche, **Photo de l'étiquette** pour prendre ou changer la photo, **Fond** pour changer de décor. Sans photo, la fiche montre la bouteille dessinée d'après le vin.
+5. Pour boire une bouteille : bouton **−** ou **Déguster / sortir** sur la fiche, toucher sa place dans le plan, ou **Sortir par code-barres**. Ajoutez une note et vos impressions : elles restent dans l'historique, même si le vin n'est plus en cave. Une sortie par erreur s'annule avec **Annuler** dans le message qui suit.
+6. Dans le plan, touchez une **place vide** pour y ranger une bouteille non rangée, ou une bouteille puis **Déplacer** pour changer sa place. Sur la fiche d'un vin, **Localiser dans la cave** ouvre le plan où ses bouteilles clignotent.
 
 Astuce : sur téléphone, utilisez *Ajouter à l'écran d'accueil* depuis le navigateur pour avoir la cave comme une application.
 
@@ -153,26 +163,23 @@ Astuce : sur téléphone, utilisez *Ajouter à l'écran d'accueil* depuis le nav
 
 ## 4 bis. Ajouter un vin : scan, photo et IA
 
-![Ajout assisté : code-barres, photo détourée, choix du fond](docs/ajout-assiste.png)
+![Ajouter un vin](docs/ajout-assiste.png)
 
-Bouton **+ Ajouter**, puis :
+Bouton **+ Ajouter**, puis **Photographier la bouteille** :
 
-1. **Scanner le code-barres** (celui de la contre-étiquette) :
-   - vin **déjà dans votre cave** → un clic pour ajouter des bouteilles ;
-   - vin connu de **[Open Food Facts](https://fr.openfoodfacts.org)** (base libre, surtout les vins de grande distribution) → la fiche se remplit ;
-   - vin **inconnu** → l'application vous propose de photographier la bouteille.
-2. **Photographier la bouteille** (de face, étiquette lisible, la bouteille entière dans l'image) :
-   - l'**IA lit l'étiquette** : nom, domaine, appellation, millésime, couleur, cépages, degré ;
-   - la bouteille est **détourée** et posée sur le **fond de cave** choisi dans les réglages, en **gros plan sur l'étiquette** (ou bouteille entière) ; **🎨 Changer de fond** pour essayer les autres fonds et cadrages. Sur la fiche, touchez la photo pour l'agrandir. La photo d'origine est conservée : vous pourrez changer de fond plus tard depuis la fiche.
-3. Vérifiez la fiche pré-remplie, indiquez le nombre de bouteilles et la cave, **Ajouter à ma cave**. Le code-barres est enregistré : au prochain scan, le vin est retrouvé tout de suite.
+1. **L'étiquette** (de face, étiquette lisible, la bouteille entière dans l'image) :
+   - la bouteille est **détourée** et posée sur le **fond de cave** choisi dans les réglages, en **gros plan sur l'étiquette** (ou bouteille entière) ; **Changer de fond** pour essayer les autres fonds et cadrages. La photo d'origine est conservée : vous pourrez changer de fond plus tard depuis la fiche.
+2. **Le verso** (facultatif, bouton **Ignorer**) : la contre-étiquette complète la fiche (cépages, degré…) et donne le **code-barres**, qui servira à sortir la bouteille d'un simple scan.
+3. L'**IA lit les étiquettes** : nom, domaine, appellation, millésime, couleur, cépages, degré, valeur. Si le vin est **déjà dans votre cave**, un bouton propose plutôt d'ajouter des bouteilles à ce vin.
+4. Vérifiez la fiche pré-remplie, indiquez le nombre de bouteilles, choisissez la cave et touchez leurs places sur le plan, puis **Ajouter à ma cave**.
 
-**Garde estimée par l'IA** : la même IA estime la fenêtre de dégustation de chaque vin en cave, au démarrage du module puis chaque mois, et chaque nouveau vin dès son ajout. La fiche indique l'origine de la garde (« 🤖 estimée par l'IA », avec sa justification et sa confiance, ou « ✎ saisie à la main »). Si vous corrigez une garde, l'IA ne la touche plus et affiche seulement sa suggestion ; le bouton **🤖 Demander la garde à l'IA** la remplace à votre demande. Statuts : *À garder* → *Prêt à boire* → *À l'apogée* (plateau) → *Après l'apogée* → *À boire vite* (dernière année) → *Garde dépassée*.
+**Garde estimée par l'IA** : la même IA estime la fenêtre de dégustation de chaque vin en cave, au démarrage du module puis chaque mois, et chaque nouveau vin dès son ajout. La fiche indique l'origine de la garde (« estimée par l'IA », avec sa justification et sa confiance, ou « saisie à la main »). Si vous corrigez une garde, l'IA ne la touche plus et affiche seulement sa suggestion ; le bouton **Garde par l'IA** la remplace à votre demande. Statuts : *À garder* → *Prêt à boire* → *À l'apogée* (plateau) → *Après l'apogée* → *À boire vite* (dernière année) → *Garde dépassée*.
 
-**Ce qu'il faut pour la lecture d'étiquette** : Home Assistant 2025.8 ou plus récent, avec une intégration d'IA qui fournit une entité **« AI Task »** et qui comprend les images : OpenAI, Google Gemini, Anthropic (Claude), ou Ollama avec un modèle de vision (par exemple `qwen2.5vl`). Dans la cave, **Réglages → Photos & lecture d'étiquette** indique si tout est prêt et permet de choisir l'IA. La photo est alors envoyée à cette IA (et donc à son fournisseur si elle est en ligne).
+**Ce qu'il faut pour la lecture d'étiquette** : Home Assistant 2025.8 ou plus récent, avec une intégration d'IA qui fournit une entité **« AI Task »** et qui comprend les images : OpenAI, Google Gemini, Anthropic (Claude), ou Ollama avec un modèle de vision (par exemple `qwen2.5vl`). Dans la cave, **Réglages → IA, photos & étiquettes** indique si tout est prêt et permet de choisir l'IA. La photo est alors envoyée à cette IA (et donc à son fournisseur si elle est en ligne).
 
 **Le détourage** se fait sur votre installation, sans rien envoyer. Le modèle (45 Mo) est téléchargé au premier usage : la toute première photo prend environ une minute, les suivantes quelques secondes. Trois qualités au choix dans les réglages : *rapide* (5 Mo), *standard* et *précis* (180 Mo, pour un Raspberry Pi 5 ou un mini-PC).
 
-**Le scan en direct** demande une connexion sécurisée (adresse en `https://`, par exemple l'accès distant Home Assistant Cloud). Sur une adresse `http://` locale, les navigateurs interdisent la caméra en direct : l'application ouvre alors l'appareil photo pour **photographier le code-barres**, qu'elle lit ensuite. Vous pouvez aussi taper les chiffres.
+**Sortir par code-barres** : le scan en direct demande une connexion sécurisée (adresse en `https://`, par exemple l'accès distant Home Assistant Cloud). Sur une adresse `http://` locale, les navigateurs interdisent la caméra en direct : l'application ouvre alors l'appareil photo pour **photographier le code-barres**, qu'elle lit ensuite. Vous pouvez aussi taper les chiffres.
 
 ---
 
@@ -190,13 +197,13 @@ automation:
       - condition: time
         weekday: [fri]
       - condition: numeric_state
-        entity_id: sensor.cave_a_vin_a_boire_vite
+        entity_id: sensor.tessvine_a_boire_vite
         above: 0
     actions:
       - action: notify.mobile_app_mon_telephone
         data:
           title: "🍷 À boire ce week-end"
-          message: "{{ state_attr('sensor.cave_a_vin_a_boire_vite', 'vins') | join(', ') }}"
+          message: "{{ state_attr('sensor.tessvine_a_boire_vite', 'vins') | join(', ') }}"
 ```
 
 ### Alerte de température de la cave
@@ -225,11 +232,11 @@ script:
     alias: "Que boire ce soir ?"
     fields:
       plat:
-        description: "viande_rouge, viande_blanche, poisson, fruits_de_mer, fromage, dessert, aperitif, epice, barbecue ou vegetarien"
+        description: "boeuf, agneau, canard, gibier, volaille, porc, poisson, fruits_de_mer, foie_gras, fromage, pates_pizza, epice, vegetarien, dessert ou aperitif"
     sequence:
       - action: cave_a_vin.suggerer_vin
         data:
-          plat: "{{ plat | default('viande_rouge') }}"
+          plat: "{{ plat | default('boeuf') }}"
           nombre: 3
         response_variable: cave
       - variables:
@@ -248,21 +255,21 @@ Exposez ce script à Assist (*Paramètres → Assistants vocaux → Exposer*) : 
 type: vertical-stack
 cards:
   - type: glance
-    title: Cave à vin
+    title: Tessvine
     entities:
-      - entity: sensor.cave_a_vin_bouteilles
+      - entity: sensor.tessvine_bouteilles
         name: Bouteilles
-      - entity: sensor.cave_a_vin_pretes_a_boire
+      - entity: sensor.tessvine_pretes_a_boire
         name: Prêtes
-      - entity: sensor.cave_a_vin_a_boire_vite
+      - entity: sensor.tessvine_a_boire_vite
         name: Vite !
       - entity: sensor.cave_temperature
         name: Temp.
   - type: markdown
     content: >-
-      **À boire vite :** {{ state_attr('sensor.cave_a_vin_a_boire_vite', 'vins') | join(' · ') or 'rien d’urgent' }}
+      **À boire vite :** {{ state_attr('sensor.tessvine_a_boire_vite', 'vins') | join(' · ') or 'rien d’urgent' }}
   - type: todo-list
-    entity: todo.cave_a_vin_envies
+    entity: todo.tessvine_envies
 ```
 
 ---

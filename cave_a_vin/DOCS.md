@@ -1,25 +1,29 @@
-# Cave à vin
+# Tessvine
 
 Gérez votre cave à vin depuis Home Assistant : inventaire, plan de cave, fenêtres de garde, dégustations, suggestions d'accords et liste d'envies.
 
 ## Démarrage
 
 1. Activez **Afficher dans la barre latérale**, puis **Démarrer**.
-2. Ouvrez **Cave à vin** dans la barre latérale.
-3. **Plan de cave → + Nouvelle cave** pour décrire vos casiers, puis **+ Ajouter** pour vos premiers vins.
+2. Ouvrez **Tessvine** dans la barre latérale.
+3. **Plan de cave → + Nouvelle cave** pour décrire vos casiers (puis **+ Étagère** pour les casiers voisins), et **+ Ajouter** pour vos premiers vins.
 
 ## Ajouter un vin
 
-Bouton **+ Ajouter** : scannez le code-barres ; si le vin est inconnu, photographiez la bouteille.
+Bouton **+ Ajouter** : photographiez l'étiquette, puis le verso (facultatif) : l'IA remplit la fiche et le code-barres est lu sur le verso. Choisissez ensuite les places sur le plan de cave.
 
 - **Lecture d'étiquette** : utilise l'IA de Home Assistant (action « AI Task », Home Assistant 2025.8 ou plus récent,
   avec une IA qui comprend les images : OpenAI, Google Gemini, Anthropic, Ollama avec un modèle de vision…).
   La photo est déposée un instant dans le dossier `media/cave_a_vin` de Home Assistant, puis supprimée.
-  Choix de l'IA : **Réglages → Photos & lecture d'étiquette** dans la cave.
+  Choix de l'IA : **Réglages → IA, photos & étiquettes** dans la cave.
 - **Garde** : la même IA estime la fenêtre de dégustation de chaque vin, au démarrage puis chaque mois
   (désactivable dans les réglages). Une garde corrigée à la main n'est jamais modifiée.
 - **Détourage** : fait par le module lui-même. Le modèle (45 Mo) est téléchargé au premier usage, puis conservé.
-- **Scan en direct** : demande une adresse `https://`. Sinon, l'application photographie le code-barres pour le lire.
+- **Sortir par code-barres** : le scan en direct demande une adresse `https://`. Sinon, l'application photographie le code-barres pour le lire.
+
+## Notifications
+
+Dans **Réglages → Notifications de fin de garde**, choisissez votre téléphone : Home Assistant vous prévient quand un vin arrive en fin de garde (au plus deux rappels, à quinze jours d'écart), et sept jours avant une occasion notée sur un vin.
 
 ## Température et humidité de la cave
 
