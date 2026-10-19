@@ -239,6 +239,7 @@ const I18N = (() => {
     "En dessous (nouvelle rangée)": "Below (new shelf)", "Au-dessus (nouvelle rangée)": "Above (new shelf)",
     "À droite (nouvelle colonne)": "On the right (new column)", "À gauche (nouvelle colonne)": "On the left (new column)",
     "Rangées identiques": "Identical shelves", "ajoutées les unes sous les autres": "added one below the other",
+    "devant": "front", "derrière": "back", "Casier": "Rack",
     "Home Assistant n'est pas configuré": "Home Assistant isn't configured", "Plat inconnu": "Unknown dish", "Choisissez d'abord où envoyer les notifications": "First choose where to send notifications",
     "Choisissez une bouteille ou un vin ": "Choose a bottle or a wine", "Emplacement incomplet": "Incomplete spot",
     "Garde importée : l'IA l'affinera lors de son prochain passage.": "Imported window: the AI will refine it on its next run.",
@@ -330,6 +331,10 @@ const I18N = (() => {
     [/^Photo enregistrée sans détourage : (.*)$/, (m) => `Photo saved without cut-out: ${m[1]}`],
     [/^Erreur HTTP (\d+)$/, (m) => `HTTP error ${m[1]}`],
     [/^(\d+) rangées ajoutées$/, (m) => `${m[1]} shelves added`],
+    [/^Rangée (\d+)$/, (m) => `Shelf ${m[1]}`],
+    [/^(\d) rangs$/, (m) => `${m[1]} rows deep`],
+    [/^rang (\d)$/, (m) => `row ${m[1]}`],
+    [/^Voir ce casier de près(.*)$/, (m) => `Look at this rack up close${m[1] ? ": its rows move apart to show the bottles at the back" : ""}`],
     [/^Envoi impossible : (.+)$/, (m) => `Couldn't send: ${m[1]}`],
     [/^Accord : (.+)$/, (m) => `Pairing: ${m[1]}`],
   ];

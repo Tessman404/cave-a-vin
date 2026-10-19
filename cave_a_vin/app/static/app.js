@@ -1170,55 +1170,77 @@ const profondeursDe = (k) => (k.profondeurs && k.profondeurs.length) ? k.profond
 const adresse = (rangee) => ({ p: Math.floor((rangee - 1) / PAS_PROFONDEUR) + 1, etage: ((rangee - 1) % PAS_PROFONDEUR) + 1 });
 const NOMS_PROFONDEUR = (n) => n === 1 ? ["devant"] : n === 2 ? ["devant", "derrière"] : Array.from({ length: n }, (_, i) => i ? `rang ${i + 1}` : "devant");
 
-// géométrie, en tailles de case : une bouteille couchée chevauche l'étage du dessous et le rang de derrière
-const PAS_ETAGE = 0.83, DECALAGE_RANG = 0.5;
+// géométrie, en tailles de case. Une bouteille couchée, vue presque de face, occupe 84 % d'une case : les bouteilles
+// d'un étage se touchent presque ; en quinconce, l'étage du dessus se cale dans les creux (pas vertical plus court).
+const PAS_ETAGE = 0.86, PAS_QUINCONCE = 0.72, DECALAGE_RANG = 0.5, ECART_ECLATE = 0.85;
+const pasEtage = (prof) => prof.empilement && prof.empilement !== "aligne" ? PAS_QUINCONCE : PAS_ETAGE;
 
-/** Positions de toutes les places d'un casier (en cases), du fond vers l'avant. */
-function geometrieCasier(profs) {
-  const places = [];
+/** Positions de toutes les places d'un casier (en cases).
+ *  Normal : les rangs de derrière sont cachés derrière celui de devant (décalés d'une demi-bouteille).
+ *  Éclaté : chaque rang est posé sur sa propre tablette, au-dessus du précédent, pour lire toutes les bouteilles. */
+function geometrieCasier(profs, eclate = false) {
+  const places = [], tablettes = [];
+  let monte = 0;  // éclaté : hauteur déjà occupée par les rangs de devant
   profs.forEach((prof, i) => {
-    const p = i + 1;
+    const p = i + 1, pas = pasEtage(prof);
+    const dx = i * DECALAGE_RANG, dy = eclate ? -monte : -i * DECALAGE_RANG;
     for (let etage = 1; etage <= prof.hauteur; etage++) {
       const niveau = prof.hauteur - etage;  // 0 = posé sur la tablette
       const quinconce = niveau % 2 === 1 ? (prof.empilement === "droite" ? 0.5 : prof.empilement === "gauche" ? -0.5 : 0) : 0;
       for (let col = 1; col <= prof.largeur; col++) {
         places.push({ p, etage, col, rangee: i * PAS_PROFONDEUR + etage,
-          x: col - 1 + quinconce + i * DECALAGE_RANG, y: -niveau * PAS_ETAGE - i * DECALAGE_RANG,
-          z: (profs.length - p) * 200 + niveau + 1 });
+          x: col - 1 + quinconce + dx, y: -niveau * pas + dy, z: (profs.length - p) * 200 + niveau + 1 });
       }
     }
+    const xs = places.filter((q) => q.p === p).map((q) => q.x);
+    tablettes.push({ p, x: Math.min(...xs), largeur: Math.max(...xs) - Math.min(...xs) + 1, y: dy + 0.92, z: (profs.length - p) * 200 });
+    monte += (prof.hauteur - 1) * pas + 1 + ECART_ECLATE;
   });
-  if (!places.length) return { places, largeur: 0, hauteur: 0 };
+  if (!places.length) return { places, tablettes, largeur: 0, hauteur: 0 };
   const x0 = Math.min(...places.map((q) => q.x)), y0 = Math.min(...places.map((q) => q.y));
-  places.forEach((q) => { q.x -= x0; q.y -= y0; });
-  return { places, largeur: Math.max(...places.map((q) => q.x)) + 1, hauteur: Math.max(...places.map((q) => q.y)) + 1 };
+  [...places, ...tablettes].forEach((q) => { q.x -= x0; q.y -= y0; });
+  return { places, tablettes, largeur: Math.max(...places.map((q) => q.x)) + (eclate && profs.length > 1 ? 1.9 : 1.15), hauteur: Math.max(...places.map((q) => q.y)) + 1.08 };
 }
 
 /** Un casier dessiné : les bouteilles couchées, rang par rang, posées sur leur tablette.
+ *  Chaque élément connaît sa place normale (--x, --y) et sa place en vue éclatée (--xe, --ye) : la classe « eclate »
+ *  sur le plan fait glisser les rangs de derrière au-dessus de celui de devant.
  *  surligne : vin dont les bouteilles clignotent ; choix : mode « choisir un emplacement » (seules les places libres réagissent) ;
- *  apercu : dessin de démonstration (configurateur), toutes les places pleines de bouteilles neutres. */
-function dessinerCasier(k, { surligne = null, choix = false, apercu = false } = {}) {
+ *  apercu : dessin de démonstration (configurateur), toutes les places pleines de bouteilles neutres ;
+ *  eclate : dessiné directement en vue éclatée. */
+function dessinerCasier(k, { surligne = null, choix = false, apercu = false, eclate = false } = {}) {
   const profs = profondeursDe(k);
   const parCase = {};
   (k.bouteilles || []).forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
-  const g = geometrieCasier(profs);
+  const g = geometrieCasier(profs), ge = geometrieCasier(profs, true);
+  const multi = profs.length > 1;
   const MARGE_G = 0.45, MARGE_H = 0.32;  // place des repères (lettres à gauche, numéros en haut)
-  const pos = (x, y) => `left:calc(var(--case) * ${(x + MARGE_G).toFixed(3)});top:calc(var(--case) * ${(y + MARGE_H).toFixed(3)})`;
+  const vars = (a, b) => `--x:${(a.x + MARGE_G).toFixed(3)};--y:${(a.y + MARGE_H).toFixed(3)};--xe:${(b.x + MARGE_G).toFixed(3)};--ye:${(b.y + MARGE_H).toFixed(3)}`;
   const noms = NOMS_PROFONDEUR(profs.length);
-  let h = `<div class="plan${choix ? " plan-choix" : ""}${apercu ? " plan-apercu" : ""}${profs.length > 1 ? " multi" : ""}" data-k="${k.id ?? ""}"
-    style="width:calc(var(--case) * ${(g.largeur + MARGE_G).toFixed(3)});height:calc(var(--case) * ${(g.hauteur + MARGE_H + 0.12).toFixed(3)})">`;
-  // repères de chaque rang : numéros de colonne en haut, lettre de chaque étage à gauche (seuls ceux du rang affiché se voient)
-  if (!apercu) profs.forEach((_, i) => {
-    const rang = g.places.filter((q) => q.p === i + 1);
-    const yHaut = Math.min(...rang.map((q) => q.y)), xGauche = Math.min(...rang.map((q) => q.x));
-    const cache = i ? " masquee" : "";
-    rang.filter((q) => q.etage === 1).forEach((q) => { h += `<span class="repere col${cache}" data-p="${i + 1}" style="${pos(q.x, yHaut - MARGE_H)}">${q.col}</span>`; });
-    rang.filter((q) => q.col === 1).forEach((q) => { h += `<span class="repere rang${cache}" data-p="${i + 1}" style="${pos(xGauche - MARGE_G, q.y)}">${LETTRE_RANG(q.etage)}</span>`; });
+  let h = `<div class="plan${choix ? " plan-choix" : ""}${apercu ? " plan-apercu" : ""}${multi ? " multi" : ""}${eclate && multi ? " eclate" : ""}" data-k="${k.id ?? ""}"
+    style="--w:${(g.largeur + MARGE_G).toFixed(3)};--h:${(g.hauteur + MARGE_H).toFixed(3)};--we:${(ge.largeur + MARGE_G).toFixed(3)};--he:${(ge.hauteur + MARGE_H).toFixed(3)}">`;
+  // tablettes en bois, une par rang (celles de derrière n'apparaissent qu'en vue éclatée)
+  g.tablettes.forEach((t, i) => {
+    const te = ge.tablettes[i];
+    h += `<span class="tablette${i ? " arriere" : ""}" data-p="${t.p}" style="${vars(t, te)};--l:${t.largeur.toFixed(3)};z-index:${t.z}"></span>`;
+    if (multi && !apercu) h += `<span class="nom-rang" data-p="${t.p}" style="${vars(t, te)};--l:${t.largeur.toFixed(3)}">${noms[i]}</span>`;
   });
-  for (const q of g.places) {
+  // repères de chaque rang : numéros de colonne en haut, lettre de chaque étage à gauche
+  // (vue normale : ceux du rang de devant ; vue éclatée : ceux de chaque rang)
+  if (!apercu) profs.forEach((_, i) => {
+    const rang = g.places.filter((q) => q.p === i + 1), rangE = ge.places.filter((q) => q.p === i + 1);
+    const haut = (l) => Math.min(...l.map((q) => q.y)), gauche = (l) => Math.min(...l.map((q) => q.x));
+    const arriere = i ? " arriere" : "";
+    rang.forEach((q, j) => {
+      const e = rangE[j];
+      if (q.etage === 1) h += `<span class="repere col${arriere}" data-p="${i + 1}" style="${vars({ x: q.x, y: haut(rang) - MARGE_H }, { x: e.x, y: haut(rangE) - MARGE_H })}">${q.col}</span>`;
+      if (q.col === 1) h += `<span class="repere rang${arriere}" data-p="${i + 1}" style="${vars({ x: gauche(rang) - MARGE_G, y: q.y }, { x: gauche(rangE) - MARGE_G, y: e.y })}">${LETTRE_RANG(q.etage)}</span>`;
+    });
+  });
+  g.places.forEach((q, j) => {
     const b = parCase[`${q.rangee}-${q.col}`];
-    const lieu = `${esc(nomCasier(k))}, ${LETTRE_RANG(q.etage)}${q.col}${profs.length > 1 ? ` (${noms[q.p - 1]})` : ""}`;
-    const style = `${pos(q.x, q.y)};z-index:${q.z}`;
+    const lieu = `${esc(nomCasier(k))}, ${LETTRE_RANG(q.etage)}${q.col}${multi ? ` (${noms[q.p - 1]})` : ""}`;
+    const style = `${vars(q, ge.places[j])};z-index:${q.z}`;
     const commun = `data-k="${k.id ?? ""}" data-p="${q.p}"`;
     if (b) {
       const a = Bouteilles.couchee(b);
@@ -1228,8 +1250,8 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false } = 
         ? `<span class="case-cave" style="${style}" data-p="${q.p}"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></span>`
         : `<button type="button" class="case-cave" style="${style}" ${commun} data-r="${q.rangee}" data-c="${q.col}" aria-label="${lieu} : libre"><svg aria-hidden="true"><use href="#bouteille-couchee"/></svg></button>`;
     }
-  }
-  return h + `<span class="tablette"></span></div>`;
+  });
+  return h + `</div>`;
 }
 
 /** Configurateur de disposition (dans la fenêtre d'un casier) : aperçu en direct, profondeurs, largeur, hauteur,
@@ -1246,7 +1268,7 @@ function configurateurDisposition(zone, initiales) {
     const total = profs.reduce((n, p) => n + p.largeur * p.hauteur, 0);
     const mini = (emp) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: 2, hauteur: 2, empilement: emp }] }, { apercu: true });
     zone.innerHTML = `<div class="configurateur">
-      <div class="apercu-disposition" aria-hidden="true">${dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: profs }, { apercu: true })}</div>
+      <div class="apercu-disposition" aria-hidden="true">${dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: profs }, { apercu: true, eclate: true })}</div>
       <div class="total-places"><b>${total}</b> ${total > 1 ? "places" : "place"} dans ce casier</div>
       <div class="onglets-profondeur" role="tablist" aria-label="Profondeurs">${profs.map((p, i) =>
         `<button type="button" role="tab" aria-selected="${i === actuel}" data-prof="${i}" class="${i === actuel ? "actif" : ""}">Profondeur ${i + 1} · ${noms[i]}</button>`).join("")}
@@ -1322,7 +1344,7 @@ function selecteurEmplacements(select, zone, { quantite, couleur }) {
       <div class="plan-conteneur">${grilleCasiers(dispo, (k) => `
         <div class="casier-bloc${k.refrigere ? " refrigere" : ""}">
           ${titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span></div>` : ""}
-          ${dessinerCasier(k, { choix: true })}</div>`)}</div>`;
+          ${dessinerCasier(k, { choix: true, eclate: true })}</div>`)}</div>`;
     $$(".case-cave:not(.pleine)", zone).forEach((b) => b.addEventListener("click", () => {
       const e = { cave_id: +b.dataset.k, rangee: +b.dataset.r, colonne: +b.dataset.c };
       const i = choisis.findIndex((x) => x.cave_id === e.cave_id && x.rangee === e.rangee && x.colonne === e.colonne);
@@ -1412,20 +1434,22 @@ async function pageCaves(main, id, params) {
 
   const disposition = c.capacite ? disposerCasiers(c) : [];
   const plusieurs = disposition.length > 1;
+  const numeros = new Map(disposition.slice().sort((a, b) => a.col - b.col || a.rang - b.rang).map((d, i) => [d.casier.id, i + 1]));
   const blocCasier = (k) => {
     const pleines = k.bouteilles.filter((b) => b.rangee).length;
     const taux = `<span class="casier-taux" title="Emplacements occupés">${pleines}/${k.capacite}</span>`;
     const modifier = `<button class="modifier-etagere" type="button" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Régler la disposition de ${esc(nomCasier(k))}">✎ Régler</button>`;
     const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave réfrigérée">❄</span>` : "";
-    // plusieurs profondeurs : on peut n'afficher qu'un rang pour lire les bouteilles du fond
+    // une étiquette par casier (comme « 3A ») : la toucher met ce casier en avant et éclate ses rangs de derrière
     const nbProf = profondeursDe(k).length;
-    const choixProf = nbProf > 1 ? `<span class="profondeurs-choix" role="group" aria-label="Rang affiché">
-      <button type="button" class="actif" data-voir-prof="0" data-casier="${k.id}">Tout</button>${NOMS_PROFONDEUR(nbProf).map((n, i) =>
-        `<button type="button" data-voir-prof="${i + 1}" data-casier="${k.id}">${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</span>` : "";
-    // casier nommé : nom, taux, ❄ et ✎ sur la même ligne ; sinon discrets dans le coin
-    const tete = titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span>${froid}${taux}${choixProf}${modifier}</div>`
-      : `${choixProf ? `<div class="casier-titre">${choixProf}</div>` : ""}<div class="casier-coin">${froid}${plusieurs ? taux : ""}${modifier}</div>`;
-    return `<div class="casier-bloc${k.refrigere ? " refrigere" : ""}">${tete}${dessinerCasier(k, { surligne })}</div>`;
+    const selectionnable = plusieurs || nbProf > 1;
+    const libelle = titreCasier(k) || (plusieurs ? `Rangée ${numeros.get(k.id)}` : "Casier");
+    const puceCasier = selectionnable ? `<button type="button" class="choisir-casier" data-selection="${k.id}" aria-pressed="false"
+      title="Voir ce casier de près${nbProf > 1 ? " : ses rangs s'écartent pour montrer les bouteilles de derrière" : ""}">${esc(libelle)}${nbProf > 1 ? `<span class="nb-rangs">${nbProf} rangs</span>` : ""}</button>` : "";
+    const tete = selectionnable ? `<div class="casier-titre">${puceCasier}${froid}${taux}${modifier}</div>`
+      : titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span>${froid}${taux}${modifier}</div>`
+      : `<div class="casier-coin">${froid}${modifier}</div>`;
+    return `<div class="casier-bloc${k.refrigere ? " refrigere" : ""}" data-casier-bloc="${k.id}">${tete}${dessinerCasier(k, { surligne })}</div>`;
   };
 
   // puces de surlignage : couleurs puis gardes présentes dans cette cave
@@ -1609,21 +1633,42 @@ async function pageCaves(main, id, params) {
     }
   }));
 
-  /* --- profondeurs : n'afficher qu'un rang (les autres s'effacent) pour lire et toucher les bouteilles du fond */
-  const voirProfondeur = (casierId, p) => {
-    const plan = $(`.plan[data-k="${casierId}"]`, main);
-    if (!plan) return;
-    $$(".repere", plan).forEach((r) => r.classList.toggle("masquee", +r.dataset.p !== (p || 1)));
-    $$(".case-cave", plan).forEach((b) => {
-      b.classList.toggle("masquee", !!p && +b.dataset.p !== p);
-      b.classList.toggle("au-premier-plan", !!p && +b.dataset.p === p);
+  /* --- un casier mis en avant : les autres s'estompent, ses rangs de derrière s'écartent (vue éclatée) */
+  const conteneurPlan = $("#plan-conteneur", main);
+  const selectionner = (id) => {
+    if (!conteneurPlan) return;
+    const actuel = conteneurPlan.dataset.selection || "";
+    const choisi = id && String(id) !== actuel ? String(id) : "";
+    conteneurPlan.dataset.selection = choisi;
+    conteneurPlan.classList.toggle("avec-selection", !!choisi);
+    $$(".casier-bloc", conteneurPlan).forEach((bloc) => {
+      const lui = bloc.dataset.casierBloc === choisi;
+      bloc.classList.toggle("selectionne", lui);
+      bloc.classList.toggle("estompe", !!choisi && !lui);
+      const plan = $(".plan", bloc);
+      const eclate = lui && !!plan?.classList.contains("multi");
+      if (plan && plan.classList.contains("eclate") !== eclate) {
+        plan.classList.add("anime");
+        plan.classList.toggle("eclate", eclate);
+        setTimeout(() => plan.classList.remove("anime"), 600);
+      }
     });
-    $$(`[data-voir-prof][data-casier="${casierId}"]`, main).forEach((x) => x.classList.toggle("actif", +x.dataset.voirProf === p));
+    $$("[data-selection]", conteneurPlan).forEach((b) => b.setAttribute("aria-pressed", b.dataset.selection === choisi));
+    if (choisi) setTimeout(() => $(`[data-casier-bloc="${choisi}"]`, conteneurPlan)?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), 520);
   };
-  $$("[data-voir-prof]", main).forEach((b) => (b.onclick = () => voirProfondeur(+b.dataset.casier, +b.dataset.voirProf)));
-  // une bouteille à localiser au fond : on montre directement son rang
+  if (conteneurPlan) {
+    $$("[data-selection]", conteneurPlan).forEach((b) => (b.onclick = (e) => { e.stopPropagation(); selectionner(+b.dataset.selection); }));
+    // toucher un casier estompé le met en avant (au lieu d'ouvrir une bouteille) ; toucher le fond revient à la vue d'ensemble
+    conteneurPlan.addEventListener("click", (e) => {
+      const estompe = e.target.closest(".casier-bloc.estompe");
+      if (estompe) { e.preventDefault(); e.stopPropagation(); selectionner(+estompe.dataset.casierBloc); return; }
+      if (conteneurPlan.dataset.selection && (e.target === conteneurPlan || e.target.matches(".casiers, .colonne-casiers"))) selectionner(null);
+    }, true);
+    main.addEventListener("keydown", (e) => { if (e.key === "Escape" && conteneurPlan.dataset.selection) selectionner(null); });
+  }
+  // une bouteille à localiser au fond : son casier s'ouvre directement en vue éclatée
   const auFond = $(".case-cave.surligne:not([data-p='1'])", main);
-  if (auFond) voirProfondeur(+auFond.dataset.k, +auFond.dataset.p);
+  if (auFond) selectionner(+auFond.dataset.k);
 
   /* --- vue liste */
   const conteneur = $("#plan-conteneur", main);

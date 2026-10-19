@@ -1,16 +1,21 @@
 """Génère les symboles SVG des bouteilles couchées du plan de cave (effet 3D). Résultat : symboles.svg.txt, à coller dans index.html."""
 import math
 SQ = math.sqrt(0.5)
-n = (SQ, SQ)          # perpendiculaire à l'axe (vers le bas-droite)
-ax = (SQ, -SQ)        # axe de la bouteille, de l'avant (bas-gauche) vers l'arrière (haut-droite)
+# Vue presque de face (comme une vraie cave) : la bouteille fuit vers le haut-droite, raccourcie par la perspective.
+THETA = math.radians(48)                     # inclinaison de l'axe à l'écran
+ax = (math.cos(THETA), -math.sin(THETA))     # axe de la bouteille, de l'avant (bas-gauche) vers l'arrière (haut-droite)
+n = (math.sin(THETA), math.cos(THETA))       # perpendiculaire à l'axe (vers le bas-droite)
+F = 0.5                                      # raccourci de perspective des longueurs le long de l'axe
+FC = 0.72                                    # le goulot, plus près de nous, est moins raccourci
+ANGLE = -math.degrees(THETA)
 
 def p(x, y): return f"{x:.2f},{y:.2f}"
 def add(a, b, k=1): return (a[0] + k * b[0], a[1] + k * b[1])
 
 def tube(a, b, r, arriere=True):
-    """Cylindre de a (avant) à b (arrière), rayon r ; fond arrondi côté arrière."""
+    """Cylindre de a (avant) à b (arrière), rayon r ; fond vu en ellipse (perspective) côté arrière."""
     a1, a2, b1, b2 = add(a, n, r), add(a, n, -r), add(b, n, r), add(b, n, -r)
-    fin = f"A{r:.2f},{r:.2f} 0 0 0 {p(*b2)}" if arriere else f"L{p(*b2)}"
+    fin = f"A{r * F:.2f},{r:.2f} {ANGLE:.1f} 0 0 {p(*b2)}" if arriere else f"L{p(*b2)}"
     return f"M{p(*a1)} L{p(*b1)} {fin} L{p(*a2)} Z"
 
 def grad_perp(id_, centre, r, stops):
@@ -27,20 +32,21 @@ def cone(a, b, ra, rb):
     return f"M{p(*add(a, n, ra))} L{p(*add(b, n, rb))} L{p(*add(b, n, -rb))} L{p(*add(a, n, -ra))} Z"
 
 # rayon du corps, du goulot, longueur du goulot, épaule tombante (longueur du cône) — en unités du symbole
+# (le diamètre d'une bordelaise fait 84 % d'une case : les bouteilles se touchent presque, comme en cave)
 FORMES = {
-    "bordelaise": (14.5, 4.6, 13, 0),
-    "bourguignonne": (15.2, 4.7, 11, 7),
-    "flute": (12, 4.1, 14, 8),
-    "champagne": (16, 5.6, 11.5, 0),
+    "bordelaise": (20.2, 6.2, 17, 0),
+    "bourguignonne": (20.8, 6.3, 15, 8),
+    "flute": (17.2, 5.6, 19, 9),
+    "champagne": (21.4, 7.4, 15, 0),
 }
 
 def bouteille(id_, champagne=False, forme=None):
     forme = forme or ("champagne" if champagne else "bordelaise")
     rc, rn, lg, ep = FORMES[forme]
-    S = (28.5, 35.5)                        # centre de l'épaule (face avant du corps)
-    B = add(S, ax, 30)                      # fond de la bouteille, loin derrière
-    C1 = add(S, ax, -(rc * .42 + ep))       # naissance du goulot sur l'épaule
-    C0 = add(S, ax, -(rc * .42 + ep + lg))  # bout du goulot (vers nous)
+    S = (32, 36)                                     # centre de l'épaule (face avant du corps) = centre de la case
+    B = add(S, ax, rc * 1.15)                        # fond de la bouteille, derrière (raccourci)
+    C1 = add(S, ax, -(rc * .3 + ep * F))             # naissance du goulot sur l'épaule
+    C0 = add(C1, ax, -lg * FC)                       # bout du goulot (vers nous)
     g = []
     d = []
     d.append(grad_perp(f"{id_}-corps", S, rc, VERRE))
@@ -53,20 +59,14 @@ def bouteille(id_, champagne=False, forme=None):
     g.append(f'<circle cx="{S[0]}" cy="{S[1]}" r="{rc}" fill="currentColor"/>')
     g.append(f'<circle cx="{S[0]}" cy="{S[1]}" r="{rc}" fill="url(#epaule)"/>')
     if ep:
-        # épaule tombante (bourguignonne, flûte) : une cloche lisse du corps jusqu'au goulot, sans arête
-        E = add(S, ax, -rc * .1)
-        r1, r2 = rc * .97, rn + .5
-        a1, a2 = add(E, n, r1), add(E, n, -r1)
-        b1, b2 = add(C1, n, r2), add(C1, n, -r2)
-        k1, k2 = add(a1, ax, -ep * .9), add(b1, ax, ep * .55)
-        k3, k4 = add(b2, ax, ep * .55), add(a2, ax, -ep * .9)
-        cloche = f"M{p(*a1)} C{p(*k1)} {p(*k2)} {p(*b1)} L{p(*b2)} C{p(*k3)} {p(*k4)} {p(*a2)} Z"
+        # épaule tombante (bourguignonne, flûte), vue de face : un dôme plus petit qui monte vers le goulot
+        E = add(S, ax, -ep * F * .55)
+        r1 = rc * .62
         d.append(grad_perp(f"{id_}-epaule", E, r1, VERRE))
-        g.append(f'<path d="{cloche}" fill="currentColor"/>')
-        g.append(f'<path d="{cloche}" fill="url(#{id_}-epaule)"/>')
-        g.append(f'<path d="{cloche}" fill="url(#epaule)" fill-opacity=".6"/>')
-    hx, hy = add(add(S, n, -rc * .45), ax, rc * .1)
-    g.append(f'<ellipse cx="{hx:.2f}" cy="{hy:.2f}" rx="{rc*.32:.2f}" ry="{rc*.13:.2f}" transform="rotate(-45 {hx:.2f} {hy:.2f})" fill="#fff" fill-opacity=".55"/>')
+        g.append(f'<circle cx="{E[0]:.2f}" cy="{E[1]:.2f}" r="{r1:.2f}" fill="currentColor"/>')
+        g.append(f'<circle cx="{E[0]:.2f}" cy="{E[1]:.2f}" r="{r1:.2f}" fill="url(#epaule)" fill-opacity=".75"/>')
+    hx, hy = add(add(S, n, -rc * .45), ax, rc * .1 * F)
+    g.append(f'<ellipse cx="{hx:.2f}" cy="{hy:.2f}" rx="{rc*.32:.2f}" ry="{rc*.13:.2f}" transform="rotate({ANGLE:.1f} {hx:.2f} {hy:.2f})" fill="#fff" fill-opacity=".55"/>')
     # goulot
     if champagne:
         # collerette dorée qui couvre le goulot et mord sur l'épaule
@@ -79,7 +79,7 @@ def bouteille(id_, champagne=False, forme=None):
         g.append(f'<path d="{tube(C0, C1, rn, False)}" fill="currentColor"/>')
         g.append(f'<path d="{tube(C0, C1, rn, False)}" fill="url(#{id_}-col)"/>')
         # capsule sur la moitié avant du goulot
-        Cm = add(C0, ax, 7.5)
+        Cm = add(C0, ax, lg * .55 * FC)
         g.append(f'<path d="{tube(C0, Cm, rn + .35, False)}" fill="var(--capsule, #5a0f20)"/>')
         g.append(f'<path d="{tube(C0, Cm, rn + .35, False)}" fill="url(#{id_}-cap)"/>')
         a1, a2 = add(Cm, n, rn + .35), add(Cm, n, -(rn + .35))

@@ -1,5 +1,15 @@
 # Journal des modifications
 
+## 1.14.0
+
+- **Vue éclatée** : touchez le nom d'un casier (« Rangée 3 », « Réfrigérateur »…) : les autres casiers s'estompent et
+  ses rangs de derrière glissent au-dessus de celui de devant, chacun sur sa tablette en bois, avec « devant » /
+  « derrière ». Toucher un casier estompé le met en avant ; toucher le fond revient à la vue d'ensemble. Une bouteille
+  localisée au fond ouvre directement cette vue. Elle remplace les boutons « Tout / Devant / Derrière ».
+- **Bouteilles redessinées** : vues presque de face, comme dans une vraie cave (moins inclinées, goulot vers vous),
+  et plus serrées : elles se touchent presque, et s'emboîtent dans les creux en quinconce.
+- L'aperçu du réglage d'un casier et le choix d'un emplacement montrent aussi les rangs écartés.
+
 ## 1.13.1
 
 - **« Personnalisez votre rangée »** : le bouton **+ Rangée** ajoute une étagère dessous ou dessus, ou une colonne à côté,

@@ -783,13 +783,30 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .modifier-etagere:hover, .modifier-etagere:focus-visible { color: var(--nuit-texte); background: rgba(24, 22, 27, .95); border-color: rgba(214, 178, 106, .8); }
 .casier-titre .modifier-etagere { margin-left: 2px; }
 
-/* un casier : chaque place est posée à sa position (étage, colonne, profondeur, quinconce) */
-.plan { position: relative; display: block; }
+/* un casier : chaque place est posée à sa position (étage, colonne, profondeur, quinconce).
+   --x/--y : place normale ; --xe/--ye : place en vue éclatée (rangs de derrière posés au-dessus de celui de devant). */
+.plan { position: relative; display: block; width: calc(var(--case) * var(--w)); height: calc(var(--case) * var(--h)); }
+/* le glissement ne joue qu'à l'ouverture / fermeture d'un casier (pas pendant un zoom) */
+.plan.anime { transition: width .5s cubic-bezier(.2, .8, .2, 1), height .5s cubic-bezier(.2, .8, .2, 1); }
+.plan.eclate { width: calc(var(--case) * var(--we)); height: calc(var(--case) * var(--he)); }
+.plan .case-cave, .plan .repere, .plan .tablette, .plan .nom-rang { left: calc(var(--case) * var(--x)); top: calc(var(--case) * var(--y)); }
+.plan.anime .case-cave, .plan.anime .repere, .plan.anime .tablette, .plan.anime .nom-rang {
+  transition: left .5s cubic-bezier(.2, .8, .2, 1), top .5s cubic-bezier(.2, .8, .2, 1), opacity .3s; }
+.plan.eclate .case-cave, .plan.eclate .repere, .plan.eclate .tablette, .plan.eclate .nom-rang { left: calc(var(--case) * var(--xe)); top: calc(var(--case) * var(--ye)); }
 .plan .repere { position: absolute; display: grid; place-items: center; width: var(--case); height: calc(var(--case) * .32);
-  font: 600 .62rem var(--sans); letter-spacing: .04em; color: var(--nuit-texte-3); pointer-events: none; }
+  font: 600 .62rem var(--sans); letter-spacing: .04em; color: var(--nuit-texte-3); pointer-events: none; z-index: 950; }
 .plan .repere.rang { width: calc(var(--case) * .45); height: var(--case); }
-/* séparation fine sous chaque casier, juste pour se repérer */
-.plan .tablette { position: absolute; left: calc(var(--case) * .45); right: 0; bottom: 0; height: 1px; background: rgba(241, 233, 220, .22); }
+.plan .repere.arriere, .plan .tablette.arriere, .plan .nom-rang { opacity: 0; }
+.plan.eclate .repere.arriere, .plan.eclate .tablette.arriere, .plan.eclate .nom-rang { opacity: 1; }
+/* tablette en bois sous chaque rang, vue en perspective (elle fuit vers le haut-droite comme les bouteilles) */
+.plan .tablette { position: absolute; width: calc(var(--case) * (var(--l) - .1)); height: calc(var(--case) * .2); margin-left: calc(var(--case) * .02);
+  transform: skewX(-48deg); transform-origin: 0 100%; border-radius: 2px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(214, 178, 106, .34), rgba(214, 178, 106, .16) 70%, rgba(120, 92, 50, .5));
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+.plan-apercu .tablette { background: linear-gradient(180deg, rgba(214, 178, 106, .45), rgba(214, 178, 106, .22) 70%, rgba(120, 92, 50, .6)); }
+/* nom du rang (devant, derrière) au bout de sa tablette, en vue éclatée */
+.plan .nom-rang { position: absolute; margin-top: calc(var(--case) * -.04); margin-left: calc(var(--case) * (var(--l) + .32)); font: 600 .58rem var(--sans);
+  letter-spacing: .14em; text-transform: uppercase; color: var(--or-vif, #d6b26a); pointer-events: none; white-space: nowrap; }
 
 .plan .case-cave {
   position: absolute; display: block; width: var(--case); height: var(--case); padding: 0;
@@ -1048,6 +1065,21 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .empilements .mini { --case: 30px; height: 70px; display: grid; place-items: center; }
 .configurateur .total-places { text-align: center; font-size: .86rem; color: var(--texte-2); }
 .configurateur .total-places b { font: 600 1.15rem var(--serif); color: var(--texte); font-variant-numeric: lining-nums; }
-.plan .repere.masquee { display: none; }
+
 
 .nombre-rangees { margin-top: 4px; border-top: 1px solid var(--bord); border-bottom: 0; }
+
+/* casier mis en avant : étiquette à toucher, les autres casiers s'estompent */
+.choisir-casier { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px; border-radius: 9px; cursor: pointer;
+  border: 1px solid rgba(241, 233, 220, .16); background: rgba(241, 233, 220, .07); color: var(--nuit-texte);
+  font: 600 .74rem var(--sans); letter-spacing: .02em; white-space: nowrap; transition: background .2s, color .2s, border-color .2s; }
+.choisir-casier:hover { background: rgba(241, 233, 220, .13); }
+.choisir-casier .nb-rangs { font-weight: 500; color: var(--nuit-texte-3); font-size: .66rem; }
+.choisir-casier[aria-pressed="true"] { background: #b8784a; border-color: #b8784a; color: #fff; }
+.choisir-casier[aria-pressed="true"] .nb-rangs { color: rgba(255, 255, 255, .8); }
+.casier-bloc { transition: opacity .4s, filter .4s; }
+.casier-bloc.estompe { opacity: .22; filter: grayscale(.6); cursor: zoom-in; }
+.casier-bloc.estompe .plan * { cursor: zoom-in !important; }
+@media (prefers-reduced-motion: reduce) {
+  .plan, .plan .case-cave, .plan .repere, .plan .tablette, .plan .nom-rang, .casier-bloc { transition: none; }
+}
