@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.14.3
+
+- Présentation mise à jour (GitHub et HACS) : nouvelles captures (vue éclatée, réglage d'une rangée, bouteilles
+  redessinées), nouveautés récentes, images visibles aussi dans HACS. Version anglaise de la présentation à jour.
+
 ## 1.14.2
 
 - Correction : le module **ne plantait plus au démarrage** sur un processeur sans instructions SSE4.2 (x86-64-v2),

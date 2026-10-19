@@ -1,8 +1,8 @@
 # Tessvine 🍷
 
-*[Version française](README.md)*
+*[Version française](https://github.com/Tessman404/cave-a-vin/blob/main/README.md)*
 
-**➡️ New here? Read the [quick start](NOTICE.en.md): installed and running in 5 minutes.**
+**➡️ New here? Read the [quick start](https://github.com/Tessman404/cave-a-vin/blob/main/NOTICE.en.md): installed and running in 5 minutes.**
 
 [![Support Tessvine on Ko-fi](https://img.shields.io/badge/Support%20the%20project-Ko--fi-7a1b33?logo=ko-fi&logoColor=white)](https://ko-fi.com/tessman)
 
@@ -12,24 +12,30 @@ The app speaks **English and French** and follows the language of your phone or 
 
 | Dashboard | On a phone |
 |---|---|
-| ![Dashboard](docs/en/dashboard.png) | ![My wines on a phone](docs/en/mobile.png) |
+| ![Dashboard](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/dashboard.png) | ![My wines on a phone](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/mobile.png) |
 
 | Cellar map | Wine page |
 |---|---|
-| ![Cellar map](docs/en/cellar-map.png) | ![Wine page](docs/en/wine-page.png) |
+| ![Cellar map](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/cellar-map.png) | ![Wine page](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/wine-page.png) |
 
-| Map on a phone (dark theme) | A bottle on the map | Food & Wine |
+| Exploded view: back rows move apart | Customize your shelf | Map on a phone (dark theme) |
 |---|---|---|
-| ![Cellar map on a phone](docs/en/map-mobile-dark.png) | ![Bottle window](docs/en/bottle-mobile-dark.png) | ![Food & Wine on a phone](docs/en/food-wine-mobile.png) |
+| ![Exploded view of a two-row rack](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/exploded-view.png) | ![Shelf settings: width, height, row behind, bottle direction](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/shelf-settings.png) | ![Cellar map on a phone](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/map-mobile-dark.png) |
 
-*Screenshots taken with a demo cellar.*
+| A bottle on the map | Food & Wine |
+|---|---|
+| ![Bottle window](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/bottle-mobile-dark.png) | ![Food & Wine on a phone](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/en/food-wine-mobile.png) |
+
+*Screenshots taken with a demo cellar (version 1.14).*
+
+**What's new**: exploded view for racks with several rows, **bottle direction** per row (neck or base toward you, alternate, on the side), bottles seen from the front and closer together, “Customize your shelf” with identical shelves, **English version** and currency choice.
 
 What it does:
 
 - **add a wine in one go**: **photograph the bottle**, then its back label: **Home Assistant's AI reads the label** and fills in the form, the **barcode** is read from the back, and the bottle is **cut out and placed on a cellar background** (vaulted cellar, wooden rack, studio, light stone);
 - **full inventory**: wine name, producer, appellation, region, colour, vintage, grapes, size, purchase price, estimated value, supplier, pairings, notes, dated personal note, barcode, photo;
 - **bottles drawn from each wine**: Bordeaux, Burgundy, Alsace flute or Champagne shape, glass and capsule matching the wine, label with producer, name, appellation and vintage;
-- **an accurate cellar map**: describe each rack exactly as it is — **width, height, stacking** (aligned, or offset left / right when bottles nest in the gaps of the layer below) and **rows behind** for deep shelves. The map shows bottles lying down, seen from the neck; tap a rack's name: the others fade and its rows move apart (exploded view), each on its own shelf, so every bottle is easy to read. Zoom, search (name, vintage or position such as “B4”), highlight by colour or drinking window, list view, **locate** a wine (its bottles blink). Tap a bottle to take it out or move it, an empty spot to put a bottle there. **Free spots in a wine fridge** are reported, with the wine to put there first;
+- **an accurate cellar map**: describe each rack exactly as it is — **width, height, stacking** (aligned, or offset left / right when bottles nest in the gaps of the layer below) and **rows behind** for deep shelves, plus the **bottle direction** for each row: neck out, base out, alternate, or lying on their side. The map shows bottles lying down, seen from the neck; tap a rack's name: the others fade and its rows move apart (exploded view), each on its own shelf, so every bottle is easy to read. Zoom, search (name, vintage or position such as “B4”), highlight by colour or drinking window, list view, **locate** a wine (its bottles blink). Tap a bottle to take it out or move it, an empty spot to put a bottle there. **Free spots in a wine fridge** are reported, with the wine to put there first;
 - **take out by barcode**: scan the bottle to take it out; a mistake can be undone with one tap;
 - **drinking window**: “drink from”, “peak”, “drink by”, **estimated by Home Assistant's AI** (producer, appellation, vintage quality, price) and reviewed every month, or by a general rule without AI. A window you corrected by hand is always kept. Wines to drink soon are flagged everywhere;
 - **tastings**: every bottle taken out can get a rating out of 5 and a comment, kept in the history;
@@ -173,7 +179,7 @@ Tip: on a phone, use *Add to Home Screen* in the browser to get the cellar as an
 
 **Drinking window by AI**: the same AI estimates the drinking window of every wine in the cellar, when the add-on starts and then every month, and each new wine as soon as it's added. The wine page shows where the window comes from (“estimated by AI”, with its reasoning and confidence, or “entered by hand”). If you correct a window, the AI leaves it alone and only shows its suggestion; the **AI drinking window** button replaces it on request. Statuses: *Keep* → *Ready to drink* → *At its peak* → *Past its peak* → *Drink soon* (last year) → *Past its window*.
 
-**Step by step to turn on the AI (free Google Gemini)**: see the [quick start](NOTICE.en.md#turn-on-the-ai-optional-free-5-minutes).
+**Step by step to turn on the AI (free Google Gemini)**: see the [quick start](https://github.com/Tessman404/cave-a-vin/blob/main/NOTICE.en.md#turn-on-the-ai-optional-free-5-minutes).
 
 **What label reading needs**: Home Assistant 2025.8 or later, with an AI integration that provides an **“AI Task”** entity and understands images: OpenAI, Google Gemini, Anthropic (Claude), or Ollama with a vision model (for example `qwen2.5vl`). In Tessvine, **Settings → AI, photos & labels** tells you whether everything is ready and lets you choose the AI. The photo is then sent to that AI (and so to its provider if it's online).
 
@@ -285,7 +291,7 @@ In **Settings → Backup & import**:
 
 ## 9. Developers
 
-The code (in French) and the API are described in the [French README](README.md#8-pour-les-curieux--api-et-développement). Tests:
+The code (in French) and the API are described in the [French README](https://github.com/Tessman404/cave-a-vin/blob/main/README.md#8-pour-les-curieux--api-et-développement). Tests:
 
 ```bash
 cd cave_a_vin && python3 -m unittest discover -s tests

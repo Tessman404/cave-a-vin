@@ -1,8 +1,8 @@
 # Tessvine 🍷
 
-*[English version](README.en.md)*
+*[English version](https://github.com/Tessman404/cave-a-vin/blob/main/README.en.md)*
 
-**➡️ Nouveau ? Lisez la [notice rapide](NOTICE.md) : installé et utilisé en 5 minutes.**
+**➡️ Nouveau ? Lisez la [notice rapide](https://github.com/Tessman404/cave-a-vin/blob/main/NOTICE.md) : installé et utilisé en 5 minutes.**
 
 [![Soutenir Tessvine sur Ko-fi](https://img.shields.io/badge/Soutenir%20le%20projet-Ko--fi-7a1b33?logo=ko-fi&logoColor=white)](https://ko-fi.com/tessman)
 
@@ -10,24 +10,30 @@ Un logiciel de gestion de cave à vin, dans l'esprit d'Oeni, **qui s'intègre à
 
 | Tableau de bord | Sur téléphone |
 |---|---|
-| ![Tableau de bord](docs/tableau-de-bord.png) | ![Mes vins sur mobile](docs/mobile.png) |
+| ![Tableau de bord](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/tableau-de-bord.png) | ![Mes vins sur mobile](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/mobile.png) |
 
 | Plan de cave | Fiche d'un vin |
 |---|---|
-| ![Plan de cave](docs/plan-de-cave.png) | ![Fiche d'un vin](docs/fiche-vin.png) |
+| ![Plan de cave](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/plan-de-cave.png) | ![Fiche d'un vin](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/fiche-vin.png) |
 
-| Plan sur téléphone (thème sombre) | Une bouteille du plan | Mets & Vins |
+| Vue éclatée : les rangs de derrière s'écartent | Personnalisez votre rangée | Plan sur téléphone (thème sombre) |
 |---|---|---|
-| ![Plan de cave sur téléphone](docs/plan-mobile-sombre.png) | ![Fenêtre d'une bouteille](docs/bouteille-mobile-sombre.png) | ![Mets & Vins sur téléphone](docs/ce-soir-mobile.png) |
+| ![Vue éclatée d'un casier à deux rangs](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/vue-eclatee.png) | ![Réglage d'une rangée : largeur, hauteur, rang derrière, sens des bouteilles](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/reglage-rangee.png) | ![Plan de cave sur téléphone](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/plan-mobile-sombre.png) |
 
-*Captures réalisées avec une cave de démonstration.*
+| Une bouteille du plan | Mets & Vins |
+|---|---|
+| ![Fenêtre d'une bouteille](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/bouteille-mobile-sombre.png) | ![Mets & Vins sur téléphone](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/ce-soir-mobile.png) |
+
+*Captures réalisées avec une cave de démonstration (version 1.14).*
+
+**Nouveautés récentes** : vue éclatée des casiers à plusieurs rangs, **sens des bouteilles** rang par rang (goulot ou fond vers vous, alterné, allongé), bouteilles vues de face et plus serrées, « Personnalisez votre rangée » avec rangées identiques, version **anglaise** et devise réglable. Détail : [journal des modifications](https://github.com/Tessman404/cave-a-vin/blob/main/cave_a_vin/CHANGELOG.md).
 
 Ce qu'il fait :
 
 - **ajout en un geste** : **photographiez la bouteille**, puis son verso : l'**IA de Home Assistant lit l'étiquette** et remplit la fiche, le **code-barres** est lu sur le verso, et la bouteille est **détourée et posée sur un fond de cave** (cave voûtée, casier en bois, studio, pierre claire) ;
 - **inventaire complet** : cuvée, domaine, appellation, région, couleur, millésime, cépages, format, prix d'achat, valeur estimée, fournisseur, accords, notes, note personnelle datée, code-barres, photo ;
 - **bouteilles dessinées** d'après chaque vin : bordelaise, bourguignonne, flûte d'Alsace ou champagne, verre et capsule selon le vin, étiquette avec le domaine, le nom, l'appellation et le millésime ;
-- **plan de cave fidèle** : chaque casier est décrit tel qu'il est (**largeur, hauteur, empilement** aligné ou décalé quand les bouteilles se calent dans les creux, et **rangs derrière** pour les étagères profondes) ; touchez le nom d'un casier : les autres s'estompent et ses rangs s'écartent (vue éclatée), chacun sur sa tablette, pour lire chaque bouteille sans hésiter. Une cave principale et ses étagères, placées en haut, en bas, à gauche ou à droite ; bouteilles couchées vues par le goulot. Zoom, recherche (nom, millésime ou position comme « B4 »), mise en évidence par couleur ou par garde, vue en liste, **localisation** d'un vin (ses bouteilles clignotent). Toucher une bouteille pour la sortir ou la déplacer, une place vide pour y ranger une bouteille. Les **places libres d'une cave électrique** sont signalées, avec le vin à y mettre en priorité ;
+- **plan de cave fidèle** : chaque casier est décrit tel qu'il est (**largeur, hauteur, empilement** aligné ou décalé quand les bouteilles se calent dans les creux, et **rangs derrière** pour les étagères profondes), et le **sens des bouteilles** rang par rang : goulot vers vous, fond vers vous, alterné, ou allongées de côté ; touchez le nom d'un casier : les autres s'estompent et ses rangs s'écartent (vue éclatée), chacun sur sa tablette, pour lire chaque bouteille sans hésiter. Une cave principale et ses étagères, placées en haut, en bas, à gauche ou à droite ; bouteilles couchées vues par le goulot. Zoom, recherche (nom, millésime ou position comme « B4 »), mise en évidence par couleur ou par garde, vue en liste, **localisation** d'un vin (ses bouteilles clignotent). Toucher une bouteille pour la sortir ou la déplacer, une place vide pour y ranger une bouteille. Les **places libres d'une cave électrique** sont signalées, avec le vin à y mettre en priorité ;
 - **sortie par code-barres** : scannez la bouteille pour la sortir ; une sortie par erreur s'annule d'un geste ;
 - **garde** : « à boire à partir de », « apogée », « à boire avant », **estimée par l'IA de Home Assistant** (producteur, appellation, qualité du millésime, prix) et réévaluée chaque mois, ou par une règle générale sans IA. Une garde corrigée à la main est toujours respectée. Les vins à boire vite sont signalés partout ;
 - **dégustations** : chaque bouteille sortie peut recevoir une note sur 5 et un commentaire, conservés dans l'historique ;
@@ -170,7 +176,7 @@ Astuce : sur téléphone, utilisez *Ajouter à l'écran d'accueil* depuis le nav
 
 ## 4 bis. Ajouter un vin : scan, photo et IA
 
-![Ajouter un vin](docs/ajout-assiste.png)
+![Ajouter un vin](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/ajout-assiste.png)
 
 Bouton **+ Ajouter**, puis **Photographier la bouteille** :
 
@@ -182,7 +188,7 @@ Bouton **+ Ajouter**, puis **Photographier la bouteille** :
 
 **Garde estimée par l'IA** : la même IA estime la fenêtre de dégustation de chaque vin en cave, au démarrage du module puis chaque mois, et chaque nouveau vin dès son ajout. La fiche indique l'origine de la garde (« estimée par l'IA », avec sa justification et sa confiance, ou « saisie à la main »). Si vous corrigez une garde, l'IA ne la touche plus et affiche seulement sa suggestion ; le bouton **Garde par l'IA** la remplace à votre demande. Statuts : *À garder* → *Prêt à boire* → *À l'apogée* (plateau) → *Après l'apogée* → *À boire vite* (dernière année) → *Garde dépassée*.
 
-**Pas à pas pour activer l'IA (Google Gemini gratuit)** : voir la [notice rapide](NOTICE.md#activer-lia-facultatif-gratuit-5-minutes).
+**Pas à pas pour activer l'IA (Google Gemini gratuit)** : voir la [notice rapide](https://github.com/Tessman404/cave-a-vin/blob/main/NOTICE.md#activer-lia-facultatif-gratuit-5-minutes).
 
 **Ce qu'il faut pour la lecture d'étiquette** : Home Assistant 2025.8 ou plus récent, avec une intégration d'IA qui fournit une entité **« AI Task »** et qui comprend les images : OpenAI, Google Gemini, Anthropic (Claude), ou Ollama avec un modèle de vision (par exemple `qwen2.5vl`). Dans la cave, **Réglages → IA, photos & étiquettes** indique si tout est prêt et permet de choisir l'IA. La photo est alors envoyée à cette IA (et donc à son fournisseur si elle est en ligne).
 

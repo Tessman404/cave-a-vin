@@ -1,10 +1,10 @@
 # Tessvine : notice rapide 🍷
 
-*[English version](NOTICE.en.md)*
+*[English version](https://github.com/Tessman404/cave-a-vin/blob/main/NOTICE.en.md)*
 
 Gérer sa cave à vin dans Home Assistant, en 5 minutes.
 
-![Tessvine](docs/tableau-de-bord.png)
+![Tessvine](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/tableau-de-bord.png)
 
 ## 1. Installer (2 minutes)
 
@@ -32,7 +32,7 @@ Il faut **Home Assistant OS** (le cas de la plupart des installations : Raspberr
 Vous avez plusieurs casiers ? **+ Rangée** pour ajouter une étagère dessous ou dessus, ou une colonne à côté ; le compteur « Rangées identiques » en ajoute plusieurs d'un coup.
 Dites si c'est une **cave électrique** : Tessvine vous préviendra quand une place s'y libère.
 
-![Plan de cave](docs/plan-de-cave.png)
+![Plan de cave](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/plan-de-cave.png)
 
 ## 3. Ajouter un vin (1 minute)
 
@@ -50,7 +50,7 @@ Choisissez la cave et **touchez la place** où vous rangez la bouteille sur le p
 
 | Sur téléphone | Une bouteille du plan |
 |---|---|
-| ![Mes vins](docs/mobile.png) | ![Bouteille](docs/bouteille-mobile-sombre.png) |
+| ![Mes vins](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/mobile.png) | ![Bouteille](https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/docs/bouteille-mobile-sombre.png) |
 
 ## Activer l'IA (facultatif, gratuit, 5 minutes)
 
@@ -73,7 +73,7 @@ Bon à savoir :
 
 - **Notifications** (Réglages) : choisissez votre téléphone pour être prévenu des vins en fin de garde.
 - **Température de la cave** (Réglages) : choisissez votre capteur, Tessvine vous alerte si elle sort de la bonne plage.
-- **Capteurs et actions dans Home Assistant** (tableaux de bord, Assist) : installez l'intégration avec HACS, voir le [guide complet](README.md#2-ajouter-lintégration-capteurs-actions-envies).
+- **Capteurs et actions dans Home Assistant** (tableaux de bord, Assist) : installez l'intégration avec HACS, voir le [guide complet](https://github.com/Tessman404/cave-a-vin/blob/main/README.md#2-ajouter-lintégration-capteurs-actions-envies).
 
 Vos données restent **chez vous**, dans Home Assistant, et sont incluses dans ses sauvegardes.
 
