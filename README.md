@@ -1,5 +1,7 @@
 # Tessvine 🍷
 
+**➡️ Nouveau ? Lisez la [notice rapide](NOTICE.md) : installé et utilisé en 5 minutes.**
+
 [![Soutenir Tessvine sur Ko-fi](https://img.shields.io/badge/Soutenir%20le%20projet-Ko--fi-7a1b33?logo=ko-fi&logoColor=white)](https://ko-fi.com/tessman)
 
 Un logiciel de gestion de cave à vin, dans l'esprit d'Oeni, **qui s'intègre à Home Assistant** : il s'ouvre dans la barre latérale de Home Assistant, lit la température et l'humidité de votre cave, et crée des capteurs, une liste d'envies et des actions utilisables dans vos automatisations ou avec Assist.

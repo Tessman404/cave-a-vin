@@ -1,0 +1,58 @@
+# Tessvine : notice rapide 🍷
+
+Gérer sa cave à vin dans Home Assistant, en 5 minutes.
+
+![Tessvine](docs/tableau-de-bord.png)
+
+## 1. Installer (2 minutes)
+
+Il faut **Home Assistant OS** (le cas de la plupart des installations : Raspberry Pi, Home Assistant Green, mini-PC…).
+
+1. Cliquez sur ce bouton depuis l'ordinateur ou le téléphone où Home Assistant est ouvert :
+
+   [![Ajouter le dépôt à Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FTessman404%2Fcave-a-vin)
+
+   *(ou à la main : Paramètres → Modules complémentaires → Boutique → ⋮ → Dépôts → collez `https://github.com/Tessman404/cave-a-vin`)*
+2. Cherchez **Tessvine** dans la boutique → **Installer** (une à deux minutes).
+3. Activez **Afficher dans la barre latérale**, puis **Démarrer**.
+
+**Tessvine** apparaît dans la barre latérale de Home Assistant, sur ordinateur comme dans l'application mobile.
+
+## 2. Décrire sa cave (1 minute)
+
+**Plan de cave → + Nouvelle cave** : un nom, le nombre de rangées et de colonnes de votre casier ou armoire à vin.
+Vous avez plusieurs casiers ? **+ Étagère** pour en ajouter à côté (dessus, dessous, à gauche, à droite).
+Dites si c'est une **cave électrique** : Tessvine vous préviendra quand une place s'y libère.
+
+![Plan de cave](docs/plan-de-cave.png)
+
+## 3. Ajouter un vin (1 minute)
+
+Bouton **+** → **Photographier la bouteille**, puis son verso (ou **Ignorer**).
+L'IA de Home Assistant remplit la fiche : nom, domaine, appellation, millésime, garde… *(il faut une IA configurée dans Home Assistant, par exemple Google Gemini gratuit ; sinon, saisissez la fiche à la main)*.
+Choisissez la cave et **touchez la place** où vous rangez la bouteille sur le plan. C'est tout.
+
+## 4. Au quotidien
+
+- **Que boire ?** L'accueil montre les vins **à boire vite** et ceux **prêts à boire**.
+- **Avec quoi ?** **Mets & Vins** : choisissez le plat, Tessvine propose les meilleures bouteilles.
+- **Où est-elle ?** Sur la fiche d'un vin, **Localiser** : ses bouteilles clignotent sur le plan.
+- **Je la bois** : touchez la bouteille sur le plan → **Sortir**, ou scannez son code-barres. Une erreur ? **Annuler**.
+- **Une occasion ?** Ajoutez une note (« Pour l'anniversaire de Paul », avec la date) : Home Assistant vous le rappelle 7 jours avant.
+
+| Sur téléphone | Une bouteille du plan |
+|---|---|
+| ![Mes vins](docs/mobile.png) | ![Bouteille](docs/bouteille-mobile-sombre.png) |
+
+## 5. En option
+
+- **Notifications** (Réglages) : choisissez votre téléphone pour être prévenu des vins en fin de garde.
+- **Température de la cave** (Réglages) : choisissez votre capteur, Tessvine vous alerte si elle sort de la bonne plage.
+- **Capteurs et actions dans Home Assistant** (tableaux de bord, Assist) : installez l'intégration avec HACS, voir le [guide complet](README.md#2-ajouter-lintégration-capteurs-actions-envies).
+
+Vos données restent **chez vous**, dans Home Assistant, et sont incluses dans ses sauvegardes.
+
+---
+
+Une question, une idée ? [Ouvrez un ticket sur GitHub](https://github.com/Tessman404/cave-a-vin/issues).
+Tessvine vous plaît ? [Offrez-moi un café sur Ko-fi](https://ko-fi.com/tessman) 🍷
