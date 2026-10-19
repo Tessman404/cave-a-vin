@@ -19,11 +19,16 @@ from .cave import COULEURS
 
 log = logging.getLogger("cave_a_vin")
 SOUS_DOSSIER = "cave_a_vin"
+def langue_texte(reglages):
+    """Langue des textes libres renvoyés par l'IA (notes, justification) : celle de l'interface."""
+    return "in English (for an English-speaking user)" if (reglages or {}).get("langue") == "en" else "en français"
+
+
 INSTRUCTIONS = (
     "Tu es sommelier. La première photo jointe montre une bouteille de vin, vue de face (étiquette). S'il y a une "
     "seconde photo, c'est le verso de la même bouteille (contre-étiquette) : sers-t'en pour compléter et confirmer "
     "(producteur, cépages, degré, contenance, conseils de service) et recopie les chiffres du code-barres s'ils "
-    "sont lisibles. Remplis, en français, la fiche de ce vin pour l'inventaire d'une cave.\n"
+    "sont lisibles. Remplis, {langue}, la fiche de ce vin pour l'inventaire d'une cave.\n"
     "1. Recopie ce qui est écrit sur la bouteille (étiquette, contre-étiquette, collerette, capsule) : le nom de la "
     "cuvée ou du château ; le producteur (domaine, château, maison ou négociant : il est souvent écrit en grand, ou "
     "dans la mention « mis en bouteille par… » / « mis en bouteille au château ») ; l'appellation ; le millésime ; "
@@ -233,7 +238,7 @@ def lire_etiquette(reglages, image_jpeg, timeout=120, verso_jpeg=None):
         (dossier / nom).write_bytes(contenu)
     corps = {
         "task_name": "Lecture d'étiquette de vin",
-        "instructions": INSTRUCTIONS,
+        "instructions": INSTRUCTIONS.replace("{langue}", langue_texte(reglages)),
         "structure": STRUCTURE,
         "attachments": [{"media_content_id": f"media-source://media_source/local/{SOUS_DOSSIER}/{nom}",
                          "media_content_type": "image/jpeg"} for nom in noms],
@@ -258,7 +263,7 @@ INSTRUCTIONS_GARDE = (
     "sais du producteur, de l'appellation, de la qualité du millésime dans cette région, de la couleur, du format "
     "et du prix. Sois réaliste : un vin d'entrée de gamme se boit jeune, seuls les grands vins se gardent longtemps. "
     "Si tu ne connais pas ce vin précisément, raisonne sur l'appellation et le prix, et indique une confiance faible. "
-    "Justifie en une ou deux phrases courtes, en français."
+    "Justifie en une ou deux phrases courtes, {langue}."
 )
 STRUCTURE_GARDE = {
     "garde_debut": {"description": "Année à partir de laquelle le vin est bon à boire", "required": True,
@@ -292,7 +297,7 @@ def estimer_garde(reglages, vin, annee_achat, annee, timeout=90):
         raise IAErreur(possible["raison"])
     donnees = _appeler(reglages, {
         "task_name": "Garde d'un vin",
-        "instructions": INSTRUCTIONS_GARDE.format(annee=annee, fiche=fiche_texte(vin, annee_achat)),
+        "instructions": INSTRUCTIONS_GARDE.format(annee=annee, fiche=fiche_texte(vin, annee_achat), langue=langue_texte(reglages)),
         "structure": STRUCTURE_GARDE,
     }, timeout)
     try:

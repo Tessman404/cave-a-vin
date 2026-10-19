@@ -1,5 +1,7 @@
 # Tessvine : notice rapide 🍷
 
+*[English version](NOTICE.en.md)*
+
 Gérer sa cave à vin dans Home Assistant, en 5 minutes.
 
 ![Tessvine](docs/tableau-de-bord.png)
@@ -20,7 +22,12 @@ Il faut **Home Assistant OS** (le cas de la plupart des installations : Raspberr
 
 ## 2. Décrire sa cave (1 minute)
 
-**Plan de cave → + Nouvelle cave** : un nom, le nombre de rangées et de colonnes de votre casier ou armoire à vin.
+**Plan de cave → + Nouvelle cave** : un nom, puis la disposition de votre casier ou armoire à vin :
+
+- **Largeur** et **Hauteur** : combien de bouteilles côte à côte, et combien d'étages ;
+- **Empilement** : *Aligné* (chaque bouteille dans sa case) ou *Décalé à gauche / à droite* (les bouteilles se calent dans les creux de l'étage du dessous, comme dans une cave électrique) ;
+- **Rang derrière** : un deuxième rang de bouteilles derrière le premier, si vos étagères sont profondes. Sur le plan, **Tout / Devant / Derrière** montre chaque rang séparément : vous savez toujours quelle bouteille est où.
+
 Vous avez plusieurs casiers ? **+ Étagère** pour en ajouter à côté (dessus, dessous, à gauche, à droite).
 Dites si c'est une **cave électrique** : Tessvine vous préviendra quand une place s'y libère.
 

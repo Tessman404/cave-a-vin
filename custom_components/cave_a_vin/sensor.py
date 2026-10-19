@@ -118,12 +118,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: CaveConfigEntry,
     entry.async_on_unload(coordinator.async_add_listener(ajouter_caves))
 
 
+UNITES_EN = {"bouteilles": "bottles", "vins": "wines"}
+
+
+def unite(hass: HomeAssistant | None, u: str | None) -> str | None:
+    """Unités dans la langue de Home Assistant ; la valeur de la cave dans la devise de Home Assistant."""
+    if hass is None or u is None:
+        return u
+    if u == "EUR":
+        return hass.config.currency or u
+    return u if (hass.config.language or "fr").startswith("fr") else UNITES_EN.get(u, u)
+
+
 class CaveSensor(CaveEntity, SensorEntity):
     entity_description: CaveSensorDescription
 
     def __init__(self, coordinator: CaveCoordinator, description: CaveSensorDescription) -> None:
         super().__init__(coordinator, description.key)
         self.entity_description = description
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        return unite(self.hass, self.entity_description.native_unit_of_measurement)
 
     @property
     def native_value(self) -> Any:
@@ -155,6 +171,10 @@ class CaveRangementSensor(CaveEntity, SensorEntity):
     def available(self) -> bool:
         # Les bouteilles « non rangées » disparaissent du résumé quand il n'y en a plus : on affiche alors 0.
         return super().available and (self._cave() is not None or self._cave_id is None)
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        return unite(self.hass, "bouteilles")
 
     @property
     def native_value(self) -> int:

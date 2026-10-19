@@ -1,12 +1,14 @@
 # Tessvine
 
+*English: the app follows your device language (English or French). Full guide: [README in English](https://github.com/Tessman404/cave-a-vin/blob/main/README.en.md), [quick start](https://github.com/Tessman404/cave-a-vin/blob/main/NOTICE.en.md).*
+
 Gérez votre cave à vin depuis Home Assistant : inventaire, plan de cave, fenêtres de garde, dégustations, suggestions d'accords et liste d'envies.
 
 ## Démarrage
 
 1. Activez **Afficher dans la barre latérale**, puis **Démarrer**.
 2. Ouvrez **Tessvine** dans la barre latérale.
-3. **Plan de cave → + Nouvelle cave** pour décrire vos casiers (puis **+ Étagère** pour les casiers voisins), et **+ Ajouter** pour vos premiers vins.
+3. **Plan de cave → + Nouvelle cave** pour décrire vos casiers (largeur, hauteur, empilement, rangs derrière) (puis **+ Étagère** pour les casiers voisins), et **+ Ajouter** pour vos premiers vins.
 
 ## Ajouter un vin
 

@@ -78,11 +78,18 @@ def verifier(app, aujourdhui=None):
     choisis = vins_a_rappeler(app.db, aujourdhui)
     if not choisis:
         return 0
-    lignes = [f"• {v['nom']}{' ' + str(v['millesime']) if v['millesime'] else ''} ({v['stock']} bout.)"
-              + (" : dernier rappel" if n == RAPPELS_MAX else "") for v, n in choisis]
-    titre = ("🍷 Un vin arrive en fin de garde" if len(choisis) == 1
-             else f"🍷 {len(choisis)} vins arrivent en fin de garde")
-    message = f"À boire avant la fin de {aujourdhui.year} :\n" + "\n".join(lignes)
+    en = reglages.get("langue") == "en"
+    lignes = [f"• {v['nom']}{' ' + str(v['millesime']) if v['millesime'] else ''} "
+              f"({v['stock']} {'btl' if en else 'bout.'})"
+              + ((" : last reminder" if en else " : dernier rappel") if n == RAPPELS_MAX else "") for v, n in choisis]
+    if en:
+        titre = ("🍷 A wine is reaching the end of its window" if len(choisis) == 1
+                 else f"🍷 {len(choisis)} wines are reaching the end of their window")
+        message = f"Drink before the end of {aujourdhui.year}:\n" + "\n".join(lignes)
+    else:
+        titre = ("🍷 Un vin arrive en fin de garde" if len(choisis) == 1
+                 else f"🍷 {len(choisis)} vins arrivent en fin de garde")
+        message = f"À boire avant la fin de {aujourdhui.year} :\n" + "\n".join(lignes)
     envoyer(reglages, service, titre, message)
     with app.db.transaction() as conn:
         for v, n in choisis:
@@ -116,10 +123,15 @@ def verifier_occasions(app, aujourdhui=None):
             choisis.append((v, jour))
     for v, jour in choisis:
         dans = (jour - aujourdhui).days
-        quand = "aujourd'hui" if dans == 0 else "demain" if dans == 1 else f"dans {dans} jours"
-        titre = f"📌 {v['note_perso']} : {quand}"
-        message = (f"Pensez à sortir {v['nom']}{' ' + str(v['millesime']) if v['millesime'] else ''} "
-                   f"pour le {jour.strftime('%d/%m')}.")
+        vin = f"{v['nom']}{' ' + str(v['millesime']) if v['millesime'] else ''}"
+        if reglages.get("langue") == "en":
+            quand = "today" if dans == 0 else "tomorrow" if dans == 1 else f"in {dans} days"
+            titre = f"📌 {v['note_perso']}: {quand}"
+            message = f"Remember to take out {vin} for {jour.strftime('%B %-d')}."
+        else:
+            quand = "aujourd'hui" if dans == 0 else "demain" if dans == 1 else f"dans {dans} jours"
+            titre = f"📌 {v['note_perso']} : {quand}"
+            message = f"Pensez à sortir {vin} pour le {jour.strftime('%d/%m')}."
         envoyer(reglages, service, titre, message)
         with app.db.transaction() as conn:
             conn.execute("UPDATE vins SET note_rappel = ? WHERE id = ?", (v["note_date"], v["id"]))

@@ -23,6 +23,7 @@ REGLAGES_DEFAUT = {
     "fond_defaut": "cave-voutee",
     "cadrage_defaut": "etiquette",
     "ia_garde_auto": "1",
+    "langue": "",
     "ia_garde_derniere": "",
 }
 

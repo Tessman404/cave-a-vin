@@ -1,5 +1,7 @@
 # Tessvine 🍷
 
+*[English version](README.en.md)*
+
 **➡️ Nouveau ? Lisez la [notice rapide](NOTICE.md) : installé et utilisé en 5 minutes.**
 
 [![Soutenir Tessvine sur Ko-fi](https://img.shields.io/badge/Soutenir%20le%20projet-Ko--fi-7a1b33?logo=ko-fi&logoColor=white)](https://ko-fi.com/tessman)
@@ -25,7 +27,7 @@ Ce qu'il fait :
 - **ajout en un geste** : **photographiez la bouteille**, puis son verso : l'**IA de Home Assistant lit l'étiquette** et remplit la fiche, le **code-barres** est lu sur le verso, et la bouteille est **détourée et posée sur un fond de cave** (cave voûtée, casier en bois, studio, pierre claire) ;
 - **inventaire complet** : cuvée, domaine, appellation, région, couleur, millésime, cépages, format, prix d'achat, valeur estimée, fournisseur, accords, notes, note personnelle datée, code-barres, photo ;
 - **bouteilles dessinées** d'après chaque vin : bordelaise, bourguignonne, flûte d'Alsace ou champagne, verre et capsule selon le vin, étiquette avec le domaine, le nom, l'appellation et le millésime ;
-- **plan de cave fidèle** : une cave principale et ses étagères, placées en haut, en bas, à gauche ou à droite ; bouteilles couchées vues par le goulot. Zoom, recherche (nom, millésime ou position comme « B4 »), mise en évidence par couleur ou par garde, vue en liste, **localisation** d'un vin (ses bouteilles clignotent). Toucher une bouteille pour la sortir ou la déplacer, une place vide pour y ranger une bouteille. Les **places libres d'une cave électrique** sont signalées, avec le vin à y mettre en priorité ;
+- **plan de cave fidèle** : chaque casier est décrit tel qu'il est (**largeur, hauteur, empilement** aligné ou décalé quand les bouteilles se calent dans les creux, et **rangs derrière** pour les étagères profondes) ; « Tout / Devant / Derrière » montre chaque rang à part, pour retrouver chaque bouteille sans hésiter. Une cave principale et ses étagères, placées en haut, en bas, à gauche ou à droite ; bouteilles couchées vues par le goulot. Zoom, recherche (nom, millésime ou position comme « B4 »), mise en évidence par couleur ou par garde, vue en liste, **localisation** d'un vin (ses bouteilles clignotent). Toucher une bouteille pour la sortir ou la déplacer, une place vide pour y ranger une bouteille. Les **places libres d'une cave électrique** sont signalées, avec le vin à y mettre en priorité ;
 - **sortie par code-barres** : scannez la bouteille pour la sortir ; une sortie par erreur s'annule d'un geste ;
 - **garde** : « à boire à partir de », « apogée », « à boire avant », **estimée par l'IA de Home Assistant** (producteur, appellation, qualité du millésime, prix) et réévaluée chaque mois, ou par une règle générale sans IA. Une garde corrigée à la main est toujours respectée. Les vins à boire vite sont signalés partout ;
 - **dégustations** : chaque bouteille sortie peut recevoir une note sur 5 et un commentaire, conservés dans l'historique ;
@@ -34,6 +36,7 @@ Ce qu'il fait :
 - **statistiques** : bouteilles, valeur estimée et prix payé, répartition par couleur, région, millésime, garde et cave ; chaque ligne ouvre les vins correspondants ;
 - **liste d'envies** (vins à acheter), visible aussi dans Home Assistant ;
 - **sauvegarde** : export CSV (Excel), sauvegarde complète JSON, import CSV ;
+- **en français ou en anglais** selon l'appareil, devise réglable (€, $, £, CHF) ;
 - fonctionne sur ordinateur, tablette et téléphone, en thème clair (ivoire) ou sombre (anthracite) selon l'appareil ;
 - **léger** : Python, tourne sur un Raspberry Pi 4 ou 5 ; le détourage des photos se fait sur votre installation, sans service extérieur.
 
@@ -154,7 +157,7 @@ Sans le module complémentaire, renseignez aussi l'adresse de Home Assistant et 
 
 ## 4. Premiers pas
 
-1. **Plan de cave → + Nouvelle cave** : donnez un nom et le nombre de rangées et de colonnes de vos casiers (0 pour un rangement libre). Créez-en autant que vous avez d'emplacements (cave, armoire à vin, cellier…).
+1. **Plan de cave → + Nouvelle cave** : donnez un nom et décrivez la disposition : largeur, hauteur, empilement (aligné ou décalé), et **rang derrière** si vos étagères sont profondes (ou choisissez un rangement libre, sans plan). Le crayon au-dessus d'un casier permet de la modifier ensuite. Créez-en autant que vous avez d'emplacements (cave, armoire à vin, cellier…).
 2. Ajoutez des **étagères** (bouton **+ Étagère**) en haut, en bas, à gauche ou à droite d'un casier pour reproduire votre cave ; indiquez si c'est une **cave électrique** pour être prévenu de ses places libres.
 3. **+ Ajouter** : photographiez la bouteille ou saisissez la fiche à la main (voir ci-dessous). Le bouton **Estimer** propose une fenêtre de garde ; corrigez-la si votre caviste vous a donné d'autres conseils. Indiquez le nombre de bouteilles et la cave : le plan s'affiche, touchez les places où vous les rangez.
 4. Sur la fiche, **Photo de l'étiquette** pour prendre ou changer la photo, **Fond** pour changer de décor. Sans photo, la fiche montre la bouteille dessinée d'après le vin.

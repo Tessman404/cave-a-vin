@@ -187,6 +187,7 @@ code { font: .85em ui-monospace, "SF Mono", Menlo, monospace; background: var(--
 #menu a[data-page="stats"]::after {
   content: "Cave"; position: absolute; top: -21px; left: 12px; font: 600 .62rem var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--nuit-texte-3);
 }
+html[lang="en"] #menu a[data-page="stats"]::after { content: "Cellar"; }
 #menu .onglet-ajouter, #menu .seul-mobile { display: none; }
 .barre .ajouter { margin-top: auto; min-height: 46px; width: 100%; }
 .barre .ajouter:hover { text-decoration: none; }
@@ -209,7 +210,7 @@ main { max-width: 1240px; margin: 0 auto; padding: max(34px, env(safe-area-inset
   #menu a span { white-space: nowrap; }
   #menu a.actif::before { left: -10px; }
   #menu a[data-page="stats"] { margin-top: 18px; }
-  #menu a[data-page="stats"]::after { content: ""; top: -10px; left: 14px; right: 14px; height: 1px; background: var(--nuit-bord); }
+  #menu a[data-page="stats"]::after, html[lang] #menu a[data-page="stats"]::after { content: ""; top: -10px; left: 14px; right: 14px; height: 1px; background: var(--nuit-bord); }
   .barre .ajouter { width: 52px; height: 52px; min-height: 0; padding: 0; border-radius: 50%; }
   .barre .ajouter svg { width: 22px; height: 22px; }
   main { padding-left: calc(var(--largeur-menu) + 28px); padding-right: 28px; }

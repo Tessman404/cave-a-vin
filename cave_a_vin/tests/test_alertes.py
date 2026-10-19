@@ -58,5 +58,24 @@ class TestAlertes(unittest.TestCase):
         self.assertEqual(alertes.verifier(self.app, date(cave.annee_courante(), 3, 1)), 0)
 
 
+    def test_notifications_en_anglais(self):
+        self.app.ecrire_reglage("notif_service", "notify.mobile_app_iphone")
+        self.app.ecrire_reglage("langue", "en")
+        self.assertEqual(alertes.verifier(self.app, date(cave.annee_courante(), 3, 1)), 1)
+        self.assertIn("reaching the end of its window", self.envois[0][1])
+        self.assertIn("Drink before the end of", self.envois[0][2])
+        jour = date(cave.annee_courante() + 1, 3, 12)
+        cave.modifier_vin(self.db, self.urgent["id"], {"note_perso": "Wedding anniversary", "note_date": jour.isoformat()})
+        self.assertEqual(alertes.verifier_occasions(self.app, jour - timedelta(days=1)), 1)
+        self.assertEqual(self.envois[-1][1], "📌 Wedding anniversary: tomorrow")
+        self.assertIn("for March 12", self.envois[-1][2])
+
+    def test_consignes_ia_dans_la_langue(self):
+        from app import ia
+        self.assertIn("en français", ia.langue_texte({}))
+        self.assertIn("English", ia.langue_texte({"langue": "en"}))
+        self.assertNotIn("{langue}", ia.INSTRUCTIONS.replace("{langue}", ia.langue_texte({})))
+
+
 if __name__ == "__main__":
     unittest.main()

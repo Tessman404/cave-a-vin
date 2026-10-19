@@ -4,9 +4,9 @@
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const euros = (v) => v == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: v >= 1000 ? 0 : 2 }).format(v);
-const nombre = (v) => new Intl.NumberFormat("fr-FR").format(v ?? 0);
-const dateFr = (d) => d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "";
+const euros = (v) => v == null ? "—" : new Intl.NumberFormat(I18N.locale, { style: "currency", currency: I18N.devise, maximumFractionDigits: v >= 1000 ? 0 : 2 }).format(v);
+const nombre = (v) => new Intl.NumberFormat(I18N.locale).format(v ?? 0);
+const dateFr = (d) => d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLocaleDateString(I18N.locale, { day: "numeric", month: "short", year: "numeric" }) : "";
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 const pluriel = (n, mot, motPluriel) => `${nombre(n)} ${n > 1 ? (motPluriel || mot + "s") : mot}`;
 const COULEURS_CSS = ["rouge", "blanc", "rose", "effervescent", "liquoreux", "autre"];
@@ -35,7 +35,7 @@ async function api(methode, chemin, corps, brut) {
   else if (corps !== undefined) { body = JSON.stringify(corps); entetes["Content-Type"] = "application/json"; }
   const rep = await fetch("api/" + chemin, { method: methode, headers: entetes, body });
   if (rep.status === 401) {
-    const saisie = prompt("Cette cave est protégée par une clé d'API. Saisissez-la :");
+    const saisie = prompt(I18N.t("Cette cave est protégée par une clé d'API. Saisissez-la :"));
     if (saisie) { cleAPI.ecrire(saisie.trim()); return api(methode, chemin, corps, brut); }
   }
   const type = rep.headers.get("Content-Type") || "";
@@ -57,7 +57,7 @@ function toast(message, erreur = false, duree, action) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "toast-action";
-    b.textContent = action.libelle;
+    b.textContent = I18N.langue === "en" && action.libelle === "Annuler" ? "Undo" : action.libelle;
     b.onclick = () => { clearTimeout(toast.minuteur); t.className = ""; action.faire(); };
     t.append(" ", b);
   }
@@ -1391,7 +1391,7 @@ async function pageCaves(main, id, params) {
   const onglets = caves.length > 1 ? `<nav class="onglets" aria-label="Caves">${caves.map((c) => `<a href="#/caves/${c.id}" class="${c.id === id ? "actif" : ""}">${esc(c.nom)} <span class="muted">${c.bouteilles}</span></a>`).join("")}</nav>` : "";
   const entete = enTete("Votre cave", "Plan de cave", `<button class="bouton" id="nouvelle">${ic("plus")} Nouvelle cave</button>`);
   if (!caves.length) {
-    main.innerHTML = entete + `<div class="carte vide"><p>Décrivez votre cave : une armoire à vin, un casier, une pièce…<br>Indiquez le nombre de rangées et de colonnes pour obtenir un plan cliquable, ou 0 pour un rangement « en vrac ».</p></div>`;
+    main.innerHTML = entete + `<div class="carte vide"><p>Décrivez votre cave : une armoire à vin, un casier, une pièce…<br>Indiquez la disposition de vos bouteilles pour obtenir un plan où chaque bouteille a sa place, ou choisissez un rangement libre.</p></div>`;
     $("#nouvelle", main).onclick = () => dialogueCave();
     return;
   }
@@ -1412,7 +1412,7 @@ async function pageCaves(main, id, params) {
     const pleines = k.bouteilles.filter((b) => b.rangee).length;
     const taux = `<span class="casier-taux" title="Emplacements occupés">${pleines}/${k.capacite}</span>`;
     const modifier = `<button class="modifier-etagere" type="button" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Modifier ${esc(nomCasier(k))}">✎</button>`;
-    const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave électrique">❄</span>` : "";
+    const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave réfrigérée">❄</span>` : "";
     // plusieurs profondeurs : on peut n'afficher qu'un rang pour lire les bouteilles du fond
     const nbProf = profondeursDe(k).length;
     const choixProf = nbProf > 1 ? `<span class="profondeurs-choix" role="group" aria-label="Rang affiché">
@@ -1862,26 +1862,39 @@ async function dialogueRanger(cave, rangee, colonne) {
 }
 
 function dialogueCave(c) {
+  // création : nom, type de cave et disposition complète (largeur, hauteur, empilement, rangs derrière) ;
+  // modification : nom et description seulement, la disposition se règle avec le crayon du casier.
   dialogue(`<span class="surtitre">Plan de cave</span><h2>${c ? "Modifier la cave" : "Nouvelle cave"}</h2>
     <div class="form">
       <label class="large">Nom<input name="nom" required value="${esc(c?.nom)}" placeholder="Cave du sous-sol, armoire à vin…"></label>
-      <label>Rangées<input type="number" name="rangees" min="0" max="100" value="${c?.rangees ?? 6}"></label>
-      <label>Colonnes<input type="number" name="colonnes" min="0" max="100" value="${c?.colonnes ?? 8}"></label>
-      <p class="large muted petit-texte" style="margin:0">Mettez 0 rangée ou 0 colonne pour un rangement libre, sans plan.</p>
       <label class="large">Description<input name="description" value="${esc(c?.description)}" placeholder="Température, emplacement…"></label>
-      ${c ? "" : `<label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
-        <option value=""${undefined === undefined ? " selected" : ""} disabled>Choisir…</option>
-        <option value="1"${undefined ? " selected" : ""}>Oui : je serai prévenu des places libres</option>
-        <option value="0"${undefined === 0 ? " selected" : ""}>Non : étagère ou casier non refroidi</option></select></label>`}
+      ${c ? `<p class="large muted petit-texte" style="margin:0">${c.capacite ? "Pour changer la disposition des bouteilles, touchez le crayon au-dessus du casier." : "Cave sans plan : les bouteilles y sont rangées en vrac."}</p>` : `
+      <label class="large">Est-ce une cave électrique (réfrigérée) ?<select name="refrigere" required>
+        <option value="" selected disabled>Choisir…</option>
+        <option value="1">Oui : je serai prévenu des places libres</option>
+        <option value="0">Non : étagère ou casier non refroidi</option></select></label>
+      <label class="large">Plan<select name="avec_plan">
+        <option value="1" selected>Casier avec un plan : chaque bouteille a sa place</option>
+        <option value="0">Rangement libre, sans plan (carton, étagère en vrac…)</option></select></label>
+      <div class="large" id="bloc-disposition"><h3 style="margin:6px 0 10px">Disposition des bouteilles</h3><div id="config-disposition"></div></div>`}
     </div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
   {
+    large: !c,
     onSubmit: async (data) => {
-      const r = c ? await api("PUT", `caves/${c.id}`, data) : await api("POST", "caves", data);
+      const corps = c ? { nom: data.nom, description: data.description }
+        : { nom: data.nom, description: data.description, refrigere: data.refrigere,
+            ...(data.avec_plan === "1" ? { disposition: config.valeur() } : { rangees: 0, colonnes: 0 }) };
+      const r = c ? await api("PUT", `caves/${c.id}`, corps) : await api("POST", "caves", corps);
       toast("Cave enregistrée");
       if (location.hash === `#/caves/${r.id}`) route(); else location.hash = `#/caves/${r.id}`;
     },
   });
+  let config = null;
+  if (!c) {
+    config = configurateurDisposition($("#config-disposition"), [{ largeur: 6, hauteur: 8, empilement: "aligne" }]);
+    $("#dialogue [name=avec_plan]").onchange = (e) => { $("#bloc-disposition").hidden = e.target.value !== "1"; };
+  }
 }
 
 const PLATS_CHAUDS = ["boeuf", "agneau", "canard", "gibier", "volaille", "porc", "poisson", "pates_pizza", "epice"];
@@ -2057,11 +2070,27 @@ async function pageReglages(main) {
         <label style="margin-top:12px">Restaurer une sauvegarde JSON (remplace toute la cave !)
           <input type="file" accept=".json,application/json" id="import-json"></label>
       </div>
+      <div class="carte"><h2>${ic("info")}Affichage</h2>
+        <form class="form" id="affichage">
+          <label>Langue<select name="langue">
+            <option value=""${!I18N.choix ? " selected" : ""}>Automatique</option>
+            <option value="fr"${I18N.choix === "fr" ? " selected" : ""} translate="no">Français</option>
+            <option value="en"${I18N.choix === "en" ? " selected" : ""} translate="no">English</option></select></label>
+          <label>Devise<select name="devise">${Object.entries(I18N.DEVISES).map(([c, sym]) => `<option value="${c}"${c === I18N.devise ? " selected" : ""} translate="no">${sym === c ? c : `${sym} ${c}`}</option>`).join("")}</select></label>
+          <p class="large muted petit-texte" style="margin:0">Langue et devise de cet appareil. La devise ne change que l'affichage des prix, pas leurs montants.</p>
+        </form></div>
       <div class="carte"><h2>${ic("info")}À propos</h2>
         <p>Tessvine version ${esc(REF.version)}${r.addon ? " — module complémentaire Home Assistant" : ""}.</p>
         ${cleAPI.lire() ? `<p>Une clé d'API est mémorisée sur cet appareil. <button class="bouton petit" id="oublier">Oublier la clé</button></p>` : ""}
       </div>
     </div>`;
+  $("#affichage", main).onchange = async (e) => {
+    const f = Object.fromEntries(new FormData(e.currentTarget));
+    I18N.regler(f.langue, f.devise);
+    const langue = f.langue || (/^fr\b/i.test(navigator.language || "fr") ? "fr" : "en");
+    try { await api("PUT", "reglages", { langue }); } catch { /* la langue de l'appareil reste appliquée */ }
+    location.reload();
+  };
   $("#ha", main).onsubmit = async (e) => {
     e.preventDefault();
     try {
@@ -2185,6 +2214,8 @@ async function route() {
       if (!REF) {
         [REF, CAPACITES] = await Promise.all([api("GET", "referentiel"), api("GET", "capacites")]);
         afficherNomCave(REF.nom_cave);
+        // langue des notifications et de l'IA : celle de l'appareil qui utilise la cave
+        if (REF.langue !== I18N.langue) api("PUT", "reglages", { langue: I18N.langue }).catch(() => {});
       }
       if (!main.childElementCount) main.innerHTML = `<div class="chargement">Chargement…</div>`;
       await fn(main, m[1], params);

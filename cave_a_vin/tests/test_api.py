@@ -133,6 +133,19 @@ class TestCave(BaseTest):
         b = [x for x in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"] if x["cave_id"]]
         self.assertEqual([(x["cave_id"], x["rangee"]) for x in b], [(cave["id"], None)])
 
+    def test_renommer_une_cave_garde_sa_disposition(self):
+        disposition = {"profondeurs": [{"largeur": 3, "hauteur": 2, "empilement": "gauche"},
+                                       {"largeur": 3, "hauteur": 2, "empilement": "aligne"}]}
+        cave = self.appel("POST", "api/caves", {"nom": "Armoire", "disposition": disposition}, attendu=201)
+        vin = self.creer_vin(quantite=0)
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "emplacements": [
+            {"cave_id": cave["id"], "rangee": 102, "colonne": 3}]}, attendu=200)
+        self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Armoire du garage", "description": "12 °C"}, attendu=200)
+        relue = self.appel("GET", f"api/caves/{cave['id']}")
+        self.assertEqual(relue["nom"], "Armoire du garage")
+        self.assertEqual(relue["profondeurs"], disposition["profondeurs"])
+        self.assertEqual(relue["capacite"], 12)
+
     def test_disposition_profondeurs_et_empilement(self):
         """Un casier avec un rang de devant (4 × 3, en quinconce) et un rang derrière (4 × 1)."""
         disposition = {"profondeurs": [{"largeur": 4, "hauteur": 3, "empilement": "droite"},

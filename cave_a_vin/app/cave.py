@@ -777,6 +777,10 @@ def creer_cave(db, data):
 
 def modifier_cave(db, cave_id, data):
     actuelle = _lire_casier(db, cave_id)
+    if not any(k in data for k in ("disposition", "rangees", "colonnes")):
+        # simple changement de nom ou de description : la disposition du casier reste celle d'avant
+        data = ({**data, "disposition": json.loads(actuelle["disposition"])} if actuelle.get("disposition")
+                else {**data, "rangees": actuelle["rangees"], "colonnes": actuelle["colonnes"]})
     nom, rangees, colonnes, description, disposition = _nettoyer_cave(data, bool(actuelle["parent_id"]))
     if actuelle["parent_id"] and not (rangees and colonnes):
         raise ErreurAPI("Une étagère a au moins une rangée et une colonne")

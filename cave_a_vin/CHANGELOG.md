@@ -1,5 +1,19 @@
 # Journal des modifications
 
+## 1.13.0
+
+- **Disposition réelle des casiers** : largeur, hauteur et **empilement** (aligné, décalé à gauche ou à droite quand
+  les bouteilles se calent dans les creux de l'étage du dessous), et jusqu'à 4 **rangs en profondeur** (« rang
+  derrière »). Aperçu en direct pendant le réglage, dès la création d'une cave.
+- **Lecture des bouteilles** : le plan dessine les bouteilles en quinconce comme dans la vraie cave ; « Tout / Devant /
+  Derrière » isole chaque rang, et la position indique le rang (« A3 · derrière »). Une bouteille localisée au fond
+  ouvre directement la vue « Derrière ».
+- **English version**: l'application est en anglais ou en français selon la langue du téléphone ou du navigateur,
+  avec un choix dans **Réglages → Affichage**. **Devise** réglable (€, $, £, CHF). Notifications et textes de l'IA
+  dans la langue choisie ; unités des capteurs de l'intégration dans la langue et la devise de Home Assistant.
+  README et notice en anglais.
+- Correction : modifier le nom d'une cave ne réinitialise plus sa disposition.
+
 ## 1.12.0
 
 - **Nouvelle identité visuelle « Chai de nuit »** : anthracite, bordeaux, ivoire et or patiné ; titres, noms de vins

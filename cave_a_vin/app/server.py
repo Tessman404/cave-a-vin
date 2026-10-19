@@ -66,6 +66,7 @@ def _referentiel(app, req):
         "autocompletion": cave.autocompletion(app.db), "annee": cave.annee_courante(),
         "addon": ha.mode_addon(), "version": __version__,
         "nom_cave": app.reglages().get("nom_cave") or "Tessvine",
+        "langue": app.reglages().get("langue") or "fr",
     }
 
 
@@ -466,7 +467,9 @@ def _test_notification(app, req):
     if not service:
         raise ErreurAPI("Choisissez d'abord où envoyer les notifications")
     try:
-        alertes.envoyer(app.reglages(), service, "🍷 Tessvine", "Les notifications de fin de garde arriveront ici.")
+        r = app.reglages()
+        alertes.envoyer(r, service, "🍷 Tessvine", "End-of-window notifications will arrive here." if r.get("langue") == "en"
+                        else "Les notifications de fin de garde arriveront ici.")
     except Exception as e:  # noqa: BLE001
         raise ErreurAPI(f"Envoi impossible : {e}", 502)
     return {"ok": True}
