@@ -811,13 +811,13 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .plan .case-cave {
   position: absolute; display: block; width: var(--case); height: var(--case); padding: 0;
   border: 0; border-radius: 0; background: none; box-shadow: none; outline: none; cursor: default;
-  color: var(--fantome); --capsule: rgba(241, 233, 220, .1);
+  color: #8b8592; --capsule: #b9b2bf;  /* place libre : bouteille gris clair, bien distincte des vraies */
   pointer-events: none;  /* seule la forme de la bouteille est cliquable */
 }
 .plan .case-cave svg { width: var(--case); height: var(--case); display: block; overflow: visible; transition: opacity .2s, filter .2s, transform .2s; }
 .plan .case-cave .forme, .plan .case-cave use { pointer-events: visiblePainted; cursor: pointer; }
-.plan .case-cave:not(.pleine) svg { opacity: .2; }
-.plan .case-cave:not(.pleine):hover svg { opacity: .55; }
+.plan .case-cave:not(.pleine) svg { opacity: .32; filter: saturate(0); }
+.plan .case-cave:not(.pleine):hover svg { opacity: .7; }
 .plan .case-cave.pleine svg { filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .5)); }
 .plan .case-cave.pleine:hover svg { filter: brightness(1.18) drop-shadow(0 3px 4px rgba(0, 0, 0, .55)); transform: translate(-1px, -1px); }
 .plan .case-cave:focus-visible svg { filter: drop-shadow(0 0 2px var(--or-vif)) drop-shadow(0 0 5px var(--or-vif)); }

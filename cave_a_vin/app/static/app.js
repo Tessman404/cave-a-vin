@@ -165,7 +165,8 @@ function choisir(message, reponses) {
       <button class="bouton" data-fermer>Annuler</button>
       ${reponses.map((r) => `<button type="button" class="bouton${r.primaire ? " primaire" : ""}" data-choix="${esc(r.cle)}">${esc(r.libelle)}</button>`).join("")}</div>`);
     $$("[data-choix]", d).forEach((b) => (b.onclick = () => { choix = b.dataset.choix; d.close(); }));
-    d.addEventListener("close", () => setTimeout(() => resolve(choix)), { once: true });
+    const fin = () => { if (d.open) return; d.removeEventListener("close", fin); setTimeout(() => resolve(choix)); };
+    d.addEventListener("close", fin);
   });
 }
 
@@ -176,7 +177,14 @@ function confirmer(message, libelle = "Confirmer") {
     const d = dialogue(`<p style="white-space:pre-line">${esc(message)}</p><div class="actions">
       <button class="bouton" data-fermer>Annuler</button>
       <button class="bouton primaire" type="submit">${esc(libelle)}</button></div>`, { onSubmit: () => { ok = true; } });
-    d.addEventListener("close", () => setTimeout(() => resolve(ok)), { once: true });
+    // la fenêtre précédente, fermée juste avant, envoie son signal « close » un peu plus tard : on l'ignore tant que
+    // cette question est encore affichée (sinon elle se résoudrait toute seule en « Annuler »)
+    const fin = () => {
+      if (d.open) return;
+      d.removeEventListener("close", fin);
+      setTimeout(() => resolve(ok));
+    };
+    d.addEventListener("close", fin);
   });
 }
 
@@ -948,7 +956,8 @@ function scanner() {
       if (d.open) d.close();
       resolve(code);
     };
-    d.addEventListener("close", () => terminer(null), { once: true });
+    const surFermeture = () => { if (d.open) return; d.removeEventListener("close", surFermeture); terminer(null); };
+    d.addEventListener("close", surFermeture);
     $("#scan-ok", d).onclick = () => { const c = $("#scan-chiffres", d).value.replace(/\D/g, ""); if (c) terminer(c); };
     $("#scan-chiffres", d).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#scan-ok", d).click(); } });
     $("#scan-photo", d).onchange = async (e) => {
@@ -1662,6 +1671,10 @@ async function pageCaves(main, id, params) {
     conteneurPlan.addEventListener("click", (e) => {
       const estompe = e.target.closest(".casier-bloc.estompe");
       if (estompe) { e.preventDefault(); e.stopPropagation(); selectionner(+estompe.dataset.casierBloc); return; }
+      // casier avec des rangs derrière : le premier toucher sur une bouteille l'ouvre en vue éclatée,
+      // le suivant agit sur la bouteille (maintenant bien visible, même au fond)
+      const fermee = e.target.closest(".case-cave") && e.target.closest(".plan.multi:not(.eclate)");
+      if (fermee) { e.preventDefault(); e.stopPropagation(); selectionner(+fermee.dataset.k); return; }
       if (conteneurPlan.dataset.selection && (e.target === conteneurPlan || e.target.matches(".casiers, .colonne-casiers"))) selectionner(null);
     }, true);
     main.addEventListener("keydown", (e) => { if (e.key === "Escape" && conteneurPlan.dataset.selection) selectionner(null); });
@@ -1771,8 +1784,11 @@ async function pageCaves(main, id, params) {
       bulle.style.left = x + "px";
       bulle.style.top = y + "px";
     };
+    const avecSouris = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    conteneur.addEventListener("pointerdown", () => bulle.classList.remove("visible"));
+    window.addEventListener("scroll", () => bulle.classList.remove("visible"), { passive: true });
     conteneur.addEventListener("pointerover", (e) => {
-      if (e.pointerType !== "mouse") return;
+      if (e.pointerType !== "mouse" || !avecSouris) return;
       const bouton = e.target.closest(".case-cave.pleine");
       if (!bouton) return;
       const b = parId.get(+bouton.dataset.b);

@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.14.1
+
+- Correction : **supprimer une étagère** fonctionne de nouveau (la confirmation se fermait toute seule).
+- Casier avec des rangs derrière : le **premier toucher** sur une bouteille ouvre la vue éclatée ; le suivant agit sur
+  la bouteille, même au fond.
+- **Places libres** en gris clair : un casier vide se distingue bien du fond sombre.
+- Sur téléphone, plus d'infobulle qui reste affichée après un toucher.
+
 ## 1.14.0
 
 - **Vue éclatée** : touchez le nom d'un casier (« Rangée 3 », « Réfrigérateur »…) : les autres casiers s'estompent et
