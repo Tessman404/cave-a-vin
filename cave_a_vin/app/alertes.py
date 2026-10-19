@@ -97,7 +97,7 @@ JOURS_AVANT_OCCASION = 7
 
 
 def verifier_occasions(app, aujourdhui=None):
-    """Note personnelle datée (« À boire à l'anniversaire de Leïna », le 12 mars) : une notification 7 jours avant.
+    """Note personnelle datée (« À boire pour un anniversaire », le 12 mars) : une notification 7 jours avant.
     Un seul rappel par date. Renvoie le nombre de vins signalés."""
     reglages = app.reglages()
     service = reglages.get("notif_service") or ""

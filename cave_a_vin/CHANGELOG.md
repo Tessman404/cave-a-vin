@@ -62,7 +62,7 @@
 
 ## 1.8.0
 
-- **Note personnelle** sur un vin (« À boire à l'anniversaire de Leïna ») : elle clignote en rouge sous le titre de
+- **Note personnelle** sur un vin (« À boire pour un anniversaire ») : elle clignote en rouge sous le titre de
   la fiche, et sortir ce vin demande « Êtes-vous sûr de vouloir consommer ce vin ? » en rappelant la note.
 - **Notifications de fin de garde** (Réglages → Notifications) : Home Assistant prévient quand un vin entre dans sa
   dernière année de garde, au plus 2 fois par vin, à 15 jours d'intervalle. Bouton d'envoi d'un test.

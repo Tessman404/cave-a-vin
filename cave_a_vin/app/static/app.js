@@ -724,7 +724,7 @@ async function pageFormulaire(main, id) {
         <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
       </fieldset>`}
       <label class="large">Accords mets & vins<input name="accords" value="${esc(v.accords)}" placeholder="Agneau, fromages affinés…"></label>
-      <label class="large">Note personnelle<input name="note_perso" maxlength="200" value="${esc(v.note_perso || "")}" placeholder="À boire à l'anniversaire de Leïna…"></label>
+      <label class="large">Note personnelle<input name="note_perso" maxlength="200" value="${esc(v.note_perso || "")}" placeholder="À boire pour un anniversaire…"></label>
       <label>Date de l'occasion (facultatif)<input type="date" name="note_date" value="${esc(v.note_date || "")}"></label>
       <p class="muted petit-texte" style="margin:0;align-self:end">Avec une date, Home Assistant vous le rappelle 7 jours avant.</p>
       <label class="large">Notes<textarea name="notes">${esc(v.notes)}</textarea></label>

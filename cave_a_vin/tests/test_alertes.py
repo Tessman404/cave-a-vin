@@ -46,10 +46,10 @@ class TestAlertes(unittest.TestCase):
     def test_rappel_d_occasion_une_seule_fois(self):
         self.app.ecrire_reglage("notif_service", "notify.mobile_app_iphone")
         jour = date(cave.annee_courante() + 1, 3, 12)
-        cave.modifier_vin(self.db, self.urgent["id"], {"note_perso": "Anniversaire de Leïna", "note_date": jour.isoformat()})
+        cave.modifier_vin(self.db, self.urgent["id"], {"note_perso": "Anniversaire de mariage", "note_date": jour.isoformat()})
         self.assertEqual(alertes.verifier_occasions(self.app, jour - timedelta(days=8)), 0)  # trop tôt
         self.assertEqual(alertes.verifier_occasions(self.app, jour - timedelta(days=7)), 1)
-        self.assertIn("Anniversaire de Leïna : dans 7 jours", self.envois[-1][1])
+        self.assertIn("Anniversaire de mariage : dans 7 jours", self.envois[-1][1])
         self.assertEqual(alertes.verifier_occasions(self.app, jour - timedelta(days=2)), 0)  # déjà prévenu
 
     def test_vin_sorti_n_est_plus_rappele(self):
