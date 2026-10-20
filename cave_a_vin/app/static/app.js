@@ -485,25 +485,40 @@ async function pageStats(main) {
   const mouvement = (m) => `<li><span class="signe ${m.type}" aria-label="${m.type === "entree" ? "Entrée" : "Sortie"}">${m.type === "entree" ? "+" : "−"}</span>
       <div class="grandit"><span class="titre">${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</span>
       <div class="muted petit-texte">${m.type === "entree" ? "+" : "−"}${m.quantite} · ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)} · ${dateFr(m.date)}</div></div>${etoiles(m.note)}</li>`;
+  const prixMoyen = s.bouteilles ? s.valeur / s.bouteilles : 0;
+  const tuile = (valeur, libelle, attr = "") => `<div class="tuile-stat" ${attr}><strong>${valeur}</strong><span>${libelle}</span></div>`;
   main.innerHTML = `${enTete("Votre cave", "Statistiques")}
-    <p class="muted">Touchez une ligne ou une barre pour voir les bouteilles correspondantes.</p>
-    <div class="grille tableau-bord">
-      <div class="carte"><h2>Par couleur</h2>${barres(s.par_couleur, { couleur: true, lien: (l) => versVins({ couleur: l.cle }) })}</div>
-      <div class="carte"><h2>Par garde</h2>${barres(s.par_statut.filter((l) => l.bouteilles), { statut: true, lien: (l) => versVins({ statut: l.cle }) })}</div>
-      <div class="carte"><h2>Par région</h2>${barres(s.par_region, { lien: (l) => l.cle !== "—" ? versVins({ region: l.cle }) : "" })}</div>
-      <div class="carte"><h2>Par millésime</h2>${histogramme(s.par_millesime, { lien: (l) => versVins({ millesime: l.cle }) })}</div>
-      <div class="carte"><h2>Par cave</h2>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
+    <div class="stats-chiffres">
+      ${tuile(nombre(s.bouteilles), s.bouteilles > 1 ? "bouteilles" : "bouteille")}
+      ${tuile(nombre(s.references), s.references > 1 ? "références" : "référence")}
+      ${tuile(euros(s.valeur), "valeur estimée")}
+      ${s.valeur_payee ? tuile(euros(s.valeur_payee), "payé") : ""}
+      ${prixMoyen ? tuile(euros(prixMoyen), "par bouteille en moyenne") : ""}
+      ${tuile(nombre(s.bues_annee), `${s.bues_annee > 1 ? "bues" : "bue"} en ${s.annee}`)}
+    </div>
+    <p class="muted petit-texte">Touchez une ligne ou une barre pour voir les bouteilles correspondantes.</p>
+
+    <h2 class="titre-section">Composition de la cave</h2>
+    <div class="stats-grille">
+      <div class="carte"><h3>Par couleur</h3>${barres(s.par_couleur, { couleur: true, lien: (l) => versVins({ couleur: l.cle }) })}</div>
+      <div class="carte"><h3>Par garde</h3>${barres(s.par_statut.filter((l) => l.bouteilles), { statut: true, lien: (l) => versVins({ statut: l.cle }) })}</div>
+      <div class="carte"><h3>Par région</h3>${barres(s.par_region, { lien: (l) => l.cle !== "—" ? versVins({ region: l.cle }) : "" })}</div>
+      <div class="carte"><h3>Par cave</h3>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
         { lien: (l) => l.cle ? versVins({ cave_id: String(l.cle) }) : `role="link" tabindex="0" data-aller="#/caves?ranger=1"` })}</div>
-      <div class="carte carte-prix"><h2>Par prix</h2>
+      <div class="carte large"><h3>Par millésime</h3>${histogramme(s.par_millesime, { lien: (l) => versVins({ millesime: l.cle }) })}</div>
+    </div>
+
+    <h2 class="titre-section">Valeur</h2>
+    <div class="carte carte-prix"><div class="titre-carte"><h3>Les vins du plus cher au moins cher</h3>
         <div class="groupe-boutons choix-prix" role="group" aria-label="Prix utilisé">
           <button type="button" data-prix="valeur" class="actif" aria-pressed="true">Valeur estimée</button>
-          <button type="button" data-prix="prix_achat" aria-pressed="false">Prix d'achat</button></div>
-        <div id="classement-prix"></div></div>
-      <div class="carte"><h2>Derniers mouvements</h2>
-        <p class="muted petit-texte">Ce mois-ci : +${s.entrees_mois} / −${s.sorties_mois}</p>
-        ${s.derniers_mouvements.length ? `<ul class="liste">${s.derniers_mouvements.map(mouvement).join("")}</ul>` : ""}
-        <p style="margin:12px 0 0"><a href="#/historique">Tout l'historique ›</a></p></div>
-    </div>`;
+          <button type="button" data-prix="prix_achat" aria-pressed="false">Prix d'achat</button></div></div>
+      <div id="classement-prix"></div></div>
+
+    <h2 class="titre-section">Activité</h2>
+    <div class="carte"><div class="titre-carte"><h3>Derniers mouvements</h3><span class="muted petit-texte">Ce mois-ci : +${s.entrees_mois} / −${s.sorties_mois}</span></div>
+      ${s.derniers_mouvements.length ? `<ul class="liste mouvements-colonnes">${s.derniers_mouvements.slice(0, 8).map(mouvement).join("")}</ul>` : `<p class="muted">Aucun mouvement pour l'instant.</p>`}
+      <p style="margin:12px 0 0"><a href="#/historique">Tout l'historique ›</a></p></div>`;
   // classement des vins en cave, du plus cher au moins cher (prix d'une bouteille), selon la valeur ou le prix d'achat
   let champPrix = "valeur", toutVoir = false;
   const classement = () => {

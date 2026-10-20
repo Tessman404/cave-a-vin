@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.15.1
+
+- **Statistiques remises en ordre** : chiffres clés en tête (bouteilles, références, valeur, payé, prix moyen d'une
+  bouteille, bues dans l'année), puis trois parties — **Composition de la cave** (couleur, garde, région, cave,
+  millésime), **Valeur** (classement par prix, sur deux colonnes à l'écran) et **Activité** (derniers mouvements).
+  Plus de trous entre les cartes.
+
 ## 1.15.0
 
 - **Température et humidité dans le bandeau d'accueil** : les capteurs de la cave s'affichent en grand sous le nombre de

@@ -266,6 +266,8 @@ const I18N = (() => {
     "La date du dernier remplacement ne peut pas être dans le futur": "The last replacement date can't be in the future",
     "Date du dernier remplacement invalide": "Invalid last replacement date", "Date invalide": "Invalid date",
     "⚠ À changer aujourd'hui.": "⚠ Replace today.", "Filtre aujourd'hui": "Filter today",
+    "Composition de la cave": "Cellar make-up", "Valeur": "Value", "Activité": "Activity", "Les vins du plus cher au moins cher": "Wines from most to least expensive",
+    "par bouteille en moyenne": "per bottle on average",
     "Home Assistant n'est pas configuré": "Home Assistant isn't configured", "Plat inconnu": "Unknown dish", "Choisissez d'abord où envoyer les notifications": "First choose where to send notifications",
     "Choisissez une bouteille ou un vin ": "Choose a bottle or a wine", "Emplacement incomplet": "Incomplete spot",
     "Garde importée : l'IA l'affinera lors de son prochain passage.": "Imported window: the AI will refine it on its next run.",
