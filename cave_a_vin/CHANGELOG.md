@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.16.0
+
+- **Prise de vue guidée** : « Photographier la bouteille » ouvre la caméra avec une **silhouette de bouteille** à
+  remplir et le **cadre de l'étiquette** (ou de la contre-étiquette pour le verso), des conseils (bien éclairée, sans
+  reflet), le **flash** si le téléphone en a un, puis un aperçu (« Reprendre » / « Utiliser cette photo »). La photo est
+  recadrée sur la bouteille, en pleine définition : meilleure lecture de l'étiquette par l'IA et meilleur détourage.
+  Demande une adresse sécurisée (https) ; sinon, l'appareil photo du téléphone s'ouvre comme avant.
+
 ## 1.15.2
 
 - Correction : la photo détourée **ne garde plus un objet posé à côté de la bouteille** (fruit, verre, ustensile…) :

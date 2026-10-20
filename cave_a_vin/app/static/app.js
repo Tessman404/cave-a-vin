@@ -1134,6 +1134,146 @@ function scanner() {
   });
 }
 
+/* ------------------------------------------------------------------ prise de vue guidée
+ * Caméra en direct avec une silhouette de bouteille à remplir et le cadre de l'étiquette : la photo est bien cadrée,
+ * nette et sans reflet, ce qui améliore la lecture de l'étiquette par l'IA et le détourage. La photo est recadrée sur
+ * la bouteille. Sans caméra en direct (adresse http:// locale, refus d'accès), on revient à l'appareil photo du téléphone. */
+const cameraGuideePossible = () => !!(navigator.mediaDevices?.getUserMedia && window.isSecureContext);
+
+function photoGuidee(mode = "face") {
+  return new Promise((resolve) => {
+    const textes = mode === "verso"
+      ? { titre: "Verso de la bouteille", conseil: "Contre-étiquette dans le cadre, code-barres bien visible" }
+      : { titre: "Étiquette de la bouteille", conseil: "Bouteille dans la silhouette, étiquette de face dans le cadre" };
+    const ecran = document.createElement("div");
+    ecran.className = "camera-guidee";
+    ecran.innerHTML = `<video playsinline muted autoplay></video>
+      <svg class="guide" aria-hidden="true"></svg>
+      <div class="camera-haut"><b>${textes.titre}</b><span>${textes.conseil}</span><span class="astuce">Bien éclairée, sans reflet · téléphone à la hauteur de l'étiquette</span></div>
+      <div class="camera-message" hidden></div>
+      <img class="camera-apercu" alt="" hidden>
+      <div class="camera-bas">
+        <button type="button" class="bouton camera-annuler">Annuler</button>
+        <button type="button" class="camera-declencheur" aria-label="Prendre la photo"></button>
+        <button type="button" class="bouton camera-flash" hidden aria-pressed="false">Flash</button>
+        <label class="bouton camera-natif">Appareil photo<input type="file" accept="image/*" capture="environment" hidden></label>
+      </div>
+      <div class="camera-bas camera-valider" hidden>
+        <button type="button" class="bouton camera-reprendre">Reprendre</button>
+        <button type="button" class="bouton primaire camera-ok">Utiliser cette photo</button>
+      </div>`;
+    document.body.append(ecran);
+    document.documentElement.classList.add("camera-ouverte");
+    const video = $("video", ecran), svg = $("svg.guide", ecran), message = $(".camera-message", ecran);
+    let flux = null, cadre = null, photo = null, fini = false;
+
+    const terminer = (fichier) => {
+      if (fini) return;
+      fini = true;
+      flux?.getTracks().forEach((t) => t.stop());
+      window.removeEventListener("resize", dessiner);
+      ecran.remove();
+      document.documentElement.classList.remove("camera-ouverte");
+      resolve(fichier || null);
+    };
+    // silhouette d'une bordelaise (repère 100 × 300), le cadre de l'étiquette sur le corps
+    const BOUTEILLE = "M43 0 H57 V8 H56 V62 C56 82 78 92 78 112 V288 Q78 300 66 300 H34 Q22 300 22 288 V112 C22 92 44 82 44 62 V8 H43 Z";
+    function dessiner() {
+      const W = ecran.clientWidth, H = ecran.clientHeight;
+      const h = Math.min(H * 0.66, (W * 0.78) * 3), w = h / 3;
+      const x = (W - w) / 2, y = (H - h) / 2 + H * 0.02;
+      cadre = { x: x - w * 0.18, y: y - h * 0.04, w: w * 1.36, h: h * 1.08 };  // zone gardée, un peu plus large que la silhouette
+      const k = h / 300;
+      const etiquette = mode === "verso" ? { x: 26, y: 150, w: 48, h: 112 } : { x: 25, y: 140, w: 50, h: 105 };
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      svg.innerHTML = `<path fill="rgba(10,8,12,.62)" fill-rule="evenodd" d="M0 0 H${W} V${H} H0 Z" />
+        <g transform="translate(${x} ${y}) scale(${k})">
+          <path d="${BOUTEILLE}" fill="none" stroke="#fff" stroke-width="${1.6 / k * 1.2}" stroke-dasharray="${8 / k} ${6 / k}"/>
+          <rect x="${etiquette.x}" y="${etiquette.y}" width="${etiquette.w}" height="${etiquette.h}" rx="3" fill="none" stroke="#d6b26a" stroke-width="${2 / k}"/>
+          <text x="50" y="${etiquette.y + etiquette.h / 2}" text-anchor="middle" dominant-baseline="middle" fill="#d6b26a" font-size="${13 / k}" font-family="sans-serif" font-weight="600">${I18N.t(mode === "verso" ? "CONTRE-ÉTIQUETTE" : "ÉTIQUETTE")}</text>
+        </g>`;
+      // trou dans le voile sombre : la silhouette reste bien visible
+      svg.firstElementChild.setAttribute("d", `M0 0 H${W} V${H} H0 Z ` + transformerChemin(BOUTEILLE, x, y, k));
+    }
+    // applique translation et échelle à un chemin simple (commandes M H V C Q Z en coordonnées absolues)
+    function transformerChemin(d, tx, ty, k) {
+      return d.replace(/([MHVCQZ])([^MHVCQZ]*)/g, (_, c, args) => {
+        const n = args.trim() ? args.trim().split(/[\s,]+/).map(Number) : [];
+        if (c === "H") return `H${tx + n[0] * k} `;
+        if (c === "V") return `V${ty + n[0] * k} `;
+        if (c === "Z") return "Z ";
+        return c + n.map((v, i) => (i % 2 ? ty + v * k : tx + v * k)).join(" ") + " ";
+      });
+    }
+    const echec = (texte) => {
+      message.hidden = false;
+      message.innerHTML = `${esc(texte)}<br><small>Utilisez le bouton « Appareil photo » ci-dessous.</small>`;
+      $(".camera-declencheur", ecran).disabled = true;
+    };
+
+    $(".camera-annuler", ecran).onclick = () => terminer(null);
+    $(".camera-natif input", ecran).onchange = (e) => terminer(e.target.files[0]);
+    ecran.addEventListener("keydown", (e) => { if (e.key === "Escape") terminer(null); });
+    window.addEventListener("resize", dessiner);
+    dessiner();
+
+    (async () => {
+      try {
+        flux = await navigator.mediaDevices.getUserMedia({ audio: false,
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } } });
+        if (fini) { flux.getTracks().forEach((t) => t.stop()); return; }
+        video.srcObject = flux;
+        await video.play().catch(() => {});
+        const piste = flux.getVideoTracks()[0];
+        const capacites = piste.getCapabilities?.() || {};
+        if (capacites.torch) {
+          const flash = $(".camera-flash", ecran);
+          flash.hidden = false;
+          flash.onclick = async () => {
+            const on = flash.getAttribute("aria-pressed") !== "true";
+            try { await piste.applyConstraints({ advanced: [{ torch: on }] }); flash.setAttribute("aria-pressed", on); } catch { /* sans flash */ }
+          };
+        }
+      } catch (err) {
+        echec(err?.name === "NotAllowedError" ? "L'accès à la caméra a été refusé." : "La caméra en direct n'est pas disponible.");
+      }
+    })();
+
+    // déclencher : on garde la zone autour de la silhouette, en pleine définition
+    $(".camera-declencheur", ecran).onclick = () => {
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) return;
+      const W = ecran.clientWidth, H = ecran.clientHeight;
+      const echelle = Math.max(W / vw, H / vh);  // la vidéo remplit l'écran (object-fit: cover)
+      const ox = (W - vw * echelle) / 2, oy = (H - vh * echelle) / 2;
+      let sx = (cadre.x - ox) / echelle, sy = (cadre.y - oy) / echelle;
+      let sw = cadre.w / echelle, sh = cadre.h / echelle;
+      sx = Math.max(0, sx); sy = Math.max(0, sy); sw = Math.min(vw - sx, sw); sh = Math.min(vh - sy, sh);
+      const toile = document.createElement("canvas");
+      toile.width = Math.round(sw); toile.height = Math.round(sh);
+      toile.getContext("2d").drawImage(video, sx, sy, sw, sh, 0, 0, toile.width, toile.height);
+      toile.toBlob((blob) => {
+        if (!blob) return;
+        photo = new File([blob], `bouteille-${mode}.jpg`, { type: "image/jpeg" });
+        const apercu = $(".camera-apercu", ecran);
+        apercu.src = URL.createObjectURL(blob);
+        apercu.hidden = false;
+        ecran.classList.add("fige");
+        $$(".camera-bas", ecran)[0].hidden = true;
+        $(".camera-valider", ecran).hidden = false;
+      }, "image/jpeg", 0.92);
+    };
+    $(".camera-reprendre", ecran).onclick = () => {
+      photo = null;
+      $(".camera-apercu", ecran).hidden = true;
+      ecran.classList.remove("fige");
+      $$(".camera-bas", ecran)[0].hidden = false;
+      $(".camera-valider", ecran).hidden = true;
+    };
+    $(".camera-ok", ecran).onclick = () => terminer(photo);
+  });
+}
+
 async function pageAjouter(main) {
   CAPACITES = await api("GET", "capacites");
   main.innerHTML = `
@@ -1159,6 +1299,12 @@ async function pageAjouter(main) {
     const zone = $("#e-verso-choix", resultat);
     zone.hidden = false;
     $("#v-photo", zone).onchange = (e) => { zone.hidden = true; resolve(e.target.files[0] || null); };
+    $("#v-photo", zone).closest("label").onclick = async (e) => {
+      if (!cameraGuideePossible() || e.target.matches("input")) return;
+      e.preventDefault();
+      const fichier = await photoGuidee("verso");
+      if (fichier) { zone.hidden = true; resolve(fichier); }
+    };
     $("#v-ignorer", zone).onclick = () => { zone.hidden = true; resolve(null); };
   });
 
@@ -1252,6 +1398,12 @@ async function pageAjouter(main) {
   };
 
   $("#t-photo", main).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0]);
+  $("#t-photo", main).closest("label").addEventListener("click", async (e) => {
+    if (!cameraGuideePossible() || e.target.matches("input")) return;
+    e.preventDefault();
+    const fichier = await photoGuidee("face");
+    if (fichier) traiterPhoto(fichier);
+  });
 }
 
 /** Ouvre le plan de cave sur les bouteilles d'un vin (elles clignotent). */

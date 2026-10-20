@@ -1192,3 +1192,28 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .classement-prix, .mouvements-colonnes { margin-top: 4px; }
 .classement-prix li:first-child, .mouvements-colonnes li:first-child { border-top: 0; }
 @media (min-width: 900px) { .classement-prix li, .mouvements-colonnes li { display: flex; border-top: 0; } }
+
+/* prise de vue guidée : caméra plein écran, silhouette de bouteille, cadre de l'étiquette */
+html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
+.camera-guidee { position: fixed; inset: 0; z-index: 10000; background: #000; color: #fff; overflow: hidden; touch-action: none; }
+.camera-guidee video, .camera-guidee .camera-apercu { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.camera-guidee .camera-apercu { object-fit: contain; background: #0c0b0e; }
+.camera-guidee .guide { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.camera-guidee.fige .guide { display: none; }
+.camera-haut { position: absolute; top: 0; left: 0; right: 0; padding: calc(14px + env(safe-area-inset-top)) 18px 14px; display: grid; gap: 3px;
+  text-align: center; background: linear-gradient(180deg, rgba(0,0,0,.7), transparent); font: 500 .86rem var(--sans); }
+.camera-haut b { font: 600 1.15rem var(--serif); }
+.camera-haut .astuce { font-size: .74rem; color: #d6b26a; }
+.camera-guidee.fige .camera-haut { display: none; }
+.camera-message { position: absolute; left: 24px; right: 24px; top: 42%; padding: 16px; border-radius: 14px; text-align: center;
+  background: rgba(20, 18, 24, .92); font: 600 .95rem var(--sans); }
+.camera-bas { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;
+  padding: 16px 16px calc(18px + env(safe-area-inset-bottom)); background: linear-gradient(0deg, rgba(0,0,0,.75), transparent); }
+.camera-bas .bouton { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.3); }
+.camera-bas .bouton.primaire { background: var(--bordeaux, #7a1b33); border-color: transparent; }
+.camera-declencheur { width: 74px; height: 74px; border-radius: 50%; border: 4px solid #fff; background: rgba(255,255,255,.25); cursor: pointer;
+  box-shadow: inset 0 0 0 4px rgba(0,0,0,.35); }
+.camera-declencheur:active { background: rgba(255,255,255,.6); }
+.camera-declencheur:disabled { opacity: .35; }
+.camera-flash[aria-pressed="true"] { background: #d6b26a !important; color: #1b1a1e !important; }
+.camera-natif { font-size: .8rem; }
