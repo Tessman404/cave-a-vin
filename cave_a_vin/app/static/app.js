@@ -280,7 +280,21 @@ async function dialogueEntree(vin, apres) {
 /* ------------------------------------------------------------------ pages */
 
 /** Le casier vivant : une alvéole par bouteille, colorée selon le vin. */
-function casierVivant(s) {
+/** Température et humidité de la cave dans le bandeau d'accueil (capteurs choisis dans les Réglages). */
+function climatBandeau(climat) {
+  if (!climat || !climat.configure) return "";
+  const mesure = (m, unite, icone, titre) => {
+    if (!m) return "";
+    if (m.erreur) return `<div class="mesure-climat indisponible" title="${esc(m.erreur)}">${ic(icone)}<span><b>—</b><small>${titre} : capteur indisponible</small></span></div>`;
+    const u = esc(m.unite || unite);
+    const ideal = `idéal ${m.min ?? "?"}–${m.max ?? "?"} ${u}`;
+    return `<div class="mesure-climat${m.alerte ? " alerte" : ""}" title="${titre} de la cave · ${ideal}">${ic(icone)}<span><b>${nombre(m.valeur)}<i>${u}</i></b>
+      <small>${m.alerte ? `⚠ trop ${m.alerte === "haute" ? (unite === "%" ? "humide" : "chaude") : (unite === "%" ? "sèche" : "froide")} · ${ideal}` : ideal}</small></span></div>`;
+  };
+  return `<a class="climat-bandeau" href="#/reglages" aria-label="Climat de la cave">${mesure(climat.temperature, "°C", "thermometre", "Température")}${mesure(climat.humidite, "%", "goutte", "Humidité")}</a>`;
+}
+
+function casierVivant(s, climat) {
   const MAX = 96;
   const pastilles = [];
   s.par_couleur.forEach((l) => {
@@ -297,6 +311,7 @@ function casierVivant(s) {
       <span class="surtitre">${esc(REF.nom_cave || "Tessvine")}</span>
       <div class="total">${nombre(s.bouteilles)}</div>
       <div class="sous-total">${s.bouteilles > 1 ? "bouteilles dans votre cave" : "bouteille dans votre cave"}</div>
+      ${climatBandeau(climat)}
       <div class="chiffres">
         <div><strong>${nombre(s.references)}</strong><span>${s.references > 1 ? "références" : "référence"}</span></div>
         <div title="Valeur de marché indicative, souvent estimée par l'IA"><strong>${euros(s.valeur)}</strong><span>valeur estimée</span></div>
@@ -304,6 +319,11 @@ function casierVivant(s) {
         <div><strong>${nombre(s.bues_annee)}</strong><span>${s.bues_annee > 1 ? "bues" : "bue"} en ${s.annee}</span></div>
         ${s.sans_emplacement ? `<a class="a-ranger" href="#/caves?ranger=1" title="Bouteilles sans emplacement sur le plan"><strong>${nombre(s.sans_emplacement)}</strong><span>à ranger ›</span></a>` : ""}
       </div>
+      ${(s.filtres || []).filter((f) => f.a_changer).map((f) => `<div class="alerte-place alerte-filtre" role="status">
+          <div><b>${ic("filtre")} Filtre à charbon · ${esc(f.nom)}</b>
+            <span>${f.jours == null ? "Date du dernier remplacement à renseigner" : f.jours < 0 ? `À changer depuis ${pluriel(-f.jours, "jour")}` : f.jours === 0 ? "À changer aujourd'hui" : `À changer dans ${pluriel(f.jours, "jour")} (${dateFr(f.echeance)})`}</span></div>
+          <div class="actions">${f.jours == null ? `<button type="button" class="bouton petit" data-filtre-regler="${f.cave_id}">Renseigner</button>`
+            : `<button type="button" class="bouton petit" data-filtre-change="${f.cave_id}">Filtre remplacé</button>`}</div></div>`).join("")}
       ${s.place_libre ? (() => {
         const p = s.place_libre, v = p.suggestion;
         return `<div class="alerte-place" role="status">
@@ -318,6 +338,56 @@ function casierVivant(s) {
       ${pastilles.length > MAX ? `<span class="reste">et ${nombre(pastilles.length - MAX)} de plus</span>` : ""}
     </div>
   </section>`;
+}
+
+/** Petit bouton « filtre » d'une cave électrique sur le plan : jours restants avant de le changer. */
+function puceFiltre(k) {
+  let texte = "Filtre", alerte = false;
+  if (k.filtre_mois > 0 && k.filtre_date) {
+    const d = new Date(k.filtre_date + "T12:00:00");
+    const jour = d.getDate();
+    d.setDate(1); d.setMonth(d.getMonth() + k.filtre_mois);
+    d.setDate(Math.min(jour, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+    const jours = Math.round((d - new Date(aujourdhui() + "T12:00:00")) / 864e5);
+    alerte = jours <= 14;
+    texte = jours < 0 ? "Filtre en retard" : jours === 0 ? "Filtre aujourd'hui" : jours <= 60 ? `Filtre · ${jours} j` : "Filtre";
+  } else if (k.filtre_mois > 0) { texte = "Filtre ?"; alerte = true; }
+  return `<button type="button" class="puce-filtre${alerte ? " alerte" : ""}" data-filtre-cave="${k.id}" title="Filtre à charbon de cette cave électrique">${ic("filtre")}${texte}</button>`;
+}
+
+/** Filtre à charbon d'une cave électrique : durée de vie, dernier remplacement, bouton « Filtre remplacé », historique. */
+async function dialogueFiltre(caveId, nom) {
+  const r = await api("GET", `caves/${caveId}/filtre`);
+  const f = r.filtre || { mois: 0, dernier: null };
+  const etat = !f.mois ? "Pas de suivi pour l'instant."
+    : f.jours == null ? "Indiquez la date du dernier remplacement pour être prévenu."
+    : f.jours < 0 ? `⚠ À changer depuis ${pluriel(-f.jours, "jour")}.` : f.jours === 0 ? "⚠ À changer aujourd'hui."
+    : `Prochain remplacement : ${dateFr(f.echeance)} (dans ${pluriel(f.jours, "jour")}).`;
+  const d = dialogue(`<span class="surtitre">${ic("filtre")} Filtre à charbon</span><h2>${esc(nom || f.nom || "Cave réfrigérée")}</h2>
+    <p class="muted petit-texte" style="margin-top:0">Le filtre à charbon d'une cave électrique se change en général tous les 12 mois. Tessvine vous le rappelle
+      sur l'accueil et par une notification Home Assistant, deux semaines avant.</p>
+    <div class="form">
+      <label>Durée de vie<select name="filtre_mois">${options({ 0: "Pas de filtre à suivre", 3: "3 mois", 6: "6 mois", 12: "12 mois", 18: "18 mois", 24: "24 mois" }, String(f.mois || 12))}</select></label>
+      <label>Dernier remplacement<input type="date" name="filtre_date" value="${esc(f.dernier || "")}" max="${aujourdhui()}"></label>
+      <p class="large etat-filtre${f.a_changer && f.mois ? " alerte" : ""}" style="margin:0">${etat}</p>
+      ${r.historique.length ? `<p class="large muted petit-texte" style="margin:0">Remplacements : ${r.historique.slice(0, 6).map(dateFr).join(" · ")}</p>` : ""}
+    </div>
+    <div class="actions"><button class="bouton" type="button" id="filtre-aujourdhui">${ic("filtre")} Filtre remplacé aujourd'hui</button>
+      <button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`,
+  {
+    onSubmit: async (data) => {
+      await api("PUT", `caves/${caveId}/filtre`, { filtre_mois: data.filtre_mois, filtre_date: data.filtre_date });
+      toast(+data.filtre_mois ? "Suivi du filtre enregistré" : "Suivi du filtre arrêté");
+      route();
+    },
+  });
+  $("#filtre-aujourdhui", d).onclick = async () => {
+    try {
+      await api("PUT", `caves/${caveId}/filtre`, { filtre_mois: $("[name=filtre_mois]", d).value === "0" ? 12 : $("[name=filtre_mois]", d).value });
+      await api("POST", `caves/${caveId}/filtre`, {});
+      d.close(); toast("Filtre remplacé : rappel reprogrammé"); route();
+    } catch (err) { toast(err.message, true); }
+  };
 }
 
 /** Choisir quel vin mettre dans une place libre de la cave électrique : liste par ordre de priorité, avec étiquettes. */
@@ -374,7 +444,7 @@ async function pageAccueil(main) {
   };
   const occasions = (s.occasions || []).slice(0, 6);
   main.innerHTML = `
-    ${casierVivant(s)}
+    ${casierVivant(s, climat)}
     <div class="actions raccourcis"><button class="bouton" id="sortie-scan">${ic("code-barres")} Sortir une bouteille par son code-barres</button></div>
     <div class="grille duo-a-boire">
       <div class="carte ${s.urgents.length ? "alerte-carte" : ""}"><div class="titre-carte"><h2>À boire vite</h2>
@@ -389,10 +459,15 @@ async function pageAccueil(main) {
       <div class="grandit"><a class="titre tronque" href="#/vins/${v.id}" style="display:block">${titreVin(v)}</a>
         <span class="petit-texte" style="color:var(--danger);font-weight:600">${esc(v.note_perso)}</span></div>
       ${v.note_date ? `<span class="quand">${quand(v.note_date)}</span>` : ""}<span class="qte">×${v.stock}</span></li>`).join("")}</ul></div>` : ""}
-    ${blocClimat ? `<div class="grille tableau-bord" style="margin-top:20px">${blocClimat}</div>` : ""}
     <p class="lien-stats"><a href="#/stats">${ic("stats")} Voir les statistiques de la cave</a></p>
   `;
   $("#sortie-scan", main).onclick = sortirParCodeBarres;
+  $$("[data-filtre-change]", main).forEach((b) => (b.onclick = async () => {
+    if (!await confirmer("Filtre à charbon remplacé aujourd'hui ? Le prochain rappel est calculé à partir de cette date.", "Filtre remplacé")) return;
+    try { await api("POST", `caves/${b.dataset.filtreChange}/filtre`, {}); toast("Filtre remplacé : rappel reprogrammé"); route(); }
+    catch (err) { toast(err.message, true); }
+  }));
+  $$("[data-filtre-regler]", main).forEach((b) => (b.onclick = () => dialogueFiltre(+b.dataset.filtreRegler)));
   const choisirVin = $("#choisir-vin", main);
   if (choisirVin) choisirVin.onclick = () => dialogueCandidats(+choisirVin.dataset.cave);
   $$("[data-filtre-statut]", main).forEach((a) => a.addEventListener("click", () => {
@@ -1510,7 +1585,7 @@ async function pageCaves(main, id, params) {
     const pleines = k.bouteilles.filter((b) => b.rangee).length;
     const taux = `<span class="casier-taux" title="Emplacements occupés">${pleines}/${k.capacite}</span>`;
     const modifier = `<button class="modifier-etagere" type="button" ${k.parent_id ? `data-modifier-etagere="${k.id}"` : "data-modifier-casier"} aria-label="Modifier ${esc(nomCasier(k))}" title="Régler la disposition de ${esc(nomCasier(k))}">✎ Régler</button>`;
-    const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave réfrigérée">❄</span>` : "";
+    const froid = k.refrigere ? `<span class="froid-titre" title="Cave électrique : places libres signalées" aria-label="Cave réfrigérée">❄</span>${puceFiltre(k)}` : "";
     // une étiquette par casier (comme « 3A ») : la toucher met ce casier en avant et éclate ses rangs de derrière
     const nbProf = profondeursDe(k).length;
     const selectionnable = plusieurs || nbProf > 1;
@@ -1620,6 +1695,11 @@ async function pageCaves(main, id, params) {
   } });
   let configCasier = null;
   if (boutonCasier) boutonCasier.addEventListener("click", () => { configCasier = configurateurDisposition($("#config-disposition"), profondeursDe(c)); });
+  $$("[data-filtre-cave]", main).forEach((b) => (b.onclick = (e) => {
+    e.stopPropagation();
+    const k = casiers.find((x) => x.id === +b.dataset.filtreCave);
+    dialogueFiltre(k.id, nomCasier(k));
+  }));
   $$("[data-modifier-etagere]", main).forEach((b) => { b.onclick = () => dialogueEtagere(c, c.etageres.find((e) => e.id === +b.dataset.modifierEtagere)); });
   $("#supprimer", main).onclick = async () => {
     const n = toutesBouteilles.length;

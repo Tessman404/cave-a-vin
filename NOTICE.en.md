@@ -73,7 +73,8 @@ Good to know:
 ## 5. Optional
 
 - **Notifications** (Settings): choose your phone to be told about wines reaching the end of their window.
-- **Cellar temperature** (Settings): choose your sensor, Tessvine warns you if it leaves the right range.
+- **Carbon filter**: on the map, tap “Filter” on your wine fridge, enter its lifetime and the date it was last changed: Tessvine reminds you two weeks before.
+- **Cellar temperature** (Settings): choose your sensors, temperature and humidity show on the home page, in red if they leave the right range.
 - **Sensors and actions in Home Assistant** (dashboards, Assist): install the integration with HACS, see the [full guide](https://github.com/Tessman404/cave-a-vin/blob/main/README.en.md#2-add-the-integration-sensors-actions-wishlist).
 
 Your data stays **at home**, in Home Assistant, and is included in its backups.

@@ -106,3 +106,22 @@ rechercher_vin:
       selector:
         config_entry:
           integration: cave_a_vin
+
+filtre_remplace:
+  fields:
+    cave_id:
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 100000
+          mode: box
+    date:
+      selector:
+        date:
+    config_entry_id:
+      advanced: true
+      selector:
+        config_entry:
+          integration: cave_a_vin

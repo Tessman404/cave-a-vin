@@ -1137,3 +1137,33 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .classement-prix li { flex-wrap: nowrap; }
 .classement-prix .grandit { flex: 1 1 auto; }
 @media (max-width: 420px) { .classement-prix .prix b { font-size: .95rem; } .classement-prix .rang { width: 1.2em; } }
+
+/* bandeau d'accueil : température et humidité de la cave */
+.climat-bandeau { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; color: inherit; text-decoration: none; }
+.mesure-climat { display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 12px; border-radius: 14px;
+  background: rgba(241, 233, 220, .07); border: 1px solid var(--nuit-bord); }
+.mesure-climat .ic { width: 22px; height: 22px; color: var(--or-vif, #d6b26a); flex: none; }
+.mesure-climat span { display: grid; gap: 1px; }
+.mesure-climat b { font: 600 1.45rem/1 var(--serif); font-variant-numeric: lining-nums; color: var(--nuit-texte); }
+.mesure-climat b i { font: 600 .9rem var(--sans); font-style: normal; margin-left: 3px; color: var(--nuit-texte-2); }
+.mesure-climat small { font: 600 .6rem var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--nuit-texte-2); }
+.mesure-climat.alerte { background: rgba(224, 16, 42, .14); border-color: rgba(224, 80, 90, .55); }
+.mesure-climat.alerte .ic, .mesure-climat.alerte small { color: #ff8a93; }
+.mesure-climat.indisponible { opacity: .7; }
+.climat-bandeau:hover .mesure-climat { border-color: rgba(214, 178, 106, .45); }
+/* rappel du filtre à charbon (bandeau d'accueil) et petit bouton sur le plan */
+.alerte-filtre b { display: inline-flex; align-items: center; gap: 6px; }
+.alerte-filtre b .ic { width: 16px; height: 16px; }
+.alerte-filtre b::before { content: none !important; }
+.puce-filtre { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(169, 201, 230, .35); background: rgba(169, 201, 230, .08); color: #a9c9e6; font: 600 .66rem var(--sans); white-space: nowrap; }
+.puce-filtre .ic { width: 13px; height: 13px; }
+.puce-filtre.alerte { border-color: rgba(224, 80, 90, .6); background: rgba(224, 16, 42, .14); color: #ff8a93; }
+.etat-filtre.alerte { color: var(--danger); font-weight: 600; }
+.climat-bandeau { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, max-content)); }
+@media (max-width: 520px) {
+  .climat-bandeau { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mesure-climat { padding: 8px 10px; gap: 8px; align-items: flex-start; }
+  .mesure-climat b { font-size: 1.3rem; }
+  .mesure-climat small { letter-spacing: .06em; line-height: 1.3; }
+}

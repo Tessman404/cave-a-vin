@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -117,6 +119,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: CaveConfigEntry,
     ajouter_caves()
     entry.async_on_unload(coordinator.async_add_listener(ajouter_caves))
 
+    # Filtre à charbon : un capteur « prochain remplacement » par cave électrique suivie.
+    filtres_connus: set[Any] = set()
+
+    @callback
+    def ajouter_filtres() -> None:
+        nouveaux = [f for f in (coordinator.data or {}).get("filtres", []) if f["cave_id"] not in filtres_connus]
+        for f in nouveaux:
+            filtres_connus.add(f["cave_id"])
+        if nouveaux:
+            async_add_entities(CaveFiltreSensor(coordinator, f["cave_id"], f["nom"]) for f in nouveaux)
+
+    ajouter_filtres()
+    entry.async_on_unload(coordinator.async_add_listener(ajouter_filtres))
+
 
 UNITES_EN = {"bouteilles": "bottles", "vins": "wines"}
 
@@ -188,3 +204,33 @@ class CaveRangementSensor(CaveEntity, SensorEntity):
             return {}
         return {"capacite": cave["capacite"], "places_libres": cave["capacite"] - cave["bouteilles"],
                 "taux_remplissage": round(100 * cave["bouteilles"] / cave["capacite"])}
+
+
+class CaveFiltreSensor(CaveEntity, SensorEntity):
+    """Date du prochain remplacement du filtre à charbon d'une cave électrique."""
+
+    _attr_device_class = SensorDeviceClass.DATE
+    _attr_translation_key = "filtre"
+
+    def __init__(self, coordinator: CaveCoordinator, cave_id: int, nom: str) -> None:
+        super().__init__(coordinator, f"filtre_{cave_id}")
+        self._cave_id = cave_id
+        self._attr_translation_placeholders = {"nom": nom}
+
+    def _filtre(self) -> dict[str, Any] | None:
+        return next((f for f in (self.coordinator.data or {}).get("filtres", []) if f["cave_id"] == self._cave_id), None)
+
+    @property
+    def available(self) -> bool:
+        return super().available and self._filtre() is not None
+
+    @property
+    def native_value(self) -> date | None:
+        f = self._filtre()
+        return date.fromisoformat(f["echeance"]) if f and f.get("echeance") else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        f = self._filtre() or {}
+        return {"cave_id": self._cave_id, "jours_restants": f.get("jours"), "a_changer": f.get("a_changer"),
+                "dernier_remplacement": f.get("dernier"), "duree_mois": f.get("mois")}

@@ -60,6 +60,9 @@
       },
       "dernier_mouvement": {
         "name": "Last movement"
+      },
+      "filtre": {
+        "name": "Carbon filter {nom}"
       }
     },
     "todo": {
@@ -210,6 +213,24 @@
         "inclure_epuises": {
           "name": "Include sold out",
           "description": "Include wines with no bottle left."
+        },
+        "config_entry_id": {
+          "name": "Cellar",
+          "description": "Cellar to use if you have several."
+        }
+      }
+    },
+    "filtre_remplace": {
+      "name": "Carbon filter replaced",
+      "description": "Records that the carbon filter of a wine fridge was replaced (today, or on the given date) and reschedules the reminder.",
+      "fields": {
+        "cave_id": {
+          "name": "Cellar ID",
+          "description": "ID of the wine fridge (attribute cave_id of its carbon filter sensor)."
+        },
+        "date": {
+          "name": "Date",
+          "description": "Replacement date (today if empty)."
         },
         "config_entry_id": {
           "name": "Cellar",

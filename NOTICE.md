@@ -72,7 +72,8 @@ Bon à savoir :
 ## 5. En option
 
 - **Notifications** (Réglages) : choisissez votre téléphone pour être prévenu des vins en fin de garde.
-- **Température de la cave** (Réglages) : choisissez votre capteur, Tessvine vous alerte si elle sort de la bonne plage.
+- **Filtre à charbon** : sur le plan, touchez « Filtre » sur votre cave électrique, indiquez sa durée de vie et la date du dernier changement : Tessvine vous prévient deux semaines avant.
+- **Température de la cave** (Réglages) : choisissez vos capteurs, la température et l'humidité s'affichent sur l'accueil, en rouge si elles sortent de la bonne plage.
 - **Capteurs et actions dans Home Assistant** (tableaux de bord, Assist) : installez l'intégration avec HACS, voir le [guide complet](https://github.com/Tessman404/cave-a-vin/blob/main/README.md#2-ajouter-lintégration-capteurs-actions-envies).
 
 Vos données restent **chez vous**, dans Home Assistant, et sont incluses dans ses sauvegardes.

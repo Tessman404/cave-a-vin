@@ -37,9 +37,10 @@ Ce qu'il fait :
 - **sortie par code-barres** : scannez la bouteille pour la sortir ; une sortie par erreur s'annule d'un geste ;
 - **garde** : « à boire à partir de », « apogée », « à boire avant », **estimée par l'IA de Home Assistant** (producteur, appellation, qualité du millésime, prix) et réévaluée chaque mois, ou par une règle générale sans IA. Une garde corrigée à la main est toujours respectée. Les vins à boire vite sont signalés partout ;
 - **dégustations** : chaque bouteille sortie peut recevoir une note sur 5 et un commentaire, conservés dans l'historique ;
-- **notifications Home Assistant** : un vin qui arrive en fin de garde (au plus deux rappels, à quinze jours d'écart), et une occasion notée sur un vin, sept jours avant ;
+- **notifications Home Assistant** : un vin qui arrive en fin de garde (au plus deux rappels, à quinze jours d'écart), une occasion notée sur un vin, sept jours avant, et le **filtre à charbon** d'une cave électrique à changer ;
+- **climat de la cave** : température et humidité de vos capteurs Home Assistant affichées en grand sur l'accueil, en rouge hors de la plage idéale ;
 - **« Mets & Vins »** : choisissez le plat (bœuf, agneau, canard, poisson, fromages…), la cave classe les bouteilles de la mieux accordée à la moins accordée, puis celles à boire en priorité ;
-- **statistiques** : bouteilles, valeur estimée et prix payé, répartition par couleur, région, millésime, garde et cave ; chaque ligne ouvre les vins correspondants ;
+- **statistiques** : bouteilles, valeur estimée et prix payé, répartition par couleur, région, millésime, garde et cave, **classement des vins par prix** ; chaque ligne ouvre les vins correspondants ;
 - **liste d'envies** (vins à acheter), visible aussi dans Home Assistant ;
 - **sauvegarde** : export CSV (Excel), sauvegarde complète JSON, import CSV ;
 - **en français ou en anglais** selon l'appareil, devise réglable (€, $, £, CHF) ;
@@ -136,6 +137,7 @@ Puis **redémarrez Home Assistant**.
 | `sensor.tessvine_bues_cette_annee` | Bouteilles bues depuis le 1er janvier |
 | `sensor.tessvine_dernier_mouvement` | Dernière entrée/sortie (attributs : note, commentaire, date…) |
 | un capteur par cave | Bouteilles dans chaque cave (attributs : capacité, places libres, taux de remplissage) |
+| un capteur « Filtre à charbon » par cave électrique suivie | Date du prochain remplacement (attributs : jours restants, dernier remplacement) |
 | `todo.tessvine_envies` | Votre liste d'envies, modifiable depuis Home Assistant et **avec Assist** : « Ajoute Meursault à Tessvine Envies » |
 
 Les noms exacts des entités dépendent de la langue de Home Assistant : vérifiez-les dans *Paramètres → Appareils et services → Tessvine*. Sur une installation antérieure au changement de nom, elles commencent par `cave_a_vin_` au lieu de `tessvine_`.
@@ -146,6 +148,7 @@ Les noms exacts des entités dépendent de la langue de Home Assistant : vérifi
 | `cave_a_vin.ajouter_bouteilles` | Ajoute des bouteilles d'un vin déjà connu |
 | `cave_a_vin.suggerer_vin` | Renvoie les meilleures bouteilles pour un plat (réponse utilisable dans un script) |
 | `cave_a_vin.rechercher_vin` | Cherche un vin et renvoie son identifiant, son stock, sa garde |
+| `cave_a_vin.filtre_remplace` | Enregistre le remplacement du filtre à charbon d'une cave électrique |
 
 ---
 

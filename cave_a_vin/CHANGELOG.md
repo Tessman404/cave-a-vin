@@ -1,10 +1,16 @@
 # Journal des modifications
 
-## 1.14.6
+## 1.15.0
 
+- **Température et humidité dans le bandeau d'accueil** : les capteurs de la cave s'affichent en grand sous le nombre de
+  bouteilles, avec la plage idéale, et passent en rouge s'ils en sortent (« trop humide », « trop chaude »…).
+- **Filtre à charbon des caves électriques** (merci pour l'idée !) : durée de vie (3 à 24 mois), date du dernier
+  remplacement, bouton **Filtre remplacé**, historique. Rappel dans le bandeau d'accueil et **notification Home
+  Assistant** deux semaines avant l'échéance (une fois par échéance). Petit bouton « Filtre » sur chaque cave électrique
+  du plan. Dans l'intégration : un capteur « Filtre à charbon » (date du prochain remplacement) par cave suivie et une
+  action `cave_a_vin.filtre_remplace`.
 - **Statistiques → Par prix** : classement des vins en cave du plus cher au moins cher (prix d'une bouteille), selon
   la **valeur estimée** ou le **prix d'achat**, avec le nombre de bouteilles, le total par vin et le total de la cave.
-  Les 10 premiers, puis « Voir les … vins » ; toucher une ligne ouvre la fiche.
 
 ## 1.14.5
 

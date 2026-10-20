@@ -80,6 +80,11 @@ CREATE TABLE IF NOT EXISTS envies (
     created_at TEXT    NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS filtres (
+    id INTEGER PRIMARY KEY,
+    cave_id INTEGER NOT NULL REFERENCES caves(id) ON DELETE CASCADE,
+    date TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS reglages (
     cle    TEXT PRIMARY KEY,
     valeur TEXT NOT NULL
@@ -129,7 +134,11 @@ class Database:
                                 ("position", "TEXT NOT NULL DEFAULT ''"), ("ref_id", "INTEGER"),
                                 ("nom_casier", "TEXT NOT NULL DEFAULT ''"),  # nom du casier principal (1.7.1)
                                 ("refrigere", "INTEGER NOT NULL DEFAULT 0"),  # cave électrique (1.8.1)
-                                ("disposition", "TEXT")):  # profondeurs et empilement des bouteilles (1.13)
+                                ("disposition", "TEXT"),  # profondeurs et empilement des bouteilles (1.13)
+                                # filtre à charbon d'une cave électrique (1.15) : durée de vie, dernier remplacement,
+                                # échéance pour laquelle on a déjà prévenu
+                                ("filtre_mois", "INTEGER NOT NULL DEFAULT 0"), ("filtre_date", "TEXT NOT NULL DEFAULT ''"),
+                                ("filtre_rappel", "TEXT NOT NULL DEFAULT ''")):
             if nom not in colonnes_caves:
                 self.conn.execute(f"ALTER TABLE caves ADD COLUMN {nom} {definition}")
         # 1.7.1 : le nom d'une étagère devient facultatif ; on efface les noms donnés automatiquement (« Étagère 2 »)

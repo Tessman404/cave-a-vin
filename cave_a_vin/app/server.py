@@ -486,6 +486,25 @@ def _capteurs(app, req):
     return ha.capteurs_disponibles(app.reglages())
 
 
+@route("PUT", r"api/caves/(\d+)/filtre")
+def _regler_filtre(app, req, cave_id):
+    cave.regler_filtre(app.db, int(cave_id), req.json())
+    return {"filtre": next((f for f in cave.etat_filtres(app.db) if f["cave_id"] == int(cave_id)), None),
+            "historique": cave.historique_filtre(app.db, int(cave_id))}
+
+
+@route("POST", r"api/caves/(\d+)/filtre")
+def _filtre_remplace(app, req, cave_id):
+    filtre = cave.remplacer_filtre(app.db, int(cave_id), (req.json() or {}).get("date"))
+    return {"filtre": filtre, "historique": cave.historique_filtre(app.db, int(cave_id))}
+
+
+@route("GET", r"api/caves/(\d+)/filtre")
+def _filtre(app, req, cave_id):
+    return {"filtre": next((f for f in cave.etat_filtres(app.db) if f["cave_id"] == int(cave_id)), None),
+            "historique": cave.historique_filtre(app.db, int(cave_id))}
+
+
 @route("GET", "api/ha/resume")
 def _resume_ha(app, req):
     """Tout ce dont l'intégration Home Assistant a besoin, en un seul appel."""

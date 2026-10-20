@@ -678,6 +678,81 @@ def bouteilles_sans_emplacement(db):
     return lignes
 
 
+# ---------------------------------------------------------------- filtre à charbon des caves électriques
+JOURS_AVANT_FILTRE = 14  # rappel deux semaines avant l'échéance
+
+
+def _ajouter_mois(jour, mois):
+    a, m = divmod(jour.month - 1 + mois, 12)
+    annee, mois_ = jour.year + a, m + 1
+    fin = [31, 29 if annee % 4 == 0 and (annee % 100 or annee % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mois_ - 1]
+    return date(annee, mois_, min(jour.day, fin))
+
+
+def etat_filtres(db, aujourdhui=None):
+    """Caves équipées d'un filtre à charbon : dernier remplacement, échéance et jours restants (négatif = en retard)."""
+    aujourdhui = aujourdhui or date.today()
+    lignes = db.all(f"""SELECT c.id, c.parent_id, c.nom, c.nom_casier, c.filtre_mois, c.filtre_date, c.filtre_rappel,
+                               {NOM_COMPLET} AS nom_complet
+                        FROM caves c LEFT JOIN caves p ON p.id = c.parent_id WHERE c.filtre_mois > 0 ORDER BY c.id""")
+    etats = []
+    for c in lignes:
+        nom = c["nom_complet"] if c["parent_id"] else (c["nom_casier"] or c["nom"])
+        echeance = jours = None
+        if c["filtre_date"]:
+            try:
+                echeance = _ajouter_mois(date.fromisoformat(c["filtre_date"]), c["filtre_mois"])
+                jours = (echeance - aujourdhui).days
+            except ValueError:
+                pass
+        etats.append({"cave_id": c["id"], "nom": nom, "mois": c["filtre_mois"], "dernier": c["filtre_date"] or None,
+                      "echeance": echeance.isoformat() if echeance else None, "jours": jours,
+                      "a_changer": jours is None or jours <= JOURS_AVANT_FILTRE, "rappel": c["filtre_rappel"]})
+    return etats
+
+
+def regler_filtre(db, cave_id, data):
+    """Durée de vie du filtre (en mois, 0 = pas de filtre) et date du dernier remplacement."""
+    if not db.one("SELECT id FROM caves WHERE id = ?", (cave_id,)):
+        raise ErreurAPI("Cave introuvable", 404)
+    with db.transaction() as conn:
+        if "filtre_mois" in data:
+            mois = _entier(data.get("filtre_mois"), "filtre_mois") or 0
+            if not 0 <= mois <= 60:
+                raise ErreurAPI("Durée du filtre : de 1 à 60 mois (0 = pas de filtre)")
+            conn.execute("UPDATE caves SET filtre_mois = ? WHERE id = ?", (mois, cave_id))
+        if "filtre_date" in data:
+            jour = (data.get("filtre_date") or "").strip()
+            if jour:
+                try:
+                    if date.fromisoformat(jour) > date.today():
+                        raise ErreurAPI("La date du dernier remplacement ne peut pas être dans le futur")
+                except ValueError:
+                    raise ErreurAPI("Date du dernier remplacement invalide") from None
+            conn.execute("UPDATE caves SET filtre_date = ?, filtre_rappel = '' WHERE id = ?", (jour, cave_id))
+
+
+def remplacer_filtre(db, cave_id, jour=None):
+    """« Filtre remplacé » : enregistre la date (aujourd'hui par défaut) et la garde dans l'historique."""
+    cave = db.one("SELECT id, filtre_mois FROM caves WHERE id = ?", (cave_id,))
+    if not cave:
+        raise ErreurAPI("Cave introuvable", 404)
+    jour = jour or date.today().isoformat()
+    try:
+        date.fromisoformat(jour)
+    except ValueError:
+        raise ErreurAPI("Date invalide") from None
+    with db.transaction() as conn:
+        conn.execute("UPDATE caves SET filtre_date = ?, filtre_rappel = '', filtre_mois = CASE WHEN filtre_mois > 0 "
+                     "THEN filtre_mois ELSE 12 END WHERE id = ?", (jour, cave_id))
+        conn.execute("INSERT INTO filtres (cave_id, date) VALUES (?, ?)", (cave_id, jour))
+    return next(f for f in etat_filtres(db) if f["cave_id"] == cave_id)
+
+
+def historique_filtre(db, cave_id):
+    return [l["date"] for l in db.all("SELECT date FROM filtres WHERE cave_id = ? ORDER BY date DESC, id DESC", (cave_id,))]
+
+
 POSITIONS = {"bas": "en bas", "haut": "en haut", "gauche": "à gauche", "droite": "à droite"}
 # nom d'une étagère sans nom : d'après sa position (Armoire · étagère du bas)
 NOM_ETAGERE = ("CASE WHEN c.nom <> '' THEN c.nom ELSE 'étagère ' || CASE c.position WHEN 'haut' THEN 'du haut' "
@@ -1063,6 +1138,7 @@ def statistiques(db):
                                    WHERE type = 'sortie' AND raison = 'bue' AND date >= ?""", (debut_annee,)),
         "derniers_mouvements": db.all("SELECT * FROM mouvements ORDER BY date DESC, id DESC LIMIT 10"),
         "envies": db.scalar("SELECT COUNT(*) FROM envies WHERE fait = 0"),
+        "filtres": [{k: f[k] for k in ("cave_id", "nom", "mois", "dernier", "echeance", "jours", "a_changer")} for f in etat_filtres(db)],
     }
 
 
@@ -1126,7 +1202,7 @@ def importer_csv(db, texte):
     return {"vins_crees": crees, "erreurs": erreurs}
 
 
-TABLES_SAUVEGARDE = ["caves", "vins", "bouteilles", "mouvements", "envies"]
+TABLES_SAUVEGARDE = ["caves", "filtres", "vins", "bouteilles", "mouvements", "envies"]
 
 
 def exporter_json(db):

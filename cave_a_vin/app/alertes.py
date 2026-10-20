@@ -140,6 +140,35 @@ def verifier_occasions(app, aujourdhui=None):
     return len(choisis)
 
 
+def verifier_filtres(app, aujourdhui=None):
+    """Filtre à charbon d'une cave électrique : une notification quand le remplacement approche (2 semaines avant)
+    ou est dépassé, une seule fois par échéance. Renvoie le nombre de caves signalées."""
+    reglages = app.reglages()
+    service = reglages.get("notif_service") or ""
+    if not service:
+        return 0
+    aujourdhui = aujourdhui or date.today()
+    en = reglages.get("langue") == "en"
+    choisis = [f for f in cave.etat_filtres(app.db, aujourdhui) if f["echeance"] and f["a_changer"] and f["rappel"] != f["echeance"]]
+    for f in choisis:
+        j = f["jours"]
+        if en:
+            quand = "today" if j == 0 else f"in {j} days" if j > 0 else f"{-j} days ago"
+            titre = f"🍷 {f['nom']}: carbon filter to replace"
+            message = f"The carbon filter is due {quand}. Tap “Filter replaced” in Tessvine once it's done."
+        else:
+            quand = "aujourd'hui" if j == 0 else f"dans {j} jours" if j > 0 else f"depuis {-j} jours"
+            titre = f"🍷 {f['nom']} : filtre à charbon à changer"
+            message = (f"Le filtre à charbon arrive à échéance {quand}." if j >= 0 else f"Le filtre à charbon est à changer {quand}.") \
+                + " Touchez « Filtre remplacé » dans Tessvine une fois fait."
+        envoyer(reglages, service, titre, message)
+        with app.db.transaction() as conn:
+            conn.execute("UPDATE caves SET filtre_rappel = ? WHERE id = ?", (f["echeance"], f["cave_id"]))
+    if choisis:
+        log.info("Rappel de filtre à charbon envoyé pour %d cave(s)", len(choisis))
+    return len(choisis)
+
+
 class Surveillance:
     """Tâche de fond : vérifie toutes les 6 heures s'il faut prévenir d'un vin en fin de garde."""
 
@@ -157,7 +186,7 @@ class Surveillance:
     def _boucle(self):
         self._arret.wait(60)
         while not self._arret.is_set():
-            for tache, nom in ((verifier, "de fin de garde"), (verifier_occasions, "d'occasion")):
+            for tache, nom in ((verifier, "de fin de garde"), (verifier_occasions, "d'occasion"), (verifier_filtres, "de filtre")):
                 try:
                     tache(self.app)
                 except Exception as e:  # noqa: BLE001 - on réessaiera au prochain passage

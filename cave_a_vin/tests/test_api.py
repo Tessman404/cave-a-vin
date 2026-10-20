@@ -146,6 +146,21 @@ class TestCave(BaseTest):
         self.appel("POST", "api/caves", {"nom": "Faux", "disposition": {"profondeurs": [
             {"largeur": 2, "hauteur": 1, "sens": "debout"}]}}, attendu=400)
 
+    def test_filtre_a_charbon_api(self):
+        c = self.appel("POST", "api/caves", {"nom": "Frigo", "rangees": 2, "colonnes": 2, "refrigere": 1}, attendu=201)
+        r = self.appel("PUT", f"api/caves/{c['id']}/filtre", {"filtre_mois": 12, "filtre_date": "2025-01-05"}, attendu=200)
+        self.assertEqual(r["filtre"]["echeance"], "2026-01-05")
+        self.assertTrue(r["filtre"]["a_changer"])
+        r = self.appel("POST", f"api/caves/{c['id']}/filtre", {}, attendu=200)
+        self.assertEqual(len(r["historique"]), 1)
+        self.assertFalse(r["filtre"]["a_changer"])
+        stats = self.appel("GET", "api/stats", attendu=200)
+        self.assertEqual([f["cave_id"] for f in stats["filtres"]], [c["id"]])
+        self.appel("PUT", f"api/caves/{c['id']}/filtre", {"filtre_mois": 99}, attendu=400)
+        self.appel("PUT", f"api/caves/{c['id']}/filtre", {"filtre_date": "2999-01-01"}, attendu=400)
+        self.appel("PUT", f"api/caves/{c['id']}/filtre", {"filtre_mois": 0}, attendu=200)
+        self.assertEqual(self.appel("GET", "api/stats")["filtres"], [])
+
     def test_renommer_une_cave_garde_sa_disposition(self):
         disposition = {"profondeurs": [{"largeur": 3, "hauteur": 2, "empilement": "gauche"},
                                        {"largeur": 3, "hauteur": 2, "empilement": "aligne"}]}

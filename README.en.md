@@ -39,9 +39,10 @@ What it does:
 - **take out by barcode**: scan the bottle to take it out; a mistake can be undone with one tap;
 - **drinking window**: “drink from”, “peak”, “drink by”, **estimated by Home Assistant's AI** (producer, appellation, vintage quality, price) and reviewed every month, or by a general rule without AI. A window you corrected by hand is always kept. Wines to drink soon are flagged everywhere;
 - **tastings**: every bottle taken out can get a rating out of 5 and a comment, kept in the history;
-- **Home Assistant notifications**: a wine reaching the end of its window (at most two reminders, fifteen days apart), and an occasion noted on a wine, seven days before;
+- **Home Assistant notifications**: a wine reaching the end of its window (at most two reminders, fifteen days apart), an occasion noted on a wine, seven days before, and a wine fridge's **carbon filter** to replace;
+- **cellar climate**: temperature and humidity from your Home Assistant sensors shown large on the home page, in red outside the ideal range;
 - **“Food & Wine”**: choose the dish (beef, lamb, duck, fish, cheese…), the cellar ranks bottles from best to least matching, then those to drink first;
-- **statistics**: bottles, estimated value and price paid, by colour, region, vintage, drinking window and cellar; each row opens the matching wines;
+- **statistics**: bottles, estimated value and price paid, by colour, region, vintage, drinking window and cellar, plus a **ranking of wines by price**; each row opens the matching wines;
 - **wishlist** (wines to buy), also visible in Home Assistant;
 - **backups**: CSV export (Excel), full JSON backup, CSV import;
 - works on computer, tablet and phone, in a light (ivory) or dark (charcoal) theme following the device;
@@ -130,6 +131,7 @@ Entity names follow Home Assistant's language; with English they are:
 | `sensor.tessvine_drunk_this_year` | Bottles drunk since January 1st |
 | `sensor.tessvine_last_movement` | Last in/out (attributes: rating, comment, date…) |
 | one sensor per cellar | Bottles in each cellar (attributes: capacity, free spots, fill rate) |
+| one “Carbon filter” sensor per tracked wine fridge | Next replacement date (attributes: days left, last replacement) |
 | `todo.tessvine_wishlist` | Your wishlist, editable from Home Assistant and **with Assist**: “Add Meursault to Tessvine Wishlist” |
 
 Check the exact names in *Settings → Devices & services → Tessvine*.
@@ -140,6 +142,7 @@ Check the exact names in *Settings → Devices & services → Tessvine*.
 | `cave_a_vin.ajouter_bouteilles` | Add bottles of a wine already in the cellar |
 | `cave_a_vin.suggerer_vin` | Returns the best bottles for a dish (response usable in a script) |
 | `cave_a_vin.rechercher_vin` | Finds a wine and returns its id, stock and drinking window |
+| `cave_a_vin.filtre_remplace` | Records that a wine fridge's carbon filter was replaced |
 
 ---
 

@@ -43,6 +43,11 @@ SCHEMA_SUGGESTION = vol.Schema({
     vol.Optional("couleur"): vol.In(COULEURS),
     vol.Optional("nombre", default=3): vol.All(vol.Coerce(int), vol.Range(min=1, max=20)),
 })
+SCHEMA_FILTRE = vol.Schema({
+    vol.Optional(ATTR_ENTRY): cv.string,
+    vol.Required("cave_id"): vol.Coerce(int),
+    vol.Optional("date"): cv.date,
+})
 SCHEMA_RECHERCHE = vol.Schema({
     vol.Optional(ATTR_ENTRY): cv.string,
     vol.Required("recherche"): cv.string,
@@ -112,6 +117,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                                             stock="all" if call.data["inclure_epuises"] else "1"))
         return {"vins": [_resume_vin(v) for v in vins[:25]]}
 
+    async def filtre_remplace(call: ServiceCall) -> ServiceResponse:
+        coord = coordinateur(call)
+        jour = call.data.get("date")
+        res = await appeler(coord.api.filtre_remplace(call.data["cave_id"], jour.isoformat() if jour else None))
+        await coord.async_refresh()
+        f = res.get("filtre") or {}
+        return {"cave": f.get("nom"), "prochain_remplacement": f.get("echeance"), "jours_restants": f.get("jours")}
+
+    hass.services.async_register(DOMAIN, "filtre_remplace", filtre_remplace, SCHEMA_FILTRE,
+                                 supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "sortir_bouteille", sortir_bouteille, SCHEMA_SORTIE,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "ajouter_bouteilles", ajouter_bouteilles, SCHEMA_ENTREE,

@@ -60,6 +60,9 @@
       },
       "dernier_mouvement": {
         "name": "Dernier mouvement"
+      },
+      "filtre": {
+        "name": "Filtre à charbon {nom}"
       }
     },
     "todo": {
@@ -210,6 +213,24 @@
         "inclure_epuises": {
           "name": "Inclure les épuisés",
           "description": "Inclure les vins dont il ne reste plus de bouteille."
+        },
+        "config_entry_id": {
+          "name": "Cave",
+          "description": "Cave à utiliser si vous en avez plusieurs."
+        }
+      }
+    },
+    "filtre_remplace": {
+      "name": "Filtre à charbon remplacé",
+      "description": "Enregistre le remplacement du filtre à charbon d'une cave électrique (aujourd'hui ou à la date indiquée) et reprogramme le rappel.",
+      "fields": {
+        "cave_id": {
+          "name": "Identifiant de la cave",
+          "description": "Identifiant de la cave électrique (attribut cave_id de son capteur de filtre à charbon)."
+        },
+        "date": {
+          "name": "Date",
+          "description": "Date du remplacement (aujourd'hui si vide)."
         },
         "config_entry_id": {
           "name": "Cave",

@@ -77,5 +77,27 @@ class TestAlertes(unittest.TestCase):
         self.assertNotIn("{langue}", ia.INSTRUCTIONS.replace("{langue}", ia.langue_texte({})))
 
 
+    def test_filtre_a_charbon(self):
+        self.app.ecrire_reglage("notif_service", "notify.mobile_app_iphone")
+        c = cave.creer_cave(self.db, {"nom": "Frigo", "rangees": 2, "colonnes": 3, "refrigere": 1})
+        cave.regler_filtre(self.db, c["id"], {"filtre_mois": 6, "filtre_date": "2026-01-10"})
+        etat = cave.etat_filtres(self.db, date(2026, 6, 20))[0]
+        self.assertEqual(etat["echeance"], "2026-07-10")
+        self.assertEqual(etat["jours"], 20)
+        self.assertFalse(etat["a_changer"])
+        self.assertEqual(alertes.verifier_filtres(self.app, date(2026, 6, 20)), 0)  # trop tôt
+        self.assertEqual(alertes.verifier_filtres(self.app, date(2026, 6, 28)), 1)  # 12 jours avant
+        self.assertIn("filtre à charbon", self.envois[-1][1])
+        self.assertEqual(alertes.verifier_filtres(self.app, date(2026, 7, 15)), 0)  # une seule fois par échéance
+        # remplacé : nouvelle échéance, historique, rappel réarmé
+        f = cave.remplacer_filtre(self.db, c["id"], "2026-07-16")
+        self.assertEqual(f["echeance"], "2027-01-16")
+        self.assertEqual(cave.historique_filtre(self.db, c["id"]), ["2026-07-16"])
+        self.assertEqual(alertes.verifier_filtres(self.app, date(2027, 1, 20)), 1)  # en retard : prévenu
+        self.assertIn("depuis 4 jours", self.envois[-1][2])
+        # fin de mois : 31 août + 6 mois = 28 février
+        self.assertEqual(cave._ajouter_mois(date(2026, 8, 31), 6), date(2027, 2, 28))
+
+
 if __name__ == "__main__":
     unittest.main()

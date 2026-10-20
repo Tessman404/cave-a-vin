@@ -63,6 +63,9 @@ class CaveApi:
     async def ajouter(self, vin_id: int, **champs: Any) -> dict:
         return await self._requete("POST", f"vins/{vin_id}/entree", champs)
 
+    async def filtre_remplace(self, cave_id: int, date: str | None = None) -> dict:
+        return await self._requete("POST", f"caves/{cave_id}/filtre", {"date": date} if date else {})
+
     async def suggestion(self, **params: Any) -> list[dict]:
         return await self._requete("GET", "suggestion", params={k: v for k, v in params.items() if v is not None})
 
