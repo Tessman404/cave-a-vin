@@ -1119,3 +1119,21 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .nouveau-vin-case { margin-top: 12px; }
 #ranger-ici { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fiches-liste h3 .petit-texte { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* statistiques : classement des vins par prix */
+.carte-prix .choix-prix { margin: 0 0 10px; }
+.classement-prix li { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.classement-prix .rang { flex: none; width: 1.6em; text-align: right; font: 600 1rem var(--serif); color: var(--texte-2); }
+.classement-prix .mini-bouteille { flex: none; width: 26px; height: 44px; display: grid; place-items: center; }
+.classement-prix .mini-bouteille img { width: 26px; height: 44px; object-fit: cover; border-radius: 5px; }
+.classement-prix .mini-bouteille svg { height: 44px; width: auto; }
+.classement-prix .grandit { min-width: 0; }
+.classement-prix .tronque { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.classement-prix .jauge-prix { display: block; height: 4px; margin-top: 5px; border-radius: 2px; width: var(--part);
+  background: linear-gradient(90deg, #b8784a, var(--or-vif, #d6b26a)); }
+.classement-prix .prix { flex: none; display: grid; justify-items: end; text-align: right; }
+.classement-prix .prix b { font: 600 1.05rem var(--serif); font-variant-numeric: lining-nums; }
+.classement-prix .prix small { font-size: .7rem; color: var(--texte-2); white-space: nowrap; }
+.classement-prix li { flex-wrap: nowrap; }
+.classement-prix .grandit { flex: 1 1 auto; }
+@media (max-width: 420px) { .classement-prix .prix b { font-size: .95rem; } .classement-prix .rang { width: 1.2em; } }

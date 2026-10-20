@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.14.6
+
+- **Statistiques → Par prix** : classement des vins en cave du plus cher au moins cher (prix d'une bouteille), selon
+  la **valeur estimée** ou le **prix d'achat**, avec le nombre de bouteilles, le total par vin et le total de la cave.
+  Les 10 premiers, puis « Voir les … vins » ; toucher une ligne ouvre la fiche.
+
 ## 1.14.5
 
 - **Place libre : uniquement des bouteilles en stock.** On ne peut plus « créer » une bouteille en touchant une place

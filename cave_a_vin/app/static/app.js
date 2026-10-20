@@ -405,7 +405,7 @@ const versVins = (filtre) => `role="link" tabindex="0" data-filtre='${esc(JSON.s
 const FILTRES_VIDES = { q: "", couleur: "", statut: "", cave_id: "", region: "", millesime: "", stock: "1" };
 
 async function pageStats(main) {
-  const s = await api("GET", "stats");
+  const [s, enCave] = await Promise.all([api("GET", "stats"), api("GET", "vins?stock=1")]);
   if (!s.references) { main.innerHTML = `${enTete("Votre cave", "Statistiques")}<div class="carte vide">Ajoutez des vins pour voir les statistiques de votre cave.</div>`; return; }
   const mouvement = (m) => `<li><span class="signe ${m.type}" aria-label="${m.type === "entree" ? "Entrée" : "Sortie"}">${m.type === "entree" ? "+" : "−"}</span>
       <div class="grandit"><span class="titre">${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</span>
@@ -419,11 +419,44 @@ async function pageStats(main) {
       <div class="carte"><h2>Par millésime</h2>${histogramme(s.par_millesime, { lien: (l) => versVins({ millesime: l.cle }) })}</div>
       <div class="carte"><h2>Par cave</h2>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
         { lien: (l) => l.cle ? versVins({ cave_id: String(l.cle) }) : `role="link" tabindex="0" data-aller="#/caves?ranger=1"` })}</div>
+      <div class="carte carte-prix"><h2>Par prix</h2>
+        <div class="groupe-boutons choix-prix" role="group" aria-label="Prix utilisé">
+          <button type="button" data-prix="valeur" class="actif" aria-pressed="true">Valeur estimée</button>
+          <button type="button" data-prix="prix_achat" aria-pressed="false">Prix d'achat</button></div>
+        <div id="classement-prix"></div></div>
       <div class="carte"><h2>Derniers mouvements</h2>
         <p class="muted petit-texte">Ce mois-ci : +${s.entrees_mois} / −${s.sorties_mois}</p>
         ${s.derniers_mouvements.length ? `<ul class="liste">${s.derniers_mouvements.map(mouvement).join("")}</ul>` : ""}
         <p style="margin:12px 0 0"><a href="#/historique">Tout l'historique ›</a></p></div>
     </div>`;
+  // classement des vins en cave, du plus cher au moins cher (prix d'une bouteille), selon la valeur ou le prix d'achat
+  let champPrix = "valeur", toutVoir = false;
+  const classement = () => {
+    const avec = enCave.filter((v) => v[champPrix] > 0).sort((a, b) => b[champPrix] - a[champPrix] || sansAccent(a.nom).localeCompare(sansAccent(b.nom)));
+    const sans = enCave.length - avec.length;
+    const max = avec.length ? avec[0][champPrix] : 1;
+    const total = avec.reduce((n, v) => n + v[champPrix] * v.stock, 0);
+    const visibles = toutVoir ? avec : avec.slice(0, 10);
+    $("#classement-prix", main).innerHTML = avec.length ? `
+      <p class="muted petit-texte">Prix d'une bouteille · total ${champPrix === "valeur" ? "estimé" : "payé"} : <b>${euros(total)}</b></p>
+      <ol class="liste classement-prix">${visibles.map((v, i) => `<li role="link" tabindex="0" data-aller="#/vins/${v.id}">
+        <span class="rang">${i + 1}</span><span class="mini-bouteille">${vignetteVin(v, "silhouette", v.nom)}</span>
+        <div class="grandit"><span class="titre">${titreVin(v)}</span>
+          <div class="muted petit-texte tronque">${esc([v.appellation || v.region, v.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
+          <span class="jauge-prix" style="--part:${Math.max(4, Math.round(100 * v[champPrix] / max))}%"></span></div>
+        <div class="prix"><b>${euros(v[champPrix])}</b><small>×${v.stock} · ${euros(v[champPrix] * v.stock)}</small></div></li>`).join("")}</ol>
+      ${avec.length > 10 ? `<button type="button" class="bouton petit" id="prix-tout">${toutVoir ? "Afficher les 10 premiers" : `Voir les ${avec.length} vins`}</button>` : ""}
+      ${sans ? `<p class="muted petit-texte" style="margin:10px 0 0">${pluriel(sans, "vin")} sans ${champPrix === "valeur" ? "valeur estimée" : "prix d'achat"} ${sans > 1 ? "ne sont pas classés" : "n'est pas classé"}.</p>` : ""}`
+      : `<p class="muted">Aucun vin en cave n'a de ${champPrix === "valeur" ? "valeur estimée" : "prix d'achat"}.</p>`;
+    const bouton = $("#prix-tout", main);
+    if (bouton) bouton.onclick = () => { toutVoir = !toutVoir; classement(); };
+  };
+  $$("[data-prix]", main).forEach((b) => (b.onclick = () => {
+    champPrix = b.dataset.prix;
+    $$("[data-prix]", main).forEach((x) => { x.classList.toggle("actif", x === b); x.setAttribute("aria-pressed", x === b); });
+    classement();
+  }));
+  classement();
   const ouvrir = (e) => {
     const el = e.target.closest("[data-filtre], [data-aller]");
     if (!el || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return;
