@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.15.2
+
+- Correction : la photo détourée **ne garde plus un objet posé à côté de la bouteille** (fruit, verre, ustensile…) :
+  seule la bouteille est conservée, avec ce qui est dans son axe (capsule, goulot).
+
 ## 1.15.1
 
 - **Statistiques remises en ordre** : chiffres clés en tête (bouteilles, références, valeur, payé, prix moyen d'une

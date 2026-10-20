@@ -76,6 +76,57 @@ def pil_disponible():
     return Image is not None
 
 
+def garder_la_bouteille(masque, seuil=40, cote=256):
+    """Le détourage garde parfois un objet posé à côté de la bouteille (un fruit, un verre…). On ne conserve que la
+    plus grande zone d'un seul tenant (la bouteille) et ce qui se trouve dans son prolongement ; tout objet séparé
+    est effacé. Travaille sur une version réduite du masque, puis applique le résultat à la taille réelle."""
+    petit = masque.copy()
+    petit.thumbnail((cote, cote))
+    w, h = petit.size
+    px = petit.load()
+    plein = [[px[x, y] > seuil for x in range(w)] for y in range(h)]
+    zone = [[0] * w for _ in range(h)]
+    tailles, boites = [0], [None]
+    for y0 in range(h):
+        for x0 in range(w):
+            if not plein[y0][x0] or zone[y0][x0]:
+                continue
+            n = len(tailles)
+            zone[y0][x0] = n
+            pile, taille = [(x0, y0)], 0
+            xmin = xmax = x0
+            ymin = ymax = y0
+            while pile:
+                x, y = pile.pop()
+                taille += 1
+                xmin, xmax, ymin, ymax = min(xmin, x), max(xmax, x), min(ymin, y), max(ymax, y)
+                for vx, vy in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= vx < w and 0 <= vy < h and plein[vy][vx] and not zone[vy][vx]:
+                        zone[vy][vx] = n
+                        pile.append((vx, vy))
+            tailles.append(taille)
+            boites.append((xmin, ymin, xmax, ymax))
+    if len(tailles) <= 2:  # rien, ou un seul objet : rien à retirer
+        return masque
+    principale = max(range(1, len(tailles)), key=lambda i: tailles[i])
+    bx0, by0, bx1, by1 = boites[principale]
+    marge = max(2, (bx1 - bx0) // 10)
+    # on garde aussi les petits morceaux dans le prolongement de la bouteille (reflet, capsule détachée)
+    garder = {i for i in range(1, len(tailles)) if i == principale or (
+        boites[i][0] >= bx0 - marge and boites[i][2] <= bx1 + marge)}  # dans l'axe de la bouteille (au-dessus, en dessous)
+    if len(garder) == len(tailles) - 1:
+        return masque
+    garde = Image.new("L", (w, h), 0)
+    gpx = garde.load()
+    for y in range(h):
+        for x in range(w):
+            if zone[y][x] in garder:
+                gpx[x, y] = 255
+    # un peu élargie et adoucie, pour ne pas rogner le bord de la bouteille en revenant à la taille réelle
+    garde = garde.filter(ImageFilter.MaxFilter(5)).resize(masque.size, Image.BILINEAR)
+    return Image.fromarray(np.minimum(np.asarray(masque), np.asarray(garde)))
+
+
 def detourage_disponible():
     return Image is not None and np is not None and ort is not None
 
@@ -160,7 +211,7 @@ class Atelier:
 
     def detourer(self, img):
         """Renvoie la bouteille détourée (RGBA), recadrée au plus près."""
-        masque = self.masque(img)
+        masque = garder_la_bouteille(self.masque(img))
         boite = masque.point(lambda v: 255 if v > 40 else 0).getbbox()
         if not boite:
             raise PhotoErreur("Aucune bouteille détectée sur la photo")
