@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.14.5
+
+- **Place libre : uniquement des bouteilles en stock.** On ne peut plus « créer » une bouteille en touchant une place
+  vide : on y range une bouteille en stock sans place, ou on y **déplace** une bouteille déjà rangée ailleurs (le
+  bouton indique d'où elle vient). Le stock ne change pas. Pour un nouvel achat : « Nouveau vin dans cette case ».
+
 ## 1.14.4
 
 - **Ranger dans une place libre** : au lieu de listes déroulantes, toutes vos fiches s'affichent avec la bouteille

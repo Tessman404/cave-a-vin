@@ -1951,7 +1951,9 @@ async function dialogueRanger(cave, rangee, colonne) {
   const groupes = {};
   nonRangees.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, n: 0 }; groupes[b.vin_id].n++; });
   const ailleurs = Object.values(groupes);
-  const fiches = vins.slice().sort((x, y) => (y.stock > 0) - (x.stock > 0) || sansAccent(x.nom).localeCompare(sansAccent(y.nom)) || (x.millesime || 0) - (y.millesime || 0));
+  // seulement des bouteilles réellement en stock : celles sans place, puis celles déjà rangées ailleurs (on les déplace)
+  const fiches = vins.filter((v) => v.stock > 0 && !groupes[v.id])
+    .sort((x, y) => sansAccent(x.nom).localeCompare(sansAccent(y.nom)) || (x.millesime || 0) - (y.millesime || 0));
   const cherche = (v) => sansAccent([v.nom, v.millesime, v.domaine, v.appellation, v.region, v.cepages].filter(Boolean).join(" "));
   const carte = (v, attr, etiquette) => `<button type="button" class="fiche-choix" ${attr} data-cherche="${esc(cherche(v))}" aria-pressed="false">
       <span class="mini-bouteille">${vignetteVin(v, "silhouette", v.nom)}</span>
@@ -1959,15 +1961,16 @@ async function dialogueRanger(cave, rangee, colonne) {
         <span class="muted petit-texte tronque">${esc([v.appellation || v.region, v.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</span></span>
       <span class="etiquette-choix">${etiquette}</span></button>`;
   const d = dialogue(`<span class="surtitre">${esc(nomCasier(cave))}</span><h2>Emplacement ${positionCase({ rangee, colonne })}</h2>
-    <input type="hidden" name="bouteille_id"><input type="hidden" name="vin_id">
+    <input type="hidden" name="bouteille_id">
     <label class="recherche recherche-fiches">${ic("recherche")}<input type="search" id="fiches-recherche" placeholder="Rechercher : nom, millésime, domaine…" aria-label="Rechercher un vin" autocomplete="off"></label>
     <div class="fiches-liste" id="fiches-liste">
       ${ailleurs.length ? `<h3>À ranger <span class="muted petit-texte">bouteilles déjà en stock, sans place</span></h3>
         <div class="fiches-grille">${ailleurs.map((b) => carte(b, `data-bouteille="${b.id}" data-nom="${esc(titreVin(b))}"`,
           `×${b.n}<small>${b.cave_nom ? `en vrac · ${esc(b.cave_nom)}` : "non rangée"}</small>`)).join("")}</div>` : ""}
-      <h3>Toutes vos fiches <span class="muted petit-texte">ajoute une nouvelle bouteille de ce vin</span></h3>
+      ${fiches.length ? `<h3>Déplacer une bouteille déjà rangée <span class="muted petit-texte">elle quitte sa place actuelle</span></h3>
       <div class="fiches-grille">${fiches.map((v) => carte(v, `data-vin="${v.id}" data-nom="${esc(titreVin(v))}"`,
-        v.stock ? `${v.stock}<small>en cave</small>` : `<small>épuisé</small>`)).join("")}</div>
+        `${v.stock}<small>en cave</small>`)).join("")}</div>` : ""}
+      ${!ailleurs.length && !fiches.length ? `<p class="muted">Aucune bouteille en stock. Ajoutez d'abord un vin à votre cave.</p>` : ""}
       <p class="muted petit-texte" id="fiches-vide" hidden>Aucun vin ne correspond.</p>
     </div>
     <div class="carte nouveau-vin-case">
@@ -1979,23 +1982,32 @@ async function dialogueRanger(cave, rangee, colonne) {
   {
     large: true,
     onSubmit: async (data) => {
-      if (data.bouteille_id) await api("PUT", `bouteilles/${data.bouteille_id}`, { cave_id: cave.id, rangee, colonne });
-      else if (data.vin_id) await api("POST", `vins/${data.vin_id}/entree`, { quantite: 1, cave_id: cave.id, rangee, colonne, raison: "achat" });
-      else throw new Error("Choisissez une bouteille ou un vin");
+      if (!data.bouteille_id) throw new Error("Choisissez une bouteille");
+      await api("PUT", `bouteilles/${data.bouteille_id}`, { cave_id: cave.id, rangee, colonne });
       toast("Bouteille rangée");
       route();
     },
   });
   // toucher une fiche la choisit ; le bouton rappelle ce qui sera rangé
   const bouton = $("#ranger-ici", d);
-  $("#fiches-liste", d).addEventListener("click", (e) => {
+  $("#fiches-liste", d).addEventListener("click", async (e) => {
     const f = e.target.closest(".fiche-choix");
     if (!f) return;
     $$(".fiche-choix", d).forEach((x) => x.setAttribute("aria-pressed", x === f));
-    $("[name=bouteille_id]", d).value = f.dataset.bouteille || "";
-    $("[name=vin_id]", d).value = f.dataset.vin || "";
+    $("[name=bouteille_id]", d).value = "";
+    bouton.disabled = true;
+    if (f.dataset.bouteille) {
+      $("[name=bouteille_id]", d).value = f.dataset.bouteille;
+      bouton.textContent = `Ranger ici : ${f.dataset.nom}`;
+    } else {
+      // vin déjà rangé ailleurs : on déplace une de ses bouteilles (celle d'une autre cave en priorité)
+      const v = await api("GET", `vins/${f.dataset.vin}`);
+      const b = v.bouteilles.find((x) => x.cave_id !== cave.id && x.rangee) || v.bouteilles.find((x) => x.rangee);
+      if (!b || f.getAttribute("aria-pressed") !== "true") return;
+      $("[name=bouteille_id]", d).value = b.id;
+      bouton.textContent = `Déplacer ici : ${f.dataset.nom} (depuis ${positionCase(b)}${b.cave_nom ? ` · ${b.cave_nom}` : ""})`;
+    }
     bouton.disabled = false;
-    bouton.textContent = `Ranger ici : ${f.dataset.nom}`;
   });
   $("#fiches-liste", d).addEventListener("dblclick", (e) => { if (e.target.closest(".fiche-choix")) bouton.click(); });
   $("#fiches-recherche", d).addEventListener("input", (e) => {
