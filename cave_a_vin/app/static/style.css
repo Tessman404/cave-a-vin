@@ -1095,3 +1095,27 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .sens-choix .mini { --case: 30px; display: grid; place-items: center; height: 54px; width: 100%; margin-bottom: 4px; border-radius: 10px;
   background: linear-gradient(180deg, #221f25, #161418); overflow: hidden; }
 @media (max-width: 520px) { .sens-choix { grid-template-columns: repeat(2, 1fr); } }
+
+/* choisir le vin à ranger dans une place libre : fiches avec la bouteille, recherche */
+.recherche-fiches { display: flex; margin: 4px 0 12px; }
+.recherche-fiches input { flex: 1; }
+.fiches-liste { max-height: min(52vh, 520px); overflow-y: auto; margin: 0 -4px; padding: 0 4px 4px; overscroll-behavior: contain; }
+.fiches-liste h3 { margin: 10px 0 8px; font: 600 .82rem var(--sans); letter-spacing: .04em; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.fiches-liste h3:first-child { margin-top: 0; }
+.fiches-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.fiche-choix { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 8px 12px 8px 8px; text-align: left; cursor: pointer;
+  border: 1px solid var(--bord); border-radius: 14px; background: var(--surface); color: var(--texte); font: inherit; min-width: 0; }
+.fiche-choix:hover { border-color: var(--bord-fort); }
+.fiche-choix[aria-pressed="true"] { border-color: #b8784a; box-shadow: 0 0 0 2px rgba(184, 120, 74, .35); background: var(--surface-2); }
+.fiche-choix .mini-bouteille { flex: none; width: 34px; height: 52px; display: grid; place-items: center; }
+.fiche-choix .mini-bouteille img { width: 34px; height: 52px; object-fit: cover; border-radius: 6px; }
+.fiche-choix .mini-bouteille svg { height: 52px; width: auto; }
+.fiche-choix .grandit { display: grid; min-width: 0; gap: 2px; }
+.fiche-choix .titre { font: 600 1rem/1.15 var(--serif); }
+.fiche-choix .tronque { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.etiquette-choix { margin-left: auto; flex: none; display: grid; justify-items: end; font: 600 .95rem var(--serif); color: var(--texte); }
+.etiquette-choix small { font: 500 .64rem var(--sans); color: var(--texte-2); white-space: nowrap; }
+.fiche-choix[hidden], .fiches-liste h3[hidden] { display: none; }
+.nouveau-vin-case { margin-top: 12px; }
+#ranger-ici { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fiches-liste h3 .petit-texte { text-transform: none; letter-spacing: 0; font-weight: 500; }

@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.14.4
+
+- **Ranger dans une place libre** : au lieu de listes déroulantes, toutes vos fiches s'affichent avec la bouteille
+  dessinée (ou la photo), le nom, le millésime, l'appellation et le stock, avec une recherche. Les bouteilles déjà en
+  stock sans place sont proposées en premier ; touchez une fiche, puis « Ranger ici ».
+
 ## 1.14.3
 
 - Présentation mise à jour (GitHub et HACS) : nouvelles captures (vue éclatée, réglage d'une rangée, bouteilles
