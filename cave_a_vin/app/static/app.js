@@ -410,8 +410,10 @@ async function dialogueCandidats(caveId) {
 function feuillePlus() {
   const lien = (page, icone, titre) => `<a href="#/${page}"><svg><use href="#i-${icone}"/></svg>${titre}</a>`;
   dialogue(`<span class="surtitre">Tessvine</span><h2>Plus</h2><nav class="feuille-plus">
-    ${lien("stats", "stats", "Statistiques")}${lien("envies", "envies", "Envies")}${lien("historique", "historique", "Historique")}${lien("reglages", "reglages", "Réglages")}</nav>
+    ${lien("stats", "stats", "Statistiques")}${lien("envies", "envies", "Envies")}${lien("historique", "historique", "Historique")}${lien("reglages", "reglages", "Réglages")}
+    ${$("#retour-ha").hidden ? "" : `<a href="${esc($("#retour-ha").href)}" data-retour-ha><svg><use href="#i-retour"/></svg>${esc(REF.retour?.libelle || "Aperçu")}</a>`}</nav>
     <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
+  $("[data-retour-ha]")?.addEventListener("click", (e) => { $("#dialogue").close(); allerVersHomeAssistant(e); });
 }
 
 async function pageAccueil(main) {
@@ -2447,6 +2449,17 @@ async function pageReglages(main) {
           <p class="large muted petit-texte" style="margin:0">Affiché en haut de l'application et dans l'onglet. Le nom dans la barre latérale de Home Assistant se change dans Home Assistant.</p>
           <div class="actions large"><button class="bouton primaire" type="submit">Enregistrer</button></div>
         </form></div>
+      <div class="carte"><h2>${ic("retour")}Bouton de retour vers Home Assistant</h2>
+        <form class="form" id="retour-reglage">
+          <label class="large case-a-cocher"><input type="checkbox" name="retour_actif" value="1"${r.retour_actif !== "0" ? " checked" : ""}> Afficher le bouton</label>
+          <label>Texte du bouton<input name="retour_libelle" value="${esc(r.retour_libelle || "Aperçu")}" maxlength="30" placeholder="Aperçu"></label>
+          <label>Page de destination<input name="retour_lien" value="${esc(r.retour_lien || "/")}" list="retour-pages" maxlength="300" placeholder="/"></label>
+          <datalist id="retour-pages"><option value="/">Tableau de bord par défaut</option><option value="/lovelace/0">Aperçu</option>
+            <option value="/energy">Énergie</option><option value="/map">Carte</option><option value="/history">Historique</option><option value="/config/dashboard">Paramètres</option></datalist>
+          <p class="large muted petit-texte" style="margin:0">Pour un autre tableau de bord, ouvrez-le dans Home Assistant et copiez la fin de son adresse, à partir du « / » (par exemple <code>/tableau-cave/0</code>).
+            Le bouton apparaît en haut du menu sur ordinateur, et dans « Plus » sur téléphone.${!r.addon && !r.ha_url ? " Hors module complémentaire, renseignez aussi l'adresse de Home Assistant ci-dessous." : ""}</p>
+          <div class="actions large"><button class="bouton" type="button" id="retour-essai">Essayer</button><button class="bouton primaire" type="submit">Enregistrer</button></div>
+        </form></div>
       <div class="carte"><h2>${ic("cloche")}Notifications de fin de garde</h2>
         <form class="form" id="notifs">
           <label class="large">Envoyer sur
@@ -2573,6 +2586,22 @@ async function pageReglages(main) {
     try { await api("POST", "notifications/test", { service: $("#notifs select", main).value }); toast("Notification de test envoyée"); }
     catch (err) { toast(err.message, true, 6000); }
   };
+  $("#retour-reglage", main).onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    try {
+      const r2 = await api("PUT", "reglages", { retour_actif: f.retour_actif.checked ? "1" : "0",
+        retour_libelle: f.retour_libelle.value.trim() || "Aperçu", retour_lien: f.retour_lien.value.trim() || "/" });
+      REF.retour = { actif: r2.retour_actif, libelle: r2.retour_libelle, lien: r2.retour_lien };
+      afficherRetour();
+      toast("Bouton de retour enregistré");
+    } catch (err) { toast(err.message, true); }
+  };
+  $("#retour-essai", main).onclick = (e) => {
+    const f = $("#retour-reglage", main);
+    REF.retour = { ...REF.retour, lien: f.retour_lien.value.trim() || "/" };
+    allerVersHomeAssistant(e);
+  };
   $("#nom-cave", main).onsubmit = async (e) => {
     e.preventDefault();
     try {
@@ -2617,6 +2646,47 @@ async function pageReglages(main) {
   if (oublier) oublier.onclick = () => { cleAPI.ecrire(""); route(); };
 }
 
+/* ------------------------------------------------------------------ bouton de retour vers Home Assistant
+ * Réglages → Affichage : afficher ou non, texte du bouton, page de destination (« / » = tableau de bord par défaut,
+ * « /lovelace/0 », « /dashboard-maison/cave »…, ou une adresse complète https://…).
+ * Dans le panneau de Home Assistant, Tessvine est dans un cadre (iframe) servi par Home Assistant lui-même : on demande
+ * à Home Assistant de changer de page sans tout recharger. Hors de Home Assistant (port 8099), on ouvre l'adresse de
+ * Home Assistant indiquée dans les réglages. */
+function destinationRetour(retour = REF?.retour || {}) {
+  const lien = (retour.lien || "/").trim() || "/";
+  if (/^https?:\/\//i.test(lien)) return lien;
+  const chemin = lien.startsWith("/") ? lien : "/" + lien;
+  if (window.top !== window) return chemin;              // dans Home Assistant : même adresse
+  return REF?.ha_url ? REF.ha_url + chemin : null;       // accès direct : il faut l'adresse de Home Assistant
+}
+
+function allerVersHomeAssistant(e) {
+  const cible = destinationRetour();
+  if (!cible) return;
+  e?.preventDefault();
+  if (window.top !== window && cible.startsWith("/")) {
+    try {
+      // navigation interne de Home Assistant (comme un lien de son menu)
+      window.top.history.pushState(null, "", cible);
+      window.top.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+      return;
+    } catch { /* cadre d'une autre origine : rechargement complet */ }
+  }
+  (window.top || window).location.href = cible;
+}
+
+function afficherRetour() {
+  const r = REF?.retour || {};
+  const bouton = $("#retour-ha");
+  const cible = destinationRetour(r);
+  bouton.hidden = r.actif === "0" || !cible;
+  if (bouton.hidden) return;
+  bouton.href = cible;
+  $("span", bouton).textContent = r.libelle || "Aperçu";
+  bouton.title = `Revenir à Home Assistant : ${r.libelle || "Aperçu"}`;
+}
+$("#retour-ha").addEventListener("click", allerVersHomeAssistant);
+
 /** Nom choisi dans les réglages : logo et titre de l'onglet. */
 function afficherNomCave(nom) {
   nom = nom || "Tessvine";
@@ -2657,6 +2727,7 @@ async function route() {
       if (!REF) {
         [REF, CAPACITES] = await Promise.all([api("GET", "referentiel"), api("GET", "capacites")]);
         afficherNomCave(REF.nom_cave);
+        afficherRetour();
         // langue des notifications et de l'IA : celle de l'appareil qui utilise la cave
         if (REF.langue !== I18N.langue) api("PUT", "reglages", { langue: I18N.langue }).catch(() => {});
       }

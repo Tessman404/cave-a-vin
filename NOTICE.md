@@ -71,6 +71,7 @@ Bon à savoir :
 
 ## 5. En option
 
+- **Bouton de retour vers Home Assistant** (Réglages) : en haut du menu (ou dans « Plus » sur téléphone), il ramène à la page « Aperçu » ; vous pouvez changer son texte et la page de destination, ou le masquer.
 - **Notifications** (Réglages) : choisissez votre téléphone pour être prévenu des vins en fin de garde.
 - **Filtre à charbon** : sur le plan, touchez « Filtre » sur votre cave électrique, indiquez sa durée de vie et la date du dernier changement : Tessvine vous prévient deux semaines avant.
 - **Température de la cave** (Réglages) : choisissez vos capteurs, la température et l'humidité s'affichent sur l'accueil, en rouge si elles sortent de la bonne plage.

@@ -72,6 +72,7 @@ Good to know:
 
 ## 5. Optional
 
+- **Back to Home Assistant button** (Settings): at the top of the menu (or in “More” on a phone), it takes you back to the “Overview” page; you can change its text and destination, or hide it.
 - **Notifications** (Settings): choose your phone to be told about wines reaching the end of their window.
 - **Carbon filter**: on the map, tap “Filter” on your wine fridge, enter its lifetime and the date it was last changed: Tessvine reminds you two weeks before.
 - **Cellar temperature** (Settings): choose your sensors, temperature and humidity show on the home page, in red if they leave the right range.

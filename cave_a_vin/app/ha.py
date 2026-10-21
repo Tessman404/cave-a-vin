@@ -24,6 +24,10 @@ REGLAGES_DEFAUT = {
     "cadrage_defaut": "etiquette",
     "ia_garde_auto": "1",
     "langue": "",
+    # bouton de retour vers Home Assistant (1.17) : affiché ou non, texte, page de destination
+    "retour_actif": "1",
+    "retour_libelle": "Aperçu",
+    "retour_lien": "/",
     "ia_garde_derniere": "",
 }
 

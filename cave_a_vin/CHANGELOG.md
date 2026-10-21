@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.17.0
+
+- **Bouton de retour vers Home Assistant** : en haut du menu sur ordinateur, dans « Plus » sur téléphone. Il ramène à
+  la page « Aperçu » de Home Assistant, sans recharger. Réglable par chacun dans **Réglages → Bouton de retour vers
+  Home Assistant** : afficher ou non, texte du bouton, page de destination (n'importe quel tableau de bord, par exemple
+  `/lovelace/0`, ou une adresse complète), avec un bouton « Essayer ».
+
 ## 1.16.0
 
 - **Prise de vue guidée** : « Photographier la bouteille » ouvre la caméra avec une **silhouette de bouteille** à

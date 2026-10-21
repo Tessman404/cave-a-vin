@@ -67,6 +67,8 @@ def _referentiel(app, req):
         "addon": ha.mode_addon(), "version": __version__,
         "nom_cave": app.reglages().get("nom_cave") or "Tessvine",
         "langue": app.reglages().get("langue") or "fr",
+        "retour": {k: app.reglages().get(f"retour_{k}") for k in ("actif", "libelle", "lien")},
+        "ha_url": (app.reglages().get("ha_url") or "").rstrip("/"),
     }
 
 

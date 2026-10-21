@@ -1217,3 +1217,13 @@ html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
 .camera-declencheur:disabled { opacity: .35; }
 .camera-flash[aria-pressed="true"] { background: #d6b26a !important; color: #1b1a1e !important; }
 .camera-natif { font-size: .8rem; }
+
+/* bouton de retour vers Home Assistant : en haut du menu sur ordinateur, dans « Plus » sur téléphone */
+.retour-ha { display: flex; align-items: center; gap: 8px; margin: -8px 0 18px; padding: 8px 12px; border-radius: 12px; text-decoration: none;
+  color: var(--nuit-texte-2); border: 1px solid var(--nuit-bord); font: 600 .84rem var(--sans); }
+.retour-ha:hover { color: var(--nuit-texte); background: rgba(241, 233, 220, .06); text-decoration: none; }
+.retour-ha svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.retour-ha[hidden] { display: none; }
+@media (max-width: 860px) { .retour-ha { display: none; } }
+.case-a-cocher { display: flex !important; align-items: center; gap: 10px; flex-direction: row !important; }
+.case-a-cocher input { width: auto; min-height: 0; }
