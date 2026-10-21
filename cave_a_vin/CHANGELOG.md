@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.17.1
+
+- **Tessvine visible par tous les comptes de la maison** : le panneau de la barre latérale n'était accessible qu'aux
+  administrateurs de Home Assistant (valeur par défaut des modules complémentaires). Les comptes non administrateurs
+  (conjoint, tablette murale en mode kiosque) peuvent maintenant ouvrir la cave, y compris à distance. Les options du
+  module (clé d'API, réseau) restent réservées aux administrateurs. Merci pour le signalement !
+
 ## 1.17.0
 
 - **Bouton de retour vers Home Assistant** : en haut du menu sur ordinateur, dans « Plus » sur téléphone. Il ramène à
