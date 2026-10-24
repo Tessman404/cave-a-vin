@@ -1,3 +1,3 @@
 """Cave à vin : gestion de cave compatible Home Assistant."""
 
-__version__ = "1.17.1"
+__version__ = "1.18.0"
