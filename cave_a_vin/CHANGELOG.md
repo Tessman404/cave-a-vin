@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.18.0
+
+- **Retirer des emplacements** dans « Personnalisez votre rangée » : bouton « Retirer des emplacements », puis touchez
+  sur l'aperçu les places qui n'existent pas dans votre casier (coins d'un casier en diagonale, montant…) ; touchez-les
+  à nouveau pour les remettre, ou « Tout remettre ». Le plan, le nombre de places et les places libres en tiennent
+  compte ; un emplacement occupé ne peut pas être retiré.
+- **Traduction anglaise complétée** grâce à une contribution de rwatjen (merci !) : étapes de la photo, messages
+  d'erreur, noms des étagères sans nom, et correction des textes du filtre à charbon qui restaient en français.
+
 ## 1.17.1
 
 - **Tessvine visible par tous les comptes de la maison** : le panneau de la barre latérale n'était accessible qu'aux
