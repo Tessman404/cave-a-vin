@@ -161,6 +161,24 @@ class TestCave(BaseTest):
         self.appel("PUT", f"api/caves/{c['id']}/filtre", {"filtre_mois": 0}, attendu=200)
         self.assertEqual(self.appel("GET", "api/stats")["filtres"], [])
 
+    def test_emplacements_retires(self):
+        """Casier en diagonale : les coins n'existent pas."""
+        disposition = {"profondeurs": [{"largeur": 3, "hauteur": 3, "sans": [[1, 1], [1, 3], [3, 1], [3, 3], [1, 1], [9, 9]]}]}
+        cave = self.appel("POST", "api/caves", {"nom": "Diagonale", "disposition": disposition}, attendu=201)
+        self.assertEqual(cave["profondeurs"][0]["sans"], [[1, 1], [1, 3], [3, 1], [3, 3]])  # doublon et hors casier ignorés
+        self.assertEqual(cave["capacite"], 5)
+        vin = self.creer_vin(quantite=0)
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "emplacements": [
+            {"cave_id": cave["id"], "rangee": 1, "colonne": 1}]}, attendu=400)  # un coin retiré
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 1, "emplacements": [
+            {"cave_id": cave["id"], "rangee": 2, "colonne": 2}]}, attendu=200)
+        # on ne peut pas retirer un emplacement occupé
+        r = self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Diagonale", "disposition": {"profondeurs": [
+            {"largeur": 3, "hauteur": 3, "sans": [[2, 2]]}]}})
+        self.assertIn("erreur", r)
+        self.appel("POST", "api/caves", {"nom": "Vide", "disposition": {"profondeurs": [
+            {"largeur": 1, "hauteur": 1, "sans": [[1, 1]]}]}}, attendu=400)
+
     def test_renommer_une_cave_garde_sa_disposition(self):
         disposition = {"profondeurs": [{"largeur": 3, "hauteur": 2, "empilement": "gauche"},
                                        {"largeur": 3, "hauteur": 2, "empilement": "aligne"}]}

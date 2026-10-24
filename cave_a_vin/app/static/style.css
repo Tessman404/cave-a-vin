@@ -1227,3 +1227,13 @@ html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
 @media (max-width: 860px) { .retour-ha { display: none; } }
 .case-a-cocher { display: flex !important; align-items: center; gap: 10px; flex-direction: row !important; }
 .case-a-cocher input { width: auto; min-height: 0; }
+
+/* configurateur : retirer des emplacements (casier en diagonale…) */
+.outil-gomme { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: -6px; }
+.outil-gomme p { flex: 1 1 100%; margin: 2px 0 0; text-align: center; }
+.outil-gomme .bouton.actif { background: #b8784a; border-color: #b8784a; color: #fff; }
+.plan-apercu .case-cave.retiree svg { opacity: .14 !important; filter: grayscale(1); }
+.plan-apercu .case-cave.retiree::before { content: ""; position: absolute; inset: 14%; border: 1.5px dashed rgba(241, 233, 220, .45); border-radius: 50%; }
+.apercu-disposition.mode-gomme .case-cave { pointer-events: auto; cursor: pointer; }
+.apercu-disposition.mode-gomme .case-cave:hover svg { filter: brightness(1.25) drop-shadow(0 0 4px rgba(214, 178, 106, .8)); }
+.apercu-disposition.mode-gomme { outline: 2px dashed rgba(184, 120, 74, .7); outline-offset: -6px; }

@@ -278,6 +278,9 @@ const I18N = (() => {
     "Bouton de retour vers Home Assistant": "Back to Home Assistant button", "Afficher le bouton": "Show the button",
     "Texte du bouton": "Button text", "Page de destination": "Destination page", "Essayer": "Try it", "Bouton de retour enregistré": "Back button saved",
     "Tableau de bord par défaut": "Default dashboard", "Énergie": "Energy", "Carte": "Map", "Paramètres": "Settings",
+    "Retirer des emplacements": "Remove spots", "Terminé": "Done", "Tout remettre": "Restore all",
+    "Touchez les places qui n'existent pas dans votre casier (coins d'un casier en diagonale, montant…) ; touchez-les à nouveau pour les remettre.": "Tap the spots that don't exist in your rack (corners of a diagonal rack, an upright…); tap them again to put them back.",
+    "Emplacement retiré invalide": "Invalid removed spot", "Il doit rester au moins un emplacement dans chaque rang": "Each row must keep at least one spot",
     "Home Assistant n'est pas configuré": "Home Assistant isn't configured", "Plat inconnu": "Unknown dish", "Choisissez d'abord où envoyer les notifications": "First choose where to send notifications",
     "Choisissez une bouteille ou un vin ": "Choose a bottle or a wine", "Emplacement incomplet": "Incomplete spot",
     "Garde importée : l'IA l'affinera lors de son prochain passage.": "Imported window: the AI will refine it on its next run.",
@@ -398,6 +401,7 @@ const I18N = (() => {
     [/^Revenir à Home Assistant : (.+)$/, (m) => `Back to Home Assistant: ${m[1]}`],
     [/^Pour un autre tableau de bord, ouvrez-le dans Home Assistant et copiez la fin de son adresse, à partir du « \/ » \(par exemple$/, () => "For another dashboard, open it in Home Assistant and copy the end of its address, from the “/” (for example"],
     [/^\)\.\s*Le bouton apparaît en haut du menu sur ordinateur, et dans « Plus » sur téléphone\.(.*)$/s, (m) => `). The button appears at the top of the menu on a computer, and in “More” on a phone.${m[1].trim() ? " Outside the add-on, also enter Home Assistant's address below." : ""}`],
+    [/^places? dans ce casier · (\d+) emplacements? retirés?$/, (m) => `spots in this rack · ${m[1]} spot${s(m[1])} removed`],
     [/^Envoi impossible : (.+)$/, (m) => `Couldn't send: ${m[1]}`],
     [/^Accord : (.+)$/, (m) => `Pairing: ${m[1]}`],
   ];

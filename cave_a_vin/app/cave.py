@@ -438,9 +438,11 @@ def profondeurs(cave):
 
 
 def cases(cave):
-    """Toutes les places d'un casier, du rang de devant au fond, de haut en bas, de gauche à droite."""
+    """Toutes les places d'un casier, du rang de devant au fond, de haut en bas, de gauche à droite
+    (sans les emplacements retirés : coins d'un casier en diagonale, montant…)."""
     return [((p * PAS_PROFONDEUR) + n, c) for p, prof in enumerate(profondeurs(cave))
-            for n in range(1, prof["hauteur"] + 1) for c in range(1, prof["largeur"] + 1)]
+            for n in range(1, prof["hauteur"] + 1) for c in range(1, prof["largeur"] + 1)
+            if [n, c] not in (prof.get("sans") or [])]
 
 
 def _nettoyer_disposition(brut):
@@ -465,10 +467,23 @@ def _nettoyer_disposition(brut):
         propre = {"largeur": largeur, "hauteur": hauteur, "empilement": empilement}
         if sens != "avant":
             propre["sens"] = sens
+        # emplacements retirés : [étage, colonne] (étage 1 = en haut), pour un casier en diagonale par exemple
+        sans = []
+        for e in prof.get("sans") or []:
+            try:
+                etage, col = int(e[0]), int(e[1])
+            except (TypeError, ValueError, IndexError):
+                raise ErreurAPI("Emplacement retiré invalide") from None
+            if 1 <= etage <= hauteur and 1 <= col <= largeur and [etage, col] not in sans:
+                sans.append([etage, col])
+        if len(sans) >= largeur * hauteur:
+            raise ErreurAPI("Il doit rester au moins un emplacement dans chaque rang")
+        if sans:
+            propre["sans"] = sorted(sans)
         propres.append(propre)
     rangees = max(p * PAS_PROFONDEUR + prof["hauteur"] for p, prof in enumerate(propres))
     colonnes = max(prof["largeur"] for prof in propres)
-    simple = len(propres) == 1 and propres[0]["empilement"] == "aligne" and "sens" not in propres[0]
+    simple = len(propres) == 1 and propres[0]["empilement"] == "aligne" and "sens" not in propres[0] and "sans" not in propres[0]
     return (None if simple else json.dumps({"profondeurs": propres})), rangees, colonnes
 
 

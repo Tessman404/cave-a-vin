@@ -1482,7 +1482,7 @@ function vuePlace(prof, col) {
 /** Positions de toutes les places d'un casier (en cases).
  *  Normal : les rangs de derrière sont cachés derrière celui de devant (décalés d'une demi-bouteille).
  *  Éclaté : chaque rang est posé sur sa propre tablette, au-dessus du précédent, pour lire toutes les bouteilles. */
-function geometrieCasier(profs, eclate = false) {
+function geometrieCasier(profs, eclate = false, avecRetires = false) {
   const places = [], tablettes = [];
   let monte = 0;  // éclaté : hauteur déjà occupée par les rangs de devant
   profs.forEach((prof, i) => {
@@ -1492,7 +1492,9 @@ function geometrieCasier(profs, eclate = false) {
       const niveau = prof.hauteur - etage;  // 0 = posé sur la tablette
       const quinconce = !long && niveau % 2 === 1 ? (prof.empilement === "droite" ? 0.5 : prof.empilement === "gauche" ? -0.5 : 0) : 0;
       for (let col = 1; col <= prof.largeur; col++) {
-        places.push({ p, etage, col, rangee: i * PAS_PROFONDEUR + etage, w: long ? LONGUEUR_ALLONGE : 1, ...vuePlace(prof, col),
+        const retire = (prof.sans || []).some(([e, c]) => e === etage && c === col);
+        if (retire && !avecRetires) continue;
+        places.push({ p, etage, col, retire, rangee: i * PAS_PROFONDEUR + etage, w: long ? LONGUEUR_ALLONGE : 1, ...vuePlace(prof, col),
           x: (col - 1) * (long ? PAS_ALLONGE : 1) + quinconce + dx, y: -niveau * pas + dy, z: (profs.length - p) * 200 + niveau + 1 });
       }
     }
@@ -1517,7 +1519,7 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false, ecl
   const profs = profondeursDe(k);
   const parCase = {};
   (k.bouteilles || []).forEach((b) => { if (b.rangee) parCase[`${b.rangee}-${b.colonne}`] = b; });
-  const g = geometrieCasier(profs), ge = geometrieCasier(profs, true);
+  const g = geometrieCasier(profs, false, apercu), ge = geometrieCasier(profs, true, apercu);
   const multi = profs.length > 1;
   const MARGE_G = 0.45, MARGE_H = 0.32;  // place des repères (lettres à gauche, numéros en haut)
   const vars = (a, b) => `--x:${(a.x + MARGE_G).toFixed(3)};--y:${(a.y + MARGE_H).toFixed(3)};--xe:${(b.x + MARGE_G).toFixed(3)};--ye:${(b.y + MARGE_H).toFixed(3)}`;
@@ -1536,10 +1538,18 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false, ecl
     const rang = g.places.filter((q) => q.p === i + 1), rangE = ge.places.filter((q) => q.p === i + 1);
     const haut = (l) => Math.min(...l.map((q) => q.y)), gauche = (l) => Math.min(...l.map((q) => q.x));
     const arriere = i ? " arriere" : "";
+    // un repère par colonne (sa place la plus haute) et par étage (sa place la plus à gauche) :
+    // ils restent affichés même quand des emplacements ont été retirés (casier en diagonale)
+    const premiereCol = {}, premierEtage = {};
     rang.forEach((q, j) => {
-      const e = rangE[j];
-      if (q.etage === 1) h += `<span class="repere col${arriere}" data-p="${i + 1}" style="${vars({ x: q.x, y: haut(rang) - MARGE_H }, { x: e.x, y: haut(rangE) - MARGE_H })}">${q.col}</span>`;
-      if (q.col === 1) h += `<span class="repere rang${arriere}" data-p="${i + 1}" style="${vars({ x: gauche(rang) - MARGE_G, y: q.y }, { x: gauche(rangE) - MARGE_G, y: e.y })}">${LETTRE_RANG(q.etage)}</span>`;
+      if (!premiereCol[q.col] || q.etage < premiereCol[q.col][0].etage) premiereCol[q.col] = [q, rangE[j]];
+      if (!premierEtage[q.etage] || q.col < premierEtage[q.etage][0].col) premierEtage[q.etage] = [q, rangE[j]];
+    });
+    Object.values(premiereCol).forEach(([q, e]) => {
+      h += `<span class="repere col${arriere}" data-p="${i + 1}" style="${vars({ x: q.x, y: haut(rang) - MARGE_H }, { x: e.x, y: haut(rangE) - MARGE_H })}">${q.col}</span>`;
+    });
+    Object.values(premierEtage).forEach(([q, e]) => {
+      h += `<span class="repere rang${arriere}" data-p="${i + 1}" style="${vars({ x: gauche(rang) - MARGE_G, y: q.y }, { x: gauche(rangE) - MARGE_G, y: e.y })}">${LETTRE_RANG(q.etage)}</span>`;
     });
   });
   g.places.forEach((q, j) => {
@@ -1556,7 +1566,7 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false, ecl
       h += `<button type="button" class="case-cave pleine${forme} ${esc(b.couleur)} ${esc(b.statut)}${b.vin_id === surligne ? " surligne" : ""}" style="${style};color:${a.verre};--capsule:${a.capsule}" ${commun} data-b="${b.id}"${choix ? " disabled" : ""} aria-label="${lieu} : ${esc(b.nom)}${b.millesime ? " " + b.millesime : ""}, ${esc(REF.statuts[b.statut] || "")}">${dessin(a.symbole)}</button>`;
     } else {
       h += apercu  // aperçu : de simples dessins (il peut être placé dans un bouton)
-        ? `<span class="case-cave${forme}" style="${style}" data-p="${q.p}">${dessin("bouteille-couchee")}</span>`
+        ? `<span class="case-cave${forme}${q.retire ? " retiree" : ""}" style="${style}" data-p="${q.p}" data-etage="${q.etage}" data-col="${q.col}">${dessin("bouteille-couchee")}</span>`
         : `<button type="button" class="case-cave${forme}" style="${style}" ${commun} data-r="${q.rangee}" data-c="${q.col}" aria-label="${lieu} : libre">${dessin("bouteille-couchee")}</button>`;
     }
   });
@@ -1566,7 +1576,9 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false, ecl
 /** Configurateur de disposition (dans la fenêtre d'un casier) : aperçu en direct, profondeurs, largeur, hauteur,
  *  empilement. Renvoie { valeur } : { profondeurs: [...] } à envoyer au serveur. */
 function configurateurDisposition(zone, initiales) {
-  let profs = initiales.map((p) => ({ largeur: p.largeur, hauteur: p.hauteur, empilement: p.empilement || "aligne", sens: p.sens || "avant" }));
+  let profs = initiales.map((p) => ({ largeur: p.largeur, hauteur: p.hauteur, empilement: p.empilement || "aligne", sens: p.sens || "avant",
+    sans: (p.sans || []).map((e) => [...e]) }));
+  let gomme = false;  // mode « retirer des emplacements » : toucher une place de l'aperçu la retire ou la remet
   let actuel = 0;
   const pas = (champ, v) => `<div class="pas-a-pas" role="group" aria-label="${champ}">
     <button type="button" data-moins="${champ}" aria-label="Moins" ${v <= 1 ? "disabled" : ""}>−</button><output>${v}</output>
@@ -1574,12 +1586,20 @@ function configurateurDisposition(zone, initiales) {
   const rendre = () => {
     const prof = profs[actuel];
     const noms = NOMS_PROFONDEUR(profs.length);
-    const total = profs.reduce((n, p) => n + p.largeur * p.hauteur, 0);
+    // les emplacements retirés hors du casier (après avoir réduit la largeur ou la hauteur) sont oubliés
+    profs.forEach((p) => { p.sans = (p.sans || []).filter(([e, c]) => e <= p.hauteur && c <= p.largeur); });
+    const retires = profs.reduce((n, p) => n + p.sans.length, 0);
+    const total = profs.reduce((n, p) => n + p.largeur * p.hauteur - p.sans.length, 0);
     const miniSens = (sens) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: sens.startsWith("allonge") ? 1 : 2, hauteur: 1, empilement: "aligne", sens }] }, { apercu: true });
     const mini = (emp) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: 2, hauteur: 2, empilement: emp }] }, { apercu: true });
     zone.innerHTML = `<div class="configurateur">
       <div class="apercu-disposition" aria-hidden="true">${dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: profs }, { apercu: true, eclate: true })}</div>
-      <div class="total-places"><b>${total}</b> ${total > 1 ? "places" : "place"} dans ce casier</div>
+      <div class="total-places"><b>${total}</b> ${total > 1 ? "places" : "place"} dans ce casier${retires ? ` · ${pluriel(retires, "emplacement retiré", "emplacements retirés")}` : ""}</div>
+      <div class="outil-gomme">
+        <button type="button" class="bouton petit${gomme ? " actif" : ""}" data-gomme aria-pressed="${gomme}">${ic(gomme ? "fermer" : "poubelle")} ${gomme ? "Terminé" : "Retirer des emplacements"}</button>
+        ${retires ? `<button type="button" class="bouton petit discret" data-remettre>Tout remettre</button>` : ""}
+        ${gomme ? `<p class="muted petit-texte">Touchez les places qui n'existent pas dans votre casier (coins d'un casier en diagonale, montant…) ; touchez-les à nouveau pour les remettre.</p>` : ""}
+      </div>
       <div class="onglets-profondeur" role="tablist" aria-label="Profondeurs">${profs.map((p, i) =>
         `<button type="button" role="tab" aria-selected="${i === actuel}" data-prof="${i}" class="${i === actuel ? "actif" : ""}">Profondeur ${i + 1} · ${noms[i]}</button>`).join("")}
         ${profs.length < PROFONDEURS_MAX ? `<button type="button" data-ajout-prof>${ic("plus")} Rang derrière</button>` : ""}</div>
@@ -1602,23 +1622,36 @@ function configurateurDisposition(zone, initiales) {
     if (dispo > 0 && besoin > dispo) ap.style.setProperty("--case", `${Math.max(14, Math.floor(52 * dispo / besoin))}px`);
     // la profondeur réglée ressort dans l'aperçu
     if (profs.length > 1) $$(`.apercu-disposition .case-cave[data-p="${actuel + 1}"]`, zone).forEach((b) => b.classList.add("actuelle"));
+    ap.classList.toggle("mode-gomme", gomme);
   };
   zone.addEventListener("click", (e) => {
+    // mode gomme : une place de l'aperçu touchée est retirée (ou remise)
+    const place = gomme && e.target.closest(".apercu-disposition .case-cave");
+    if (place) {
+      const p = profs[+place.dataset.p - 1], etage = +place.dataset.etage, col = +place.dataset.col;
+      const i = p.sans.findIndex(([e2, c2]) => e2 === etage && c2 === col);
+      if (i >= 0) p.sans.splice(i, 1);
+      else if (p.sans.length < p.largeur * p.hauteur - 1) p.sans.push([etage, col]);
+      rendre();
+      return;
+    }
     const b = e.target.closest("button");
     if (!b || b.disabled) return;
+    if ("gomme" in b.dataset) { gomme = !gomme; rendre(); return; }
+    if ("remettre" in b.dataset) { profs.forEach((p) => { p.sans = []; }); rendre(); return; }
     const prof = profs[actuel];
     if (b.dataset.prof) actuel = +b.dataset.prof;
     else if (b.dataset.plus) prof[b.dataset.plus] = Math.min(50, prof[b.dataset.plus] + 1);
     else if (b.dataset.moins) prof[b.dataset.moins] = Math.max(1, prof[b.dataset.moins] - 1);
     else if (b.dataset.emp) prof.empilement = b.dataset.emp;
     else if (b.dataset.sens) prof.sens = b.dataset.sens;
-    else if ("ajoutProf" in b.dataset) { profs.push({ ...profs[profs.length - 1] }); actuel = profs.length - 1; }
+    else if ("ajoutProf" in b.dataset) { profs.push({ ...profs[profs.length - 1], sans: [] }); actuel = profs.length - 1; }
     else if ("supprProf" in b.dataset) { profs.splice(actuel, 1); actuel = Math.max(0, actuel - 1); }
     else return;
     rendre();
   });
   rendre();
-  return { valeur: () => ({ profondeurs: profs.map((p) => ({ ...p })) }) };
+  return { valeur: () => ({ profondeurs: profs.map((p) => ({ ...p, sans: p.sans.map((e) => [...e]) })) }) };
 }
 
 /** Choix des emplacements sur le plan, dans un formulaire : la cave choisie s'affiche, on touche les places libres. */
