@@ -8,6 +8,10 @@
   compte ; un emplacement occupé ne peut pas être retiré.
 - **Traduction anglaise complétée** grâce à une contribution de rwatjen (merci !) : étapes de la photo, messages
   d'erreur, noms des étagères sans nom, et correction des textes du filtre à charbon qui restaient en français.
+- **Android : explication quand l'appareil photo ne s'ouvre pas.** L'application Home Assistant Android (jusqu'à la
+  2026.10) ne propose que la galerie quand Home Assistant est ouvert avec son adresse locale (http). Tessvine l'indique
+  désormais sous « Photographier la bouteille », avec les solutions : photo puis galerie, application Home Assistant
+  2026.11 ou plus récente, ou adresse https.
 
 ## 1.17.1
 

@@ -95,6 +95,8 @@ const I18N = (() => {
     "Complétez la fiche de la bouteille photographiée": "Complete the details of the photographed bottle", "Changer de fond": "Change background",
     // ajouter
     "Photographier la bouteille": "Photograph the bottle", "Saisir à la main": "Enter by hand", "Formulaire complet": "Full form",
+    "Sur Android, l'appareil photo ne s'ouvre pas directement": "On Android, the camera doesn't open directly",
+    "Votre application Home Assistant n'affiche que la galerie quand elle est ouverte avec une adresse locale (http). Prenez la photo avec l'appareil photo du téléphone, puis choisissez-la dans la galerie. Pour l'appareil photo direct : mettez à jour l'application Home Assistant (version 2026.11 ou plus récente), ou ouvrez Home Assistant avec son adresse https.": "Your Home Assistant app only shows the gallery when it is opened with a local address (http). Take the picture with your phone's camera app, then pick it from the gallery. For the camera to open directly: update the Home Assistant app (version 2026.11 or newer), or open Home Assistant with its https address.",
     "D'abord l'étiquette, puis le verso. La bouteille est détourée et posée sur un fond de cave": "First the label, then the back. The bottle is cut out and placed on a cellar background",
     "D'abord l'étiquette, puis le verso": "First the label, then the back", "Photographiez maintenant le verso": "Now photograph the back label",
     "La contre-étiquette donne plus d'informations (cépages, degré…) et le code-barres, qui servira à sortir la bouteille d'un simple scan.": "The back label gives more details (grapes, ABV…) and the barcode, used to take the bottle out with a simple scan.",

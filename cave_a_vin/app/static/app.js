@@ -1141,6 +1141,14 @@ function scanner() {
  * nette et sans reflet, ce qui améliore la lecture de l'étiquette par l'IA et le détourage. La photo est recadrée sur
  * la bouteille. Sans caméra en direct (adresse http:// locale, refus d'accès), on revient à l'appareil photo du téléphone. */
 const cameraGuideePossible = () => !!(navigator.mediaDevices?.getUserMedia && window.isSecureContext);
+// L'app Home Assistant Android n'ouvre l'appareil photo depuis un formulaire qu'à partir de sa version 2026.11 ;
+// avant, et sans https (pas de caméra en direct), seule la galerie est proposée.
+function avertissementAndroid() {
+  const m = navigator.userAgent.match(/Home Assistant\/(\d{4})\.(\d+)[^(]*\(Android/);
+  if (!m || cameraGuideePossible() || +m[1] * 100 + +m[2] >= 202611) return "";
+  return `<div class="carte note-android">${ic("camera")}<div><b>Sur Android, l'appareil photo ne s'ouvre pas directement</b>
+    <span class="muted">Votre application Home Assistant n'affiche que la galerie quand elle est ouverte avec une adresse locale (http). Prenez la photo avec l'appareil photo du téléphone, puis choisissez-la dans la galerie. Pour l'appareil photo direct : mettez à jour l'application Home Assistant (version 2026.11 ou plus récente), ou ouvrez Home Assistant avec son adresse https.</span></div></div>`;
+}
 
 function photoGuidee(mode = "face") {
   return new Promise((resolve) => {
@@ -1288,6 +1296,7 @@ async function pageAjouter(main) {
         <input type="file" accept="image/*" capture="environment" hidden id="t-photo"></label>
       <a class="carte tuile-ajout secondaire" href="#/vins/nouveau" id="t-main"><span class="icone">${ic("crayon")}</span><b>Saisir à la main</b><span class="muted">Formulaire complet</span></a>
     </div>
+    ${avertissementAndroid()}
     <div id="resultat"></div>`;
   ajout = null;
   const resultat = $("#resultat", main);

@@ -1237,3 +1237,7 @@ html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
 .apercu-disposition.mode-gomme .case-cave { pointer-events: auto; cursor: pointer; }
 .apercu-disposition.mode-gomme .case-cave:hover svg { filter: brightness(1.25) drop-shadow(0 0 4px rgba(214, 178, 106, .8)); }
 .apercu-disposition.mode-gomme { outline: 2px dashed rgba(184, 120, 74, .7); outline-offset: -6px; }
+
+.note-android { display: flex; gap: .75rem; align-items: flex-start; margin-top: 1rem; font-size: .9rem; }
+.note-android > svg { flex: none; width: 1.3rem; height: 1.3rem; color: var(--accent-lien); margin-top: .1rem; }
+.note-android b { display: block; margin-bottom: .25rem; }
