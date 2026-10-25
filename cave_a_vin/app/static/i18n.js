@@ -31,9 +31,21 @@ const I18N = (() => {
     "Prix d'achat de toutes les bouteilles":"Prezzo d'acquisto di tutte le bottiglie", "Ranger celle-ci":"Sistema questa", "Choisir un autre vin":"Scegli un altro vino",
     "À boire vite":"Da bere presto", "Prêts à boire":"Pronti da bere", "Réservés pour une occasion":"Riservati per un'occasione",
     "Climat de la cave":"Clima della cantina", "Température":"Temperatura", "Humidité":"Umidità", "Bienvenue dans votre cave":"Benvenuto nella tua cantina",
-    "Créer une cave":"Crea una cantina", "Aujourd'hui":"Oggi", "aujourd'hui":"oggi", "demain":"domani", "passée":"passata",
+    "Créer une cave":"Crea una cantina", "Commencez par décrire votre cave (casiers, armoire à vin…) puis ajoutez vos premières bouteilles.":"Per iniziare, descrivi la tua cantina (scaffali, cantinetta…) e aggiungi le prime bottiglie.", "Aujourd'hui":"Oggi", "aujourd'hui":"oggi", "demain":"domani", "passée":"passata",
     "À garder":"Da conservare", "Prêt à boire":"Pronto da bere", "À l'apogée":"Al suo apice", "Après l'apogée":"Oltre l'apice", "Garde dépassée":"Periodo di consumo superato", "Garde inconnue":"Periodo di consumo sconosciuto",
     "Rouge":"Rosso", "Blanc":"Bianco", "Rosé":"Rosato", "Effervescent":"Spumante", "Liquoreux / moelleux":"Passito / dolce", "Autre":"Altro",
+    "Bœuf":"Manzo", "Agneau":"Agnello", "Canard":"Anatra", "Gibier":"Selvaggina", "Volaille":"Pollame", "Porc & charcuterie":"Maiale e salumi",
+    "Poisson":"Pesce", "Fruits de mer":"Frutti di mare", "Foie gras":"Foie gras", "Fromages":"Formaggi", "Pâtes & pizza":"Pasta e pizza",
+    "Épicé & exotique":"Speziato ed esotico", "Végétarien":"Vegetariano", "Dessert":"Dessert", "Apéritif":"Aperitivo",
+    "Accord parfait":"Abbinamento perfetto", "Très bon accord":"Ottimo abbinamento", "Bon accord":"Buon abbinamento", "Accord possible":"Abbinamento possibile",
+    "Composition de la cave":"Composizione della cantina", "Par couleur":"Per colore", "Par garde":"Per periodo di consumo",
+    "Par région":"Per regione", "Par cave":"Per cantina", "Par millésime":"Per annata", "Valeur":"Valore",
+    "Les vins du plus cher au moins cher":"Vini dal più caro al meno caro", "Prix utilisé":"Prezzo utilizzato",
+    "Activité":"Attività", "Derniers mouvements":"Ultimi movimenti", "Tout l'historique ›":"Tutta la cronologia ›",
+    "Bouteilles par millésime":"Bottiglie per annata", "Aucune donnée.":"Nessun dato.", "Aucun millésime renseigné.":"Nessuna annata inserita.",
+    "Ajoutez des vins pour voir les statistiques de votre cave.":"Aggiungi vini per visualizzare le statistiche della cantina.",
+    "Aucun mouvement pour l'instant.":"Nessun movimento per ora.", "par bouteille en moyenne":"per bottiglia in media",
+    "Afficher les 10 premiers":"Mostra i primi 10", "Entrée":"Ingresso", "Sortie":"Uscita",
     "Achat":"Acquisto", "Cadeau":"Regalo", "Inventaire":"Inventario", "Transfert":"Trasferimento", "Bue":"Bevuta", "Offerte":"Regalata", "Vendue":"Venduta", "Cassée / bouchonnée":"Rotta / sa di tappo", "Erreur de saisie":"Errore di inserimento",
     "Toutes":"Tutte", "Toutes couleurs":"Tutti i colori", "Toutes gardes":"Tutti i periodi", "Toutes caves":"Tutte le cantine", "En cave":"In cantina", "Épuisés":"Esauriti", "Tous":"Tutti",
     "Tri : nom":"Ordina: nome", "Tri : millésime":"Ordina: annata", "Tri : région":"Ordina: regione", "Tri : à boire en premier":"Ordina: da bere prima", "Tri : quantité":"Ordina: quantità", "Tri : valeur":"Ordina: valore", "Tri : derniers ajouts":"Ordina: aggiunti di recente",
@@ -43,7 +55,66 @@ const I18N = (() => {
     "Fiche du vin":"Scheda del vino", "Modifier le vin":"Modifica vino", "Identité":"Identità", "Nom de la cuvée *":"Nome del vino *", "Domaine / producteur":"Tenuta / produttore", "Millésime":"Annata", "Non millésimé":"Senza annata", "Degré (%)":"Gradazione (%)", "Code-barres":"Codice a barre", "Achat & valeur":"Acquisto e valore", "Nombre de bouteilles":"Numero di bottiglie", "Ranger dans":"Sistema in", "Non rangées":"Non sistemate", "Raison":"Motivo", "Accords mets & vins":"Abbinamenti cibo e vino", "Note personnelle":"Nota personale", "Enregistrer":"Salva", "Ajouter à ma cave":"Aggiungi alla mia cantina", "Annuler":"Annulla",
     "Photographier la bouteille":"Fotografa la bottiglia", "Saisir à la main":"Inserisci manualmente", "Formulaire complet":"Modulo completo", "Continuer":"Continua", "Ignorer":"Ignora", "Photo de la bouteille":"Foto della bottiglia", "Voir la fiche":"Visualizza scheda",
     "Scanner la bouteille":"Scansiona la bottiglia", "Photographier le code-barres":"Fotografa il codice a barre", "OK":"OK", "Valider la sortie":"Conferma uscita", "Nouvelle cave":"Nuova cantina", "Étagère":"Scaffale", "Supprimer la cave":"Elimina cantina", "Affichage":"Visualizzazione", "Plan":"Mappa", "Liste":"Elenco", "Déplacer":"Sposta", "Ranger":"Sistema", "Arrêter":"Interrompi", "Fiche":"Scheda",
-    "Sauvegarde & import":"Backup e importazione", "Exporter en CSV (Excel)":"Esporta in CSV (Excel)", "Sauvegarde complète (JSON)":"Backup completo (JSON)", "Choisir le fond":"Scegli lo sfondo", "Apparence":"Aspetto", "Langue":"Lingua", "Automatique":"Automatico", "Devise":"Valuta", "Affichage ":"Visualizzazione ", "Langue et devise de cet appareil. La devise ne change que l'affichage des prix, pas leurs montants.":"Lingua e valuta di questo dispositivo. La valuta cambia solo la visualizzazione dei prezzi, non i relativi importi.", "Réglages enregistrés":"Impostazioni salvate", "Français":"Francese", "Anglais":"Inglese", "Italien":"Italiano"
+    "Sauvegarde & import":"Backup e importazione", "Exporter en CSV (Excel)":"Esporta in CSV (Excel)", "Sauvegarde complète (JSON)":"Backup completo (JSON)", "Choisir le fond":"Scegli lo sfondo", "Apparence":"Aspetto", "Langue":"Lingua", "Automatique":"Automatico", "Devise":"Valuta", "Affichage ":"Visualizzazione ", "Langue et devise de cet appareil. La devise ne change que l'affichage des prix, pas leurs montants.":"Lingua e valuta di questo dispositivo. La valuta cambia solo la visualizzazione dei prezzi, non i relativi importi.", "Réglages enregistrés":"Impostazioni salvate", "Français":"Francese", "Anglais":"Inglese", "Italien":"Italiano",
+    "Sens des bouteilles":"Orientamento delle bottiglie", "comment elles sont posées dans ce rang":"come sono disposte in questa fila",
+    "Rangée":"Ripiano", "Rangées":"Righe", "Colonnes":"Colonne", "✎ Régler":"✎ Regola",
+    "Que mangez-vous ? La cave classe ses bouteilles de la mieux accordée à la moins accordée, et à accord égal, celles à boire en priorité.":"Cosa mangi? La cantina ordina i vini dal più al meno adatto al piatto e, a parità di abbinamento, dà priorità a quelli da bere prima.",
+    "Plat":"Piatto", "Déguster":"Assaggia", "Aucun accord":"Nessun abbinamento",
+    "Aucune bouteille prête à boire ne s'accorde avec ce plat. Essayez une autre couleur ou un autre plat.":"Nessuna bottiglia pronta da bere si abbina a questo piatto. Prova un altro colore o un altro piatto.",
+    "Votre liste est vide. Elle est aussi disponible dans Home Assistant (liste de tâches « Cave à vin – Envies »).":"La lista è vuota. È disponibile anche in Home Assistant (lista attività « Tessvine – Desideri »).",
+    "Fait":"Completato", "Entrées":"Entrate", "Sorties":"Uscite", "Entrée":"Entrata", "Sortie":"Uscita", "Vin":"Vino", "Type":"Tipo",
+    "Aucun mouvement pour l'instant.":"Nessun movimento per ora.",
+    "Ma cave":"La mia cantina", "Nom de la cave":"Nome della cantina",
+    "Affiché en haut de l'application et dans l'onglet. Le nom dans la barre latérale de Home Assistant se change dans Home Assistant.":"Mostrato in alto nell'app e nella scheda. Il nome nella barra laterale di Home Assistant si modifica da Home Assistant.",
+    "Bouton de retour vers Home Assistant":"Pulsante per tornare a Home Assistant", "Afficher le bouton":"Mostra il pulsante",
+    "Texte du bouton":"Testo del pulsante", "Page de destination":"Pagina di destinazione", "Aperçu":"Anteprima",
+    "Tableau de bord par défaut":"Dashboard predefinita", "Énergie":"Energia", "Carte":"Mappa", "Paramètres":"Impostazioni", "Historique":"Cronologia",
+    "Pour un autre tableau de bord, ouvrez-le dans Home Assistant et copiez la fin de son adresse, à partir du « / » (par exemple":"Per un'altra dashboard, aprila in Home Assistant e copia la parte finale dell'indirizzo, a partire da « / » (per esempio",
+    "). Le bouton apparaît en haut du menu sur ordinateur, et dans « Plus » sur téléphone.":"). Il pulsante appare in cima al menu su computer e in « Altro » sul telefono.",
+    "Hors module complémentaire, renseignez aussi l'adresse de Home Assistant ci-dessous.":"Fuori dal componente aggiuntivo, inserisci anche qui sotto l'indirizzo di Home Assistant.",
+    "Notifications de fin de garde":"Notifiche di fine periodo", "Envoyer sur":"Invia a", "Désactivées":"Disattivate", "Envoyer un test":"Invia una prova",
+    "Quand un vin entre dans sa dernière année de garde (« à boire vite »), Home Assistant vous prévient : au plus 2 rappels par vin, à 15 jours d'intervalle. Un vin dont la garde est dépassée n'est plus rappelé.":"Quando un vino entra nell'ultimo anno del suo periodo di consumo (« da bere presto »), Home Assistant ti avvisa: al massimo 2 promemoria per vino, a 15 giorni di distanza. I vini oltre il periodo non ricevono altri promemoria.",
+    "Home Assistant — capteurs de la cave":"Home Assistant — sensori della cantina",
+    "L'application tourne comme module complémentaire : la connexion à Home Assistant est automatique.":"L'app funziona come componente aggiuntivo: la connessione a Home Assistant è automatica.",
+    "Pour afficher la température et l'humidité de la cave, indiquez l'adresse de Home Assistant et un jeton d'accès longue durée (Profil → Sécurité → Jetons d'accès longue durée).":"Per visualizzare temperatura e umidità della cantina, inserisci l'indirizzo di Home Assistant e un token di accesso a lunga durata (Profilo → Sicurezza → Token di accesso a lunga durata).",
+    "Home Assistant ne répond pas, ou aucun capteur de température / humidité n'a été trouvé.":"Home Assistant non risponde o non è stato trovato alcun sensore di temperatura/umidità.",
+    "Adresse de Home Assistant":"Indirizzo di Home Assistant", "Jeton d'accès":"Token di accesso", "Capteur de température":"Sensore di temperatura",
+    "Température min (°C)":"Temperatura min (°C)", "Température max (°C)":"Temperatura max (°C)", "Capteur d'humidité":"Sensore di umidità",
+    "Humidité min (%)":"Umidità min (%)", "Humidité max (%)":"Umidità max (%)", "— Aucun —":"— Nessuno —",
+    "IA, photos & étiquettes":"IA, foto ed etichette", "IA de Home Assistant (lecture d'étiquette, garde)":"IA di Home Assistant (lettura etichetta, periodo di consumo)",
+    "Activée":"Attivata", "Désactivée":"Disattivata", "Estimation de la garde par l'IA, chaque mois":"Stima mensile del periodo di consumo tramite IA",
+    "IA à utiliser":"IA da usare", "Automatique":"Automatico", "Automatique — aucune IA trouvée":"Automatico — nessuna IA trovata", "IA trouvées dans Home Assistant":"IA trovate in Home Assistant",
+    "Tâches IA (photos, garde) : aucune":"Attività IA (foto, periodo di consumo): nessuna",
+    "Qualité du détourage":"Qualità del ritaglio", "Rapide (modèle de 5 Mo)":"Veloce (modello da 5 MB)", "Standard (45 Mo, recommandé)":"Standard (45 MB, consigliato)",
+    "Précis (180 Mo, plus lent, 2 Go de mémoire conseillés)":"Preciso (180 MB, più lento; consigliati 2 GB di memoria)", "Fond par défaut":"Sfondo predefinito", "Cadrage par défaut":"Inquadratura predefinita",
+    "Le détourage n'est pas disponible sur cette installation : les photos sont gardées telles quelles.":"Il ritaglio non è disponibile su questa installazione: le foto vengono conservate così come sono.",
+    "Le modèle de détourage est téléchargé une seule fois, au premier usage, puis tout se fait sur votre installation. Pour la lecture d'étiquette, la photo est envoyée à l'IA configurée dans Home Assistant.":"Il modello di ritaglio viene scaricato una sola volta al primo utilizzo; poi tutto avviene sulla tua installazione. Per leggere l'etichetta, la foto viene inviata all'IA configurata in Home Assistant.",
+    "✓ Lecture d'étiquette disponible":"✓ Lettura dell'etichetta disponibile", "Estimation en cours":"Stima in corso",
+    "Pas encore de passage.":"Nessun ciclo ancora.", "Indisponible":"Non disponibile",
+    "Intégration Home Assistant":"Integrazione Home Assistant", "L'intégration":"L'integrazione", " crée dans Home Assistant :":" crea in Home Assistant:",
+    "(dossier":"(cartella", ") crée dans Home Assistant :":") crea in Home Assistant:",
+    "des capteurs : bouteilles, valeur, vins à boire, à boire vite…":"sensori: bottiglie, valore, vini da bere e da bere presto…",
+    "la liste de tâches":"la lista attività", "(utilisable avec Assist : « ajoute Chablis à Cave à vin Envies »)":"(utilizzabile con Assist: « aggiungi Chablis a Tessvine Desideri »)",
+    "les actions":"le azioni", "Adresse à saisir lors de l'ajout de l'intégration :":"Indirizzo da inserire quando aggiungi l'integrazione:",
+    "(visible dans l'onglet Info du module)":"(visibile nella scheda Info del componente aggiuntivo)",
+    "Sauvegarde & import":"Backup e importazione", "Importer des vins depuis un fichier CSV (colonnes : nom, domaine, appellation, region, couleur, millesime, quantite…)":"Importa vini da un file CSV (colonne: nome, produttore, denominazione, regione, colore, annata, quantità…)",
+    "Restaurer une sauvegarde JSON (remplace toute la cave !)":"Ripristina un backup JSON (sostituisce l'intera cantina!)", "À propos":"Informazioni",
+    "Une clé d'API est mémorisée sur cet appareil. ":"Una chiave API è memorizzata su questo dispositivo. ", "Oublier la clé":"Dimentica la chiave",
+    "à boire vite ou dépassé":"da bere presto o fuori periodo",
+    "◌ emplacement libre : touchez-le pour y ranger une bouteille":"◌ posto libero: toccalo per sistemare una bottiglia",
+    "Arrière":"Fondo verso l'esterno", "Avant":"Collo verso l'esterno", "Alterné (arrière)":"Alternato (fondo)", "Alterné (avant)":"Alternato (collo)",
+    "Allongé (droite)":"Orizzontale (collo a destra)", "Allongé (gauche)":"Orizzontale (collo a sinistra)",
+    "fond vers vous":"fondo verso di voi", "goulot vers vous":"collo verso di voi", "fond, goulot, fond…":"fondo, collo, fondo…", "goulot, fond, goulot…":"collo, fondo, collo…",
+    "de côté, goulot à droite":"orizzontale, collo a destra", "de côté, goulot à gauche":"orizzontale, collo a sinistra",
+    "les bouteilles allongées s'empilent droites":"le bottiglie orizzontali si impilano dritte", "Sens des bouteilles inconnu":"Orientamento delle bottiglie sconosciuto",
+    "Robe, nez, bouche, accord du jour…":"Colore, profumo, gusto, abbinamento del giorno…", "Caviste, salon, prix payé…":"Enoteca, fiera, prezzo pagato…",
+    "Nom, domaine, appellation, cépage, millésime…":"Nome, produttore, denominazione, vitigno, annata…", "Rempli par le scan":"Compilato dalla scansione",
+    "Agneau, fromages affinés…":"Agnello, formaggi stagionati…", "À boire pour un anniversaire…":"Da bere per un compleanno…",
+    "… ou tapez les chiffres":"… oppure digita le cifre", "Trouver une bouteille : nom, millésime, B4…":"Trova una bottiglia: nome, annata, B4…",
+    "Température, emplacement…":"Temperatura, posizione…", "Cave électrique, armoire du garage…":"Cantinetta refrigerata, mobile in garage…",
+    "Sans nom : rien n'est affiché au-dessus de l'étagère":"Senza nome: non verrà mostrato nulla sopra lo scaffale",
+    "Rechercher : nom, millésime, domaine…":"Cerca: nome, annata, produttore…", "Cave du sous-sol, armoire à vin…":"Cantina in seminterrato, mobile portavini…",
+    "Vin à acheter ou à goûter…":"Vino da acquistare o assaggiare…", "Détails (millésime, caviste, prix…)":"Dettagli (annata, enoteca, prezzo…)"
   };
 
   /* ---------------------------------------------------------------- correspondances exactes */
@@ -110,6 +181,7 @@ const I18N = (() => {
     "Château Margaux, Clos des Mouches…": "Château Margaux, Clos des Mouches…", "Domaine / producteur": "Producer", "Millésime": "Vintage",
     "Non millésimé": "Non-vintage", "Merlot, Cabernet franc": "Merlot, Cabernet Franc", "Degré (%)": "ABV (%)", "Code-barres": "Barcode",
     "Rempli par le scan": "Filled in by the scan", "Achat & valeur": "Purchase & value", "Prix d'achat (€ / bouteille)": "Purchase price (per bottle)",
+    "Robe, nez, bouche, accord du jour…": "Colour, nose, palate, pairing of the day…", "Caviste, salon, prix payé…": "Wine shop, fair, price paid…",
     "Valeur actuelle estimée (€)": "Current estimated value", "Fournisseur / caviste": "Supplier / wine shop", "À boire à partir de": "Drink from",
     "À boire avant (fin)": "Drink by (end)", "Estimer": "Estimate", "Bouteilles": "Bottles", "Nombre de bouteilles": "Number of bottles",
     "Ranger dans": "Put in", "Non rangées": "Not placed", "Raison": "Reason", "Accords mets & vins": "Food pairings",
@@ -344,6 +416,29 @@ const I18N = (() => {
   /* ---------------------------------------------------------------- motifs (phrases avec nombres ou noms) */
   const s = (n) => (+n > 1 ? "s" : "");
   const T = (x) => traduire(x);  // traduction d'un morceau capturé
+  const MOTIFS_IT = [
+    [/^Régler la disposition de (.+)$/, (m) => `Regola la disposizione di ${T(m[1])}`],
+    [/^Modifier (.+)$/, (m) => `Modifica ${T(m[1])}`],
+    [/^accord : (.+)$/, (m) => `abbinamento: ${m[1]}`],
+    [/^conseillé avec : (.+)$/, (m) => `consigliato con: ${m[1]}`],
+    [/^Dernier passage : (.+)\.$/, (m) => `Ultimo controllo: ${m[1]}.`],
+    [/^Estimation en cours : (\d+) \/ (\d+) vins…$/, (m) => `Stima in corso: ${m[1]} / ${m[2]} vini…`],
+    [/^✓ Connecté à Home Assistant \((\d+) capteur\(s\) de température \/ humidité trouvé\(s\)\)\.$/, (m) => `✓ Connesso a Home Assistant (${m[1]} ${+m[1] === 1 ? "sensore" : "sensori"} di temperatura/umidità ${+m[1] === 1 ? "trovato" : "trovati"}).`],
+    [/^Indisponible : (.+)$/, (m) => `Non disponibile: ${m[1]}`],
+    [/^Agents de conversation : (.+)$/, (m) => `Agenti conversazionali: ${m[1] === "aucun" ? "nessuno" : m[1]}`],
+    [/^\)\. Le bouton apparaît en haut du menu sur ordinateur, et dans « Plus » sur téléphone\.( Hors module complémentaire, renseignez aussi l'adresse de Home Assistant ci-dessous\.)?$/, (m) => `). Il pulsante appare in cima al menu su computer e in « Altro » sul telefono.${m[1] ? " Fuori dal componente aggiuntivo, inserisci anche qui sotto l'indirizzo di Home Assistant." : ""}`],
+    [/^Ce mois-ci : (.+)$/, (m) => `Questo mese: ${m[1]}`],
+    [/^bues en (\d{4})$/, (m) => `bevute nel ${m[1]}`],
+    [/^Prix d'une bouteille · total (estimé|payé) : (.+)$/, (m) => `Prezzo per bottiglia · totale ${m[1] === "estimé" ? "stimato" : "pagato"}: ${m[2]}`],
+    [/^Prix d'une bouteille · total (estimé|payé) :$/, (m) => `Prezzo per bottiglia · totale ${m[1] === "estimé" ? "stimato" : "pagato"}:`],
+    [/^Voir les (\d+) vins$/, (m) => `Mostra tutti i ${m[1]} vini`],
+    [/^(\d+) vins? sans (valeur estimée|prix d'achat) (ne sont pas classés|n'est pas classé)\.$/, (m) => `${m[1]} ${+m[1] === 1 ? "vino" : "vini"} senza ${m[2] === "valeur estimée" ? "valore stimato" : "prezzo d'acquisto"} ${+m[1] === 1 ? "non è classificato" : "non sono classificati"}.`],
+    [/^Aucun vin en cave n'a de (valeur estimée|prix d'achat)\.$/, (m) => `Nessun vino in cantina ha ${m[1] === "valeur estimée" ? "un valore stimato" : "un prezzo d'acquisto"}.`],
+    [/^(\d[\d\s ]*) références? · (\d[\d\s ]*) bouteilles?$/, (m) => `${m[1]} ${+m[1] === 1 ? "referenza" : "referenze"} · ${m[2]} ${+m[2] === 1 ? "bottiglia" : "bottiglie"}`],
+    [/^(\d+) \/ (\d+) emplacements occupés · (\d+) rangées × (\d+) colonnes$/, (m) => `${m[1]} / ${m[2]} posti occupati · ${m[3]} righe × ${m[4]} colonne`],
+    [/^(\d+) \/ (\d+) emplacements occupés · (\d+) casiers?$/, (m) => `${m[1]} / ${m[2]} posti occupati · ${m[3]} scaffali`],
+    [/^Rangée (\d+)$/, (m) => `Ripiano ${m[1]}`],
+  ];
   const MOTIFS = [
     [/^(\d[\d\s ]*) bouteilles?$/, (m) => `${m[1]} bottle${s(m[1])}`],
     [/^(\d[\d\s ]*) références? · (\d[\d\s ]*) bouteilles?$/, (m) => `${m[1]} wine${s(m[1])} · ${m[2]} bottle${s(m[2])}`],
@@ -492,6 +587,12 @@ const I18N = (() => {
     if (!t || !/[A-Za-zÀ-ÿ]/.test(t)) return texte;
     if (cache.has(t)) return remettre(texte, t, cache.get(t));
     let r = langue === "it" ? IT[t] : EXACT[t];
+    if (langue === "it" && r === undefined) {
+      for (const [motif, f] of MOTIFS_IT) {
+        const m = t.match(motif);
+        if (m) { r = f(m); break; }
+      }
+    }
     if (langue === "it" && r === undefined) r = t;
     if (langue !== "it" && r === undefined) {
       for (const [motif, f] of MOTIFS) {
@@ -511,15 +612,15 @@ const I18N = (() => {
   const remettre = (original, coeur, trad) => coeur === original ? trad : original.replace(coeur, trad);
 
   const ATTRIBUTS = ["placeholder", "aria-label", "title", "alt"];
-  const ignorer = (el) => !el || el.closest("svg, script, style, textarea, [translate=no], .bouteille-debout");
+  const ignorer = (el) => !el || el.closest("svg, script, style, [translate=no], .bouteille-debout");
   function traduireArbre(racine) {
     if (langue === "fr" || !racine) return;
-    if (racine.nodeType === 3) { if (!ignorer(racine.parentElement)) { const v = traduire(racine.nodeValue); if (v !== racine.nodeValue) racine.nodeValue = v; } return; }
+    if (racine.nodeType === 3) { if (!ignorer(racine.parentElement) && !racine.parentElement.closest("textarea")) { const v = traduire(racine.nodeValue); if (v !== racine.nodeValue) racine.nodeValue = v; } return; }
     if (racine.nodeType !== 1 || ignorer(racine)) return;
     const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT);
     let n;
     while ((n = w.nextNode())) {
-      if (ignorer(n.parentElement)) continue;
+      if (ignorer(n.parentElement) || n.parentElement.closest("textarea")) continue;
       const v = traduire(n.nodeValue);
       if (v !== n.nodeValue) n.nodeValue = v;
     }
