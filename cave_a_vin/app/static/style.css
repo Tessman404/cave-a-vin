@@ -803,6 +803,8 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
   transform: skewX(-48deg); transform-origin: 0 100%; border-radius: 2px; pointer-events: none;
   background: linear-gradient(180deg, rgba(214, 178, 106, .34), rgba(214, 178, 106, .16) 70%, rgba(120, 92, 50, .5));
   box-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+.plan .tablette.verticale { width: calc(var(--case) * .2); height: calc(var(--case) * var(--h-support)); margin-left: 0;
+  transform: skewY(-8deg); transform-origin: 50% 50%; }
 .plan-apercu .tablette { background: linear-gradient(180deg, rgba(214, 178, 106, .45), rgba(214, 178, 106, .22) 70%, rgba(120, 92, 50, .6)); }
 /* nom du rang (devant, derrière) au bout de sa tablette, en vue éclatée */
 .plan .nom-rang { position: absolute; margin-top: calc(var(--case) * -.04); margin-left: calc(var(--case) * (var(--l) + .32)); font: 600 .58rem var(--sans);

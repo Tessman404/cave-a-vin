@@ -1473,17 +1473,20 @@ const pasEtage = (prof) => !allonge(prof) && prof.empilement && prof.empilement 
 // sens des bouteilles d'un rang (comme dans une vraie cave) ; une bouteille allongée occupe 3,2 cases de large
 const SENS = {
   arriere: "Arrière", avant: "Avant", alterne_arriere: "Alterné (arrière)", alterne_avant: "Alterné (avant)",
-  allonge_droite: "Allongé (droite)", allonge_gauche: "Allongé (gauche)",
+  allonge_droite: "Allongé (droite)", allonge_gauche: "Allongé (gauche)", allonge_alterne: "Allongé (alterné)",
+  allonge_alterne_inverse: "Allongé (alterné inversé)",
 };
 const SENS_AIDE = {
   arriere: "fond vers vous", avant: "goulot vers vous", alterne_arriere: "fond, goulot, fond…", alterne_avant: "goulot, fond, goulot…",
   allonge_droite: "de côté, goulot à droite", allonge_gauche: "de côté, goulot à gauche",
+  allonge_alterne: "de côté, goulots face à face, bouteille de droite plus basse",
+  allonge_alterne_inverse: "de côté, goulots face à face, bouteille de droite plus haute",
 };
 const LONGUEUR_ALLONGE = 3.2, PAS_ALLONGE = 3.28;
 /** Vue d'une place : « avant » (goulot vers nous), « fond » (cul de la bouteille vers nous) ou « cote » (allongée). */
 function vuePlace(prof, col) {
   const sens = prof.sens || "avant";
-  if (sens.startsWith("allonge")) return { vue: "cote", miroir: sens === "allonge_gauche", sfx: "-cote" };
+  if (sens.startsWith("allonge")) return { vue: "cote", miroir: sens === "allonge_gauche" || ((sens === "allonge_alterne" || sens === "allonge_alterne_inverse") && col % 2 === 0), sfx: "-cote" };
   const fond = sens === "arriere" || (sens === "alterne_arriere" && col % 2 === 1) || (sens === "alterne_avant" && col % 2 === 0);
   return { vue: fond ? "fond" : "avant", miroir: false, sfx: fond ? "-fond" : "" };
 }
@@ -1492,10 +1495,12 @@ function vuePlace(prof, col) {
  *  Normal : les rangs de derrière sont cachés derrière celui de devant (décalés d'une demi-bouteille).
  *  Éclaté : chaque rang est posé sur sa propre tablette, au-dessus du précédent, pour lire toutes les bouteilles. */
 function geometrieCasier(profs, eclate = false, avecRetires = false) {
-  const places = [], tablettes = [];
+  const places = [], tablettes = [], supports = [];
   let monte = 0;  // éclaté : hauteur déjà occupée par les rangs de devant
   profs.forEach((prof, i) => {
     const p = i + 1, pas = pasEtage(prof), long = allonge(prof);
+    const allongeAlternee = prof.sens === "allonge_alterne" || prof.sens === "allonge_alterne_inverse";
+    const pasLargeur = allongeAlternee ? 2.55 : PAS_ALLONGE;
     const dx = i * DECALAGE_RANG, dy = eclate ? -monte : -i * DECALAGE_RANG;
     for (let etage = 1; etage <= prof.hauteur; etage++) {
       const niveau = prof.hauteur - etage;  // 0 = posé sur la tablette
@@ -1503,19 +1508,28 @@ function geometrieCasier(profs, eclate = false, avecRetires = false) {
       for (let col = 1; col <= prof.largeur; col++) {
         const retire = (prof.sans || []).some(([e, c]) => e === etage && c === col);
         if (retire && !avecRetires) continue;
+        const decalageAlternee = allongeAlternee && col % 2 === 0 ? (prof.sens === "allonge_alterne_inverse" ? -0.35 : 0.35) : 0;
         places.push({ p, etage, col, retire, rangee: i * PAS_PROFONDEUR + etage, w: long ? LONGUEUR_ALLONGE : 1, ...vuePlace(prof, col),
-          x: (col - 1) * (long ? PAS_ALLONGE : 1) + quinconce + dx, y: -niveau * pas + dy, z: (profs.length - p) * 200 + niveau + 1 });
+          x: (col - 1) * (long ? pasLargeur : 1) + quinconce + dx, y: -niveau * pas + dy + decalageAlternee, z: (profs.length - p) * 200 + niveau + 1 });
+      }
+      if (allongeAlternee) {
+        for (let col = 1; col < prof.largeur; col++) {
+          supports.push({ p, x: (col - 1) * pasLargeur + (pasLargeur + LONGUEUR_ALLONGE) / 2 + dx - 0.12,
+          y: -niveau * pas + dy - (prof.sens === "allonge_alterne_inverse" ? 0.37 : 0.02),
+          z: (profs.length - p) * 200 + niveau, h: 1.15 });
+        }
       }
     }
     const rang = places.filter((q) => q.p === p);
     const gauche = Math.min(...rang.map((q) => q.x)), droite = Math.max(...rang.map((q) => q.x + q.w));
-    tablettes.push({ p, x: gauche, largeur: droite - gauche, y: dy + 0.92, z: (profs.length - p) * 200 });
+    tablettes.push({ p, x: gauche, largeur: droite - gauche, y: dy + 0.92, z: (profs.length - p) * 200,
+      verticale: allongeAlternee });
     monte += (prof.hauteur - 1) * pas + 1 + ECART_ECLATE;
   });
-  if (!places.length) return { places, tablettes, largeur: 0, hauteur: 0 };
+  if (!places.length) return { places, tablettes, supports, largeur: 0, hauteur: 0 };
   const x0 = Math.min(...places.map((q) => q.x)), y0 = Math.min(...places.map((q) => q.y));
-  [...places, ...tablettes].forEach((q) => { q.x -= x0; q.y -= y0; });
-  return { places, tablettes, largeur: Math.max(...places.map((q) => q.x + q.w)) + (eclate && profs.length > 1 ? 0.9 : 0.15), hauteur: Math.max(...places.map((q) => q.y)) + 1.08 };
+  [...places, ...tablettes, ...supports].forEach((q) => { q.x -= x0; q.y -= y0; });
+  return { places, tablettes, supports, largeur: Math.max(...places.map((q) => q.x + q.w)) + (eclate && profs.length > 1 ? 0.9 : 0.15), hauteur: Math.max(...places.map((q) => q.y)) + 1.08 };
 }
 
 /** Un casier dessiné : les bouteilles couchées, rang par rang, posées sur leur tablette.
@@ -1538,8 +1552,12 @@ function dessinerCasier(k, { surligne = null, choix = false, apercu = false, ecl
   // tablettes en bois, une par rang (celles de derrière n'apparaissent qu'en vue éclatée)
   g.tablettes.forEach((t, i) => {
     const te = ge.tablettes[i];
-    h += `<span class="tablette${i ? " arriere" : ""}" data-p="${t.p}" style="${vars(t, te)};--l:${t.largeur.toFixed(3)};z-index:${t.z}"></span>`;
+    if (!t.verticale) h += `<span class="tablette${i ? " arriere" : ""}" data-p="${t.p}" style="${vars(t, te)};--l:${t.largeur.toFixed(3)};z-index:${t.z}"></span>`;
     if (multi && !apercu) h += `<span class="nom-rang" data-p="${t.p}" style="${vars(t, te)};--l:${t.largeur.toFixed(3)}">${noms[i]}</span>`;
+  });
+  g.supports.forEach((s, i) => {
+    const se = ge.supports[i];
+    h += `<span class="tablette verticale${s.p > 1 ? " arriere" : ""}" data-p="${s.p}" style="${vars(s, se)};--h-support:${s.h};z-index:${s.z}"></span>`;
   });
   // repères de chaque rang : numéros de colonne en haut, lettre de chaque étage à gauche
   // (vue normale : ceux du rang de devant ; vue éclatée : ceux de chaque rang)
@@ -1599,7 +1617,7 @@ function configurateurDisposition(zone, initiales) {
     profs.forEach((p) => { p.sans = (p.sans || []).filter(([e, c]) => e <= p.hauteur && c <= p.largeur); });
     const retires = profs.reduce((n, p) => n + p.sans.length, 0);
     const total = profs.reduce((n, p) => n + p.largeur * p.hauteur - p.sans.length, 0);
-    const miniSens = (sens) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: sens.startsWith("allonge") ? 1 : 2, hauteur: 1, empilement: "aligne", sens }] }, { apercu: true });
+    const miniSens = (sens) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: sens.startsWith("allonge") && !sens.startsWith("allonge_alterne") ? 1 : 2, hauteur: 1, empilement: "aligne", sens }] }, { apercu: true });
     const mini = (emp) => dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: [{ largeur: 2, hauteur: 2, empilement: emp }] }, { apercu: true });
     zone.innerHTML = `<div class="configurateur">
       <div class="apercu-disposition" aria-hidden="true">${dessinerCasier({ id: "", nom: "", parent_id: 1, profondeurs: profs }, { apercu: true, eclate: true })}</div>
