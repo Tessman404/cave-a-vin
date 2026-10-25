@@ -1,4 +1,4 @@
-/* Tessvine — traduction de l'interface (français → anglais).
+/* Tessvine — traduction de l'interface (français → anglais et italien).
  *
  * L'application est écrite en français. En anglais, chaque texte affiché (nœuds de texte, placeholder, aria-label,
  * title, alt) est traduit au moment où il apparaît : d'abord par correspondance exacte, puis par motifs (phrases avec
@@ -10,12 +10,41 @@
 const I18N = (() => {
   const lire = (cle) => { try { return localStorage.getItem(cle) || ""; } catch { return ""; } };
   const ecrire = (cle, v) => { try { v ? localStorage.setItem(cle, v) : localStorage.removeItem(cle); } catch { /* navigation privée */ } };
-  const choix = lire("tessvine-langue");  // "", "fr" ou "en"
-  const auto = /^fr\b/i.test(navigator.language || "fr") ? "fr" : "en";
-  const langue = choix === "fr" || choix === "en" ? choix : auto;
+  const choix = lire("tessvine-langue");  // "", "fr", "en" ou "it"
+  const auto = /^(fr|it)\b/i.exec(navigator.language || "fr")?.[1] || "en";
+  const langue = ["fr", "en", "it"].includes(choix) ? choix : auto;
   const DEVISES = { EUR: "€", USD: "$", GBP: "£", CHF: "CHF" };
   const devise = DEVISES[lire("tessvine-devise")] ? lire("tessvine-devise") : (langue === "en" && /US/.test(navigator.language || "") ? "USD" : "EUR");
-  const locale = langue === "fr" ? "fr-FR" : (navigator.language && /^en/i.test(navigator.language) ? navigator.language : "en-US");
+  const locale = langue === "fr" ? "fr-FR" : langue === "it" ? "it-IT" : (navigator.language && /^en/i.test(navigator.language) ? navigator.language : "en-US");
+
+  // Traduzioni delle schermate principali. Il testo originale francese resta
+  // disponibile come fallback per le frasi meno frequenti.
+  const IT = {
+    "Accueil":"Home", "Mes vins":"I miei vini", "Plan de cave":"Mappa della cantina", "Ajouter":"Aggiungi", "Mets & Vins":"Cibo e vino",
+    "Statistiques":"Statistiche", "Envies":"Lista dei desideri", "Historique":"Cronologia", "Réglages":"Impostazioni", "Plus":"Altro",
+    "Plus de pages":"Altre pagine", "Navigation principale":"Navigazione principale", "Ajouter un vin":"Aggiungi un vino", "Cave":"Cantina",
+    "Collection":"Collezione", "Votre cave":"La tua cantina", "Accords":"Abbinamenti", "Nouvelle référence":"Nuovo vino",
+    "À acheter, à goûter":"Da acquistare e assaggiare", "Entrées et sorties":"Entrate e uscite", "Chargement…":"Caricamento…", "Oups":"Ops", "Retour à l'accueil":"Torna alla home",
+    "bouteilles dans votre cave":"bottiglie nella tua cantina", "bouteille dans votre cave":"bottiglia nella tua cantina", "références":"vini", "référence":"vino",
+    "valeur estimée":"valore stimato", "payé":"speso", "payé (prix connus)":"speso (prezzi noti)", "à ranger ›":"da sistemare ›",
+    "Bouteilles sans emplacement sur le plan":"Bottiglie senza posizione sulla mappa", "Valeur de marché indicative, souvent estimée par l'IA":"Valore di mercato indicativo, spesso stimato dall'IA",
+    "Prix d'achat de toutes les bouteilles":"Prezzo d'acquisto di tutte le bottiglie", "Ranger celle-ci":"Sistema questa", "Choisir un autre vin":"Scegli un altro vino",
+    "À boire vite":"Da bere presto", "Prêts à boire":"Pronti da bere", "Réservés pour une occasion":"Riservati per un'occasione",
+    "Climat de la cave":"Clima della cantina", "Température":"Temperatura", "Humidité":"Umidità", "Bienvenue dans votre cave":"Benvenuto nella tua cantina",
+    "Créer une cave":"Crea una cantina", "Aujourd'hui":"Oggi", "aujourd'hui":"oggi", "demain":"domani", "passée":"passata",
+    "À garder":"Da conservare", "Prêt à boire":"Pronto da bere", "À l'apogée":"Al suo apice", "Après l'apogée":"Oltre l'apice", "Garde dépassée":"Periodo di consumo superato", "Garde inconnue":"Periodo di consumo sconosciuto",
+    "Rouge":"Rosso", "Blanc":"Bianco", "Rosé":"Rosato", "Effervescent":"Spumante", "Liquoreux / moelleux":"Passito / dolce", "Autre":"Altro",
+    "Achat":"Acquisto", "Cadeau":"Regalo", "Inventaire":"Inventario", "Transfert":"Trasferimento", "Bue":"Bevuta", "Offerte":"Regalata", "Vendue":"Venduta", "Cassée / bouchonnée":"Rotta / sa di tappo", "Erreur de saisie":"Errore di inserimento",
+    "Toutes":"Tutte", "Toutes couleurs":"Tutti i colori", "Toutes gardes":"Tutti i periodi", "Toutes caves":"Tutte le cantine", "En cave":"In cantina", "Épuisés":"Esauriti", "Tous":"Tutti",
+    "Tri : nom":"Ordina: nome", "Tri : millésime":"Ordina: annata", "Tri : région":"Ordina: regione", "Tri : à boire en premier":"Ordina: da bere prima", "Tri : quantité":"Ordina: quantità", "Tri : valeur":"Ordina: valore", "Tri : derniers ajouts":"Ordina: aggiunti di recente",
+    "Sortir par code-barres":"Scarica con codice a barre", "Rechercher":"Cerca", "Couleur":"Colore", "Garde":"Periodo di consumo", "Stock":"Scorte", "Tri":"Ordina", "Tout afficher":"Mostra tutto",
+    "Aucun résultat":"Nessun risultato", "Aucun vin ne correspond à ces critères.":"Nessun vino corrisponde a questi criteri.", "bouteille":"bottiglia", "bouteilles":"bottiglie", "Favori":"Preferito", "♥ Favori":"♥ Preferito",
+    "Photo de l'étiquette":"Foto dell'etichetta", "Changer la photo":"Cambia foto", "Fond":"Sfondo", "Retirer":"Rimuovi", "Agrandir":"Ingrandisci", "Bouteilles en cave":"Bottiglie in cantina", "bouteilles en cave":"bottiglie in cantina", "Sortir une bouteille":"Scarica una bottiglia", "Ajouter une bouteille":"Aggiungi una bottiglia", "Déguster / sortir":"Degusta / scarica", "Ajouter des bouteilles":"Aggiungi bottiglie", "Modifier":"Modifica", "Supprimer":"Elimina", "Caractéristiques":"Dettagli", "Appellation":"Denominazione", "Région":"Regione", "Pays":"Paese", "Cépages":"Vitigni", "Format":"Formato", "Degré":"Gradazione", "Prix d'achat":"Prezzo d'acquisto", "Valeur estimée":"Valore stimato", "Fournisseur":"Fornitore", "À boire":"Da bere", "Apogée":"Apice", "Notes":"Note", "Emplacements":"Posizioni", "Historique & dégustations":"Cronologia e degustazioni", "Date":"Data", "Mouvement":"Movimento", "Note":"Voto", "Commentaire":"Commento", "Aucun mouvement.":"Nessun movimento.", "Non rangée":"Non sistemata", "Fermer":"Chiudi",
+    "Fiche du vin":"Scheda del vino", "Modifier le vin":"Modifica vino", "Identité":"Identità", "Nom de la cuvée *":"Nome del vino *", "Domaine / producteur":"Tenuta / produttore", "Millésime":"Annata", "Non millésimé":"Senza annata", "Degré (%)":"Gradazione (%)", "Code-barres":"Codice a barre", "Achat & valeur":"Acquisto e valore", "Nombre de bouteilles":"Numero di bottiglie", "Ranger dans":"Sistema in", "Non rangées":"Non sistemate", "Raison":"Motivo", "Accords mets & vins":"Abbinamenti cibo e vino", "Note personnelle":"Nota personale", "Enregistrer":"Salva", "Ajouter à ma cave":"Aggiungi alla mia cantina", "Annuler":"Annulla",
+    "Photographier la bouteille":"Fotografa la bottiglia", "Saisir à la main":"Inserisci manualmente", "Formulaire complet":"Modulo completo", "Continuer":"Continua", "Ignorer":"Ignora", "Photo de la bouteille":"Foto della bottiglia", "Voir la fiche":"Visualizza scheda",
+    "Scanner la bouteille":"Scansiona la bottiglia", "Photographier le code-barres":"Fotografa il codice a barre", "OK":"OK", "Valider la sortie":"Conferma uscita", "Nouvelle cave":"Nuova cantina", "Étagère":"Scaffale", "Supprimer la cave":"Elimina cantina", "Affichage":"Visualizzazione", "Plan":"Mappa", "Liste":"Elenco", "Déplacer":"Sposta", "Ranger":"Sistema", "Arrêter":"Interrompi", "Fiche":"Scheda",
+    "Sauvegarde & import":"Backup e importazione", "Exporter en CSV (Excel)":"Esporta in CSV (Excel)", "Sauvegarde complète (JSON)":"Backup completo (JSON)", "Choisir le fond":"Scegli lo sfondo", "Apparence":"Aspetto", "Langue":"Lingua", "Automatique":"Automatico", "Devise":"Valuta", "Affichage ":"Visualizzazione ", "Langue et devise de cet appareil. La devise ne change que l'affichage des prix, pas leurs montants.":"Lingua e valuta di questo dispositivo. La valuta cambia solo la visualizzazione dei prezzi, non i relativi importi.", "Réglages enregistrés":"Impostazioni salvate", "Français":"Francese", "Anglais":"Inglese", "Italien":"Italiano"
+  };
 
   /* ---------------------------------------------------------------- correspondances exactes */
   const EXACT = {
@@ -462,14 +491,15 @@ const I18N = (() => {
     const t = texte.trim();
     if (!t || !/[A-Za-zÀ-ÿ]/.test(t)) return texte;
     if (cache.has(t)) return remettre(texte, t, cache.get(t));
-    let r = EXACT[t];
-    if (r === undefined) {
+    let r = langue === "it" ? IT[t] : EXACT[t];
+    if (langue === "it" && r === undefined) r = t;
+    if (langue !== "it" && r === undefined) {
       for (const [motif, f] of MOTIFS) {
         const m = t.match(motif);
         if (m) { const v = f(m); if (v != null) { r = v; break; } }
       }
     }
-    if (r === undefined) {
+    if (langue !== "it" && r === undefined) {
       let v = t;
       for (const [a, b] of PARTIELS) if (v.includes(a)) v = v.split(a).join(b);
       r = v;
