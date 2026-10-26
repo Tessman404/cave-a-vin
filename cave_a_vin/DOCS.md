@@ -12,7 +12,7 @@ Gérez votre cave à vin depuis Home Assistant : inventaire, plan de cave, fenê
 
 ## Ajouter un vin
 
-Bouton **+ Ajouter** : photographiez l'étiquette, puis le verso (facultatif) : l'IA remplit la fiche et le code-barres est lu sur le verso. Choisissez ensuite les places sur le plan de cave.
+Bouton **+ Ajouter** : photographiez l'étiquette, puis le verso (facultatif), ou utilisez **Choisir 2 photos** (un emplacement pour l'étiquette, un pour le verso, puis Importer) : l'IA remplit la fiche et le code-barres est lu sur le verso. Choisissez ensuite les places sur le plan de cave.
 
 - **Lecture d'étiquette** : utilise l'IA de Home Assistant (action « AI Task », Home Assistant 2025.8 ou plus récent,
   avec une IA qui comprend les images : OpenAI, Google Gemini, Anthropic, Ollama avec un modèle de vision…).
