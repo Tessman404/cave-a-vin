@@ -78,11 +78,17 @@ def verifier(app, aujourdhui=None):
     choisis = vins_a_rappeler(app.db, aujourdhui)
     if not choisis:
         return 0
-    en = reglages.get("langue") == "en"
+    langue = reglages.get("langue")
+    en, it = langue == "en", langue == "it"
     lignes = [f"• {v['nom']}{' ' + str(v['millesime']) if v['millesime'] else ''} "
-              f"({v['stock']} {'btl' if en else 'bout.'})"
-              + ((" : last reminder" if en else " : dernier rappel") if n == RAPPELS_MAX else "") for v, n in choisis]
-    if en:
+              f"({v['stock']} {'btl' if en else 'bott.' if it else 'bout.'})"
+              + ((" : last reminder" if en else ": ultimo promemoria" if it else " : dernier rappel") if n == RAPPELS_MAX else "")
+              for v, n in choisis]
+    if it:
+        titre = ("🍷 Un vino sta per uscire dal suo periodo di consumo" if len(choisis) == 1
+                 else f"🍷 {len(choisis)} vini stanno per uscire dal loro periodo di consumo")
+        message = f"Da bere entro la fine del {aujourdhui.year}:\n" + "\n".join(lignes)
+    elif en:
         titre = ("🍷 A wine is reaching the end of its window" if len(choisis) == 1
                  else f"🍷 {len(choisis)} wines are reaching the end of their window")
         message = f"Drink before the end of {aujourdhui.year}:\n" + "\n".join(lignes)
@@ -124,7 +130,11 @@ def verifier_occasions(app, aujourdhui=None):
     for v, jour in choisis:
         dans = (jour - aujourdhui).days
         vin = f"{v['nom']}{' ' + str(v['millesime']) if v['millesime'] else ''}"
-        if reglages.get("langue") == "en":
+        if reglages.get("langue") == "it":
+            quand = "oggi" if dans == 0 else "domani" if dans == 1 else f"tra {dans} giorni"
+            titre = f"📌 {v['note_perso']}: {quand}"
+            message = f"Ricordati di tirare fuori {vin} per il {jour.strftime('%d/%m')}."
+        elif reglages.get("langue") == "en":
             quand = "today" if dans == 0 else "tomorrow" if dans == 1 else f"in {dans} days"
             titre = f"📌 {v['note_perso']}: {quand}"
             message = f"Remember to take out {vin} for {jour.strftime('%B %-d')}."
@@ -148,11 +158,16 @@ def verifier_filtres(app, aujourdhui=None):
     if not service:
         return 0
     aujourdhui = aujourdhui or date.today()
-    en = reglages.get("langue") == "en"
+    en, it = reglages.get("langue") == "en", reglages.get("langue") == "it"
     choisis = [f for f in cave.etat_filtres(app.db, aujourdhui) if f["echeance"] and f["a_changer"] and f["rappel"] != f["echeance"]]
     for f in choisis:
         j = f["jours"]
-        if en:
+        if it:
+            quand = "oggi" if j == 0 else f"tra {j} giorni" if j > 0 else f"da {-j} giorni"
+            titre = f"🍷 {f['nom']}: filtro a carbone da sostituire"
+            message = (f"Il filtro a carbone va sostituito {quand}." if j >= 0 else f"Il filtro a carbone è scaduto {quand}.") \
+                + " Tocca « Filtro sostituito » in Tessvine quando hai fatto."
+        elif en:
             quand = "today" if j == 0 else f"in {j} days" if j > 0 else f"{-j} days ago"
             titre = f"🍷 {f['nom']}: carbon filter to replace"
             message = f"The carbon filter is due {quand}. Tap “Filter replaced” in Tessvine once it's done."

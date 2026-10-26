@@ -21,7 +21,12 @@ log = logging.getLogger("cave_a_vin")
 SOUS_DOSSIER = "cave_a_vin"
 def langue_texte(reglages):
     """Langue des textes libres renvoyés par l'IA (notes, justification) : celle de l'interface."""
-    return "in English (for an English-speaking user)" if (reglages or {}).get("langue") == "en" else "en français"
+    langue = (reglages or {}).get("langue")
+    if langue == "en":
+        return "in English (for an English-speaking user)"
+    if langue == "it":
+        return "en italien (pour un utilisateur italophone)"
+    return "en français"
 
 
 INSTRUCTIONS = (

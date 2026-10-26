@@ -43,7 +43,7 @@ Ce qu'il fait :
 - **statistiques** : bouteilles, valeur estimée et prix payé, répartition par couleur, région, millésime, garde et cave, **classement des vins par prix** ; chaque ligne ouvre les vins correspondants ;
 - **liste d'envies** (vins à acheter), visible aussi dans Home Assistant ;
 - **sauvegarde** : export CSV (Excel), sauvegarde complète JSON, import CSV ;
-- **en français ou en anglais** selon l'appareil, devise réglable (€, $, £, CHF) ;
+- **en français, en anglais ou en italien** selon l'appareil, devise réglable (€, $, £, CHF) ;
 - fonctionne sur ordinateur, tablette et téléphone, en thème clair (ivoire) ou sombre (anthracite) selon l'appareil ;
 - **léger** : Python, tourne sur un Raspberry Pi 4 ou 5 ; le détourage des photos se fait sur votre installation, sans service extérieur.
 

@@ -471,8 +471,9 @@ def _test_notification(app, req):
         raise ErreurAPI("Choisissez d'abord où envoyer les notifications")
     try:
         r = app.reglages()
-        alertes.envoyer(r, service, "🍷 Tessvine", "End-of-window notifications will arrive here." if r.get("langue") == "en"
-                        else "Les notifications de fin de garde arriveront ici.")
+        alertes.envoyer(r, service, "🍷 Tessvine", {"en": "End-of-window notifications will arrive here.",
+                                                   "it": "Le notifiche di fine periodo arriveranno qui."}.get(
+                        r.get("langue"), "Les notifications de fin de garde arriveront ici."))
     except Exception as e:  # noqa: BLE001
         raise ErreurAPI(f"Envoi impossible : {e}", 502)
     return {"ok": True}

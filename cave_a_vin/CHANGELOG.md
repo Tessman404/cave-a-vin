@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.19.0
+
+- **Tessvine parle italien** 🇮🇹 grâce à une contribution de Matteo Alessani (merci !), complétée pour couvrir toute
+  l'application : écrans, fenêtres, messages d'erreur, étapes de la photo, filtre à charbon. L'italien s'active tout
+  seul sur un appareil réglé en italien, ou dans Réglages → Affichage → Langue. L'IA remplit les fiches en italien et
+  les notifications Home Assistant (fin de garde, occasion, filtre) arrivent en italien. Les écrans d'installation de
+  l'application et de l'intégration dans Home Assistant sont aussi traduits.
+
 ## 1.18.0
 
 - **Retirer des emplacements** dans « Personnalisez votre rangée » : bouton « Retirer des emplacements », puis touchez
