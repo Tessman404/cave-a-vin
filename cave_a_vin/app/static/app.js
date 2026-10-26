@@ -1294,6 +1294,8 @@ async function pageAjouter(main) {
       <label class="carte tuile-ajout"><span class="icone">${ic("camera")}</span><b>Photographier la bouteille</b>
         <span class="muted">D'abord l'étiquette, puis le verso${CAPACITES.ia.possible ? " : l'IA remplit la fiche et trouve le code-barres" : ""}${CAPACITES.detourage ? ". La bouteille est détourée et posée sur un fond de cave" : ""}</span>
         <input type="file" accept="image/*" capture="environment" hidden id="t-photo"></label>
+      <a class="carte tuile-ajout" href="#/ajouter" id="t-galerie"><span class="icone">${ic("camera")}</span><b>Choisir 2 photos (étiquette + verso)</b>
+        <span class="muted">Une photo pour l'étiquette, une pour le verso (facultatif), puis une seule lecture</span></a>
       <a class="carte tuile-ajout secondaire" href="#/vins/nouveau" id="t-main"><span class="icone">${ic("crayon")}</span><b>Saisir à la main</b><span class="muted">Formulaire complet</span></a>
     </div>
     ${avertissementAndroid()}
@@ -1319,7 +1321,7 @@ async function pageAjouter(main) {
     $("#v-ignorer", zone).onclick = () => { zone.hidden = true; resolve(null); };
   });
 
-  const traiterPhoto = async (fichier) => {
+  const traiterPhoto = async (fichier, fichierVersoFourni = null) => {
     resultat.innerHTML = `<div class="carte traitement"><div class="apercu-ajout"><img id="apercu" alt="Photo de la bouteille"></div>
       <ul class="liste etapes"><li id="e-envoi">◌ Envoi de la photo…</li>
       ${CAPACITES.detourage ? `<li id="e-detour">◌ Détourage de la bouteille…</li>` : ""}
@@ -1354,12 +1356,18 @@ async function pageAjouter(main) {
       .finally(() => clearTimeout(lent));
 
     // le verso pendant que le détourage tourne
-    const fichierVerso = await demanderVerso();
+    const fichierVerso = fichierVersoFourni || await demanderVerso();
     let verso = null, codeVerso = null;
     if (fichierVerso) {
       etape("e-verso", "◌ Lecture du verso…");
-      [verso, codeVerso] = await Promise.all([redimensionner(fichierVerso, 1600), decoderImage(fichierVerso).catch(() => null)]);
-      etape("e-verso", codeVerso ? `✓ Verso reçu, code-barres ${codeVerso}` : "✓ Verso reçu");
+      try {
+        [verso, codeVerso] = await Promise.all([redimensionner(fichierVerso, 1600), decoderImage(fichierVerso).catch(() => null)]);
+        etape("e-verso", codeVerso ? `✓ Verso reçu, code-barres ${codeVerso}` : "✓ Verso reçu");
+      } catch {
+        verso = null;
+        codeVerso = null;
+        etape("e-verso", "– Verso illisible, ignoré");
+      }
     } else {
       etape("e-verso", "– Verso ignoré");
     }
@@ -1407,6 +1415,42 @@ async function pageAjouter(main) {
       $("#apercu", resultat).src = avecCle(`api/brouillons/${ident}/image?fond=${choix}&cadrage=${cadrage}`);
     }, avecCle(`api/brouillons/${ident}/image`), ajout.cadrage);
   };
+
+  // deux emplacements, une photo chacun : la sélection multiple n'est pas transmise par tous les WebView
+  const choisirPaire = () => {
+    const paire = [null, null];
+    let urls = [];
+    const liberer = () => { urls.forEach((u) => URL.revokeObjectURL(u)); urls = []; };
+    const noms = ["Étiquette", "Verso"];
+    // le sélecteur de fichiers de l'application Home Assistant ne transmet pas une sélection multiple
+    const appHA = /Home Assistant\//.test(navigator.userAgent);
+    const afficher = () => {
+      liberer();
+      urls = paire.map((f) => (f ? URL.createObjectURL(f) : null));
+      resultat.innerHTML = `<div class="carte confirm-paire"><div class="paire-vignettes">
+        ${noms.map((nom, i) => `<figure><label class="emplacement">${urls[i] ? `<img src="${urls[i]}" alt="${nom}">` : `<span class="vide">${ic("camera")}<span>Choisir la photo</span></span>`}
+          <input type="file" accept="image/*" hidden data-i="${i}"></label><figcaption>${nom}</figcaption></figure>`).join("")}</div>
+        ${appHA ? "" : `<div class="actions"><label class="bouton">Choisir les 2 d'un coup<input type="file" accept="image/*" multiple hidden id="p-multiple"></label></div>`}
+        <div class="actions"><button class="bouton" id="p-inverser"${paire[0] && paire[1] ? "" : " disabled"}>Inverser</button>
+          <button class="bouton" id="p-annuler">Annuler</button>
+          <button class="bouton primaire" id="p-importer"${paire[0] ? "" : " disabled"}>Importer</button></div></div>`;
+      $$("img", resultat).forEach((img) => { img.onerror = () => img.replaceWith(Object.assign(document.createElement("span"), { className: "muted", textContent: img.alt })); });
+      $$("input[type=file]", resultat).forEach((input) => {
+        input.onchange = () => { if (input.files[0]) { paire[Number(input.dataset.i)] = input.files[0]; afficher(); } };
+      });
+      const multiple = $("#p-multiple", resultat);
+      if (multiple) multiple.onchange = (e) => {
+        const f = [...e.target.files].slice(0, 2);
+        if (f.length) { paire[0] = f[0]; paire[1] = f[1] || paire[1]; afficher(); }
+      };
+      $("#p-inverser", resultat).onclick = () => { paire.reverse(); afficher(); };
+      $("#p-annuler", resultat).onclick = () => { liberer(); resultat.innerHTML = ""; };
+      $("#p-importer", resultat).onclick = () => { liberer(); traiterPhoto(paire[0], paire[1]); };
+    };
+    afficher();
+    montrer();
+  };
+  $("#t-galerie", main).onclick = (e) => { e.preventDefault(); choisirPaire(); };
 
   $("#t-photo", main).onchange = (e) => e.target.files[0] && traiterPhoto(e.target.files[0]);
   $("#t-photo", main).closest("label").addEventListener("click", async (e) => {
