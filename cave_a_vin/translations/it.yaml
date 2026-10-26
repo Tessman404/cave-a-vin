@@ -1,0 +1,11 @@
+configuration:
+  api_key:
+    name: Chiave API (facoltativa)
+    description: >-
+      Protegge l'accesso diretto alla cantina (porta 8099 e integrazione). L'accesso dal pannello
+      Home Assistant non cambia. Se impostata, inseriscila anche nell'integrazione.
+  log_level:
+    name: Livello di registro
+    description: Quantità di dettagli da registrare nel log del componente aggiuntivo.
+network:
+  8099/tcp: Accesso diretto dalla rete locale (facoltativo)

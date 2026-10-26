@@ -2573,7 +2573,8 @@ async function pageReglages(main) {
           <label>Langue<select name="langue">
             <option value=""${!I18N.choix ? " selected" : ""}>Automatique</option>
             <option value="fr"${I18N.choix === "fr" ? " selected" : ""} translate="no">Français</option>
-            <option value="en"${I18N.choix === "en" ? " selected" : ""} translate="no">English</option></select></label>
+            <option value="en"${I18N.choix === "en" ? " selected" : ""} translate="no">English</option>
+            <option value="it"${I18N.choix === "it" ? " selected" : ""} translate="no">Italiano</option></select></label>
           <label>Devise<select name="devise">${Object.entries(I18N.DEVISES).map(([c, sym]) => `<option value="${c}"${c === I18N.devise ? " selected" : ""} translate="no">${sym === c ? c : `${sym} ${c}`}</option>`).join("")}</select></label>
           <p class="large muted petit-texte" style="margin:0">Langue et devise de cet appareil. La devise ne change que l'affichage des prix, pas leurs montants.</p>
         </form></div>
@@ -2585,7 +2586,7 @@ async function pageReglages(main) {
   $("#affichage", main).onchange = async (e) => {
     const f = Object.fromEntries(new FormData(e.currentTarget));
     I18N.regler(f.langue, f.devise);
-    const langue = f.langue || (/^fr\b/i.test(navigator.language || "fr") ? "fr" : "en");
+    const langue = f.langue || (/^(fr|it)\b/i.exec(navigator.language || "fr")?.[1] || "en");
     try { await api("PUT", "reglages", { langue }); } catch { /* la langue de l'appareil reste appliquée */ }
     location.reload();
   };

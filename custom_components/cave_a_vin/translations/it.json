@@ -1,0 +1,242 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Aggiungi la tua cantina",
+        "description": "Indirizzo dell’app Tessvine. Con il componente aggiuntivo, usa http://<nome-host>:8099 (scheda Informazioni del componente).",
+        "data": {
+          "url": "Indirizzo",
+          "api_key": "Chiave API (se impostata)"
+        }
+      },
+      "hassio_confirm": {
+        "title": "Cantina trovata",
+        "description": "Componente aggiuntivo Tessvine trovato. Aggiungerlo a Home Assistant?"
+      },
+      "reauth_confirm": {
+        "title": "Chiave API",
+        "description": "La chiave API della cantina è cambiata. Inserisci quella nuova.",
+        "data": {
+          "api_key": "Chiave API"
+        }
+      },
+      "reconfigure": {
+        "title": "Modifica connessione",
+        "data": {
+          "url": "Indirizzo",
+          "api_key": "Chiave API (lascia vuoto per mantenerla)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile raggiungere la cantina a questo indirizzo.",
+      "invalid_auth": "Chiave API non valida."
+    },
+    "abort": {
+      "already_configured": "Questa cantina è già configurata.",
+      "reauth_successful": "Chiave API aggiornata.",
+      "reconfigure_successful": "Connessione aggiornata."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "bouteilles": {
+        "name": "Bottiglie"
+      },
+      "references": {
+        "name": "Vini"
+      },
+      "valeur": {
+        "name": "Valore della cantina"
+      },
+      "a_boire": {
+        "name": "Pronti da bere"
+      },
+      "a_boire_vite": {
+        "name": "Da bere presto"
+      },
+      "bues_annee": {
+        "name": "Bevute quest’anno"
+      },
+      "dernier_mouvement": {
+        "name": "Ultimo movimento"
+      },
+      "filtre": {
+        "name": "Filtro a carbone {nom}"
+      }
+    },
+    "todo": {
+      "envies": {
+        "name": "Lista dei desideri"
+      }
+    }
+  },
+  "exceptions": {
+    "pas_de_cave": {
+      "message": "Nessuna cantina configurata o disponibile."
+    }
+  },
+  "selector": {
+    "raison_sortie": {
+      "options": {
+        "bue": "Bevuta",
+        "offerte": "Regalata",
+        "cassee": "Rotta / sa di tappo",
+        "vendue": "Venduta",
+        "autre": "Altro"
+      }
+    },
+    "raison_entree": {
+      "options": {
+        "achat": "Acquisto",
+        "cadeau": "Regalo",
+        "inventaire": "Inventario",
+        "autre": "Altro"
+      }
+    },
+    "plat": {
+      "options": {
+        "viande_rouge": "Carne rossa / selvaggina",
+        "viande_blanche": "Pollame / carne bianca",
+        "poisson": "Pesce",
+        "fruits_de_mer": "Frutti di mare",
+        "fromage": "Formaggio",
+        "dessert": "Dessert",
+        "aperitif": "Aperitivo",
+        "epice": "Cibo speziato",
+        "barbecue": "Barbecue",
+        "vegetarien": "Vegetariano",
+        "boeuf": "Manzo",
+        "agneau": "Agnello",
+        "canard": "Anatra",
+        "gibier": "Selvaggina",
+        "volaille": "Pollame",
+        "porc": "Maiale e salumi",
+        "foie_gras": "Foie gras",
+        "pates_pizza": "Pasta e pizza"
+      }
+    },
+    "couleur": {
+      "options": {
+        "rouge": "Rosso",
+        "blanc": "Bianco",
+        "rose": "Rosato",
+        "effervescent": "Spumante",
+        "liquoreux": "Dolce",
+        "autre": "Altro"
+      }
+    }
+  },
+  "services": {
+    "sortir_bouteille": {
+      "name": "Scarica una bottiglia",
+      "description": "Rimuove bottiglie dalla cantina, con valutazione e commento facoltativi.",
+      "fields": {
+        "vin_id": {
+          "name": "ID del vino",
+          "description": "Numero del vino (visibile nell’indirizzo della scheda o reperibile con l’azione «Cerca vino»)."
+        },
+        "quantite": {
+          "name": "Quantità",
+          "description": "Numero di bottiglie."
+        },
+        "raison": {
+          "name": "Motivo",
+          "description": "Perché la bottiglia esce."
+        },
+        "note": {
+          "name": "Valutazione",
+          "description": "Valutazione della degustazione da 1 a 5."
+        },
+        "commentaire": {
+          "name": "Commento",
+          "description": "Note di degustazione."
+        },
+        "config_entry_id": {
+          "name": "Cantina",
+          "description": "Cantina da usare se ne hai più di una."
+        }
+      }
+    },
+    "ajouter_bouteilles": {
+      "name": "Aggiungi bottiglie",
+      "description": "Aggiunge bottiglie di un vino già presente (non sistemate).",
+      "fields": {
+        "vin_id": {
+          "name": "ID del vino",
+          "description": "Numero del vino (visibile nell’indirizzo della scheda o reperibile con l’azione «Cerca vino»)."
+        },
+        "quantite": {
+          "name": "Quantità",
+          "description": "Numero di bottiglie."
+        },
+        "raison": {
+          "name": "Motivo",
+          "description": "Provenienza delle bottiglie."
+        },
+        "config_entry_id": {
+          "name": "Cantina",
+          "description": "Cantina da usare se ne hai più di una."
+        }
+      }
+    },
+    "suggerer_vin": {
+      "name": "Suggerisci un vino",
+      "description": "Suggerisce bottiglie da aprire in base al piatto, dando priorità a quelle da bere prima.",
+      "fields": {
+        "plat": {
+          "name": "Piatto",
+          "description": "Cosa stai mangiando."
+        },
+        "couleur": {
+          "name": "Colore",
+          "description": "Limita a un colore."
+        },
+        "nombre": {
+          "name": "Numero",
+          "description": "Numero di suggerimenti."
+        },
+        "config_entry_id": {
+          "name": "Cantina",
+          "description": "Cantina da usare se ne hai più di una."
+        }
+      }
+    },
+    "rechercher_vin": {
+      "name": "Cerca vino",
+      "description": "Cerca vini per nome, tenuta, denominazione, vitigno o annata.",
+      "fields": {
+        "recherche": {
+          "name": "Ricerca",
+          "description": "Parole da cercare."
+        },
+        "inclure_epuises": {
+          "name": "Includi gli esauriti",
+          "description": "Includi i vini senza bottiglie disponibili."
+        },
+        "config_entry_id": {
+          "name": "Cantina",
+          "description": "Cantina da usare se ne hai più di una."
+        }
+      }
+    },
+    "filtre_remplace": {
+      "name": "Filtro a carbone sostituito",
+      "description": "Registra la sostituzione del filtro a carbone di una cantinetta (oggi o nella data indicata) e riprogramma il promemoria.",
+      "fields": {
+        "cave_id": {
+          "name": "ID cantina",
+          "description": "ID della cantinetta (attributo cave_id del sensore del filtro a carbone)."
+        },
+        "date": {
+          "name": "Data",
+          "description": "Data di sostituzione (oggi se lasciata vuota)."
+        },
+        "config_entry_id": {
+          "name": "Cantina",
+          "description": "Cantina da usare se ne hai più di una."
+        }
+      }
+    }
+  }
+}
