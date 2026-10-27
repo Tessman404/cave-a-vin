@@ -16,6 +16,7 @@ const ICONES_STATUT = { trop_jeune: "◷", a_boire: "✓", apogee: "★", declin
 let REF = null;          // référentiel (couleurs, statuts, plats, autocomplétion…)
 let CAPACITES = null;    // détourage, fonds, IA disponibles
 let ajout = null;        // ajout en cours : { champs, code_barre, brouillon, fond, source }
+let boutonADeplacer = null;  // bouteille en cours de déplacement : conservée d'une cave à l'autre (onglets)
 let rangement = null;    // case du plan où ranger le vin en cours d'ajout : { cave_id, cave_nom, rangee, colonne }
 let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", region: "", millesime: "", stock: "1", tri: "nom" };
 
@@ -1875,10 +1876,10 @@ async function pageCaves(main, id, params) {
         ${c.description ? `<p class="muted petit-texte" style="margin:6px 0 0">${esc(c.description)}</p>` : ""}</div>
         <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">${ic("plus")} Rangée</button>` : ""}<button class="bouton petit" id="modifier">${ic("crayon")} Modifier</button><button class="bouton petit discret" id="supprimer" title="Supprimer la cave">${ic("poubelle")}<span class="seul-texte">Supprimer</span></button></div></div>
       ${aRanger.length ? `<p style="margin:0 0 14px"><button type="button" class="pastille-ranger" id="voir-a-ranger">${ic("boite")} ${pluriel(aRanger.length, "bouteille non rangée", "bouteilles non rangées")} <span aria-hidden="true">›</span></button></p>` : ""}
-      <div id="mode-deplacement" hidden><span class="grandit" id="texte-deplacement">Choisissez l'emplacement de destination…</span> <button class="bouton petit" id="annuler-depl">Annuler</button></div>
+      <div id="mode-deplacement" hidden><span class="grandit" id="texte-deplacement">Choisissez l'emplacement de destination…</span> ${c.capacite ? "" : `<button class="bouton petit primaire" id="deplacer-ici">Ranger ici</button> `}<button class="bouton petit" id="annuler-depl">Annuler</button></div>
       ${plan}
       ${vrac.length ? `<h3 style="margin-top:24px">${c.capacite ? "Sans emplacement précis" : "Bouteilles"}</h3><ul class="liste">${Object.values(groupesVrac).map((b) =>
-        `<li class="${b.vin_id === surligne ? "surligne" : ""}"><span class="mini-bouteille">${bouteilleSVG(b, "silhouette")}</span><a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="qte">×${b.n}</span></li>`).join("")}</ul>` : ""}
+        `<li class="${b.vin_id === surligne ? "surligne" : ""}"><span class="mini-bouteille">${bouteilleSVG(b, "silhouette")}</span><a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="qte">×${b.n}</span><button type="button" class="bouton petit" data-deplacer-vrac="${b.id}" title="Déplacer une bouteille vers une autre cave">${ic("deplacer")} Déplacer</button></li>`).join("")}</ul>` : ""}
       ${!c.bouteilles.length && !c.capacite ? `<p class="muted">Aucune bouteille. Ajoutez-en depuis la fiche d'un vin.</p>` : ""}
     </section>`;
   $("#nouvelle", main).onclick = () => dialogueCave();
@@ -1924,18 +1925,40 @@ async function pageCaves(main, id, params) {
   let deplacement = null;
   const finDeplacement = () => {
     deplacement = null;
+    boutonADeplacer = null;
     $("#mode-deplacement", main).hidden = true;
     $$(".case-cave.cible", main).forEach((x) => x.classList.remove("cible"));
   };
   $("#annuler-depl", main).onclick = finDeplacement;
-  const commencerRangement = (b) => {
+  const ici = $("#deplacer-ici", main);
+  if (ici) ici.onclick = async () => {
+    try {
+      await api("PUT", `bouteilles/${deplacement}`, { cave_id: c.id });
+      toast(`Bouteille rangée dans ${c.nom}`);
+      boutonADeplacer = null;
+      route();
+    } catch (err) { toast(err.message, true); finDeplacement(); }
+  };
+  const commencerRangement = (b, defiler = true) => {
+    if (b.cave_id && !b.cave_nom) b = { ...b, cave_nom: b.cave_id === c.id ? c.nom : nomCasier(casierDe(b)) };
     deplacement = b.id;
-    $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement libre où ranger <b>${titreVin(b)}</b>${b.rangee ? ` (actuellement en ${positionCase(b)})` : ""}.`;
+    boutonADeplacer = b;
+    if (!capacite) {  // rangement libre : pas d'emplacement à toucher, on range dans la cave
+      const dejaIci = b.cave_id === c.id;
+      if (ici) ici.hidden = dejaIci;
+      $("#texte-deplacement", main).innerHTML = dejaIci
+        ? `Ouvrez la cave de destination (onglets ci-dessus) pour y déplacer <b>${titreVin(b)}</b>.`
+        : `Ranger <b>${titreVin(b)}</b>${b.cave_nom ? ` (actuellement dans ${esc(b.cave_nom)}${b.rangee ? ", " + positionCase(b) : ""})` : ""} dans <b>${esc(c.nom)}</b>.`;
+      $("#mode-deplacement", main).hidden = false;
+      return;
+    }
+    $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement libre où ranger <b>${titreVin(b)}</b>${b.rangee ? ` (actuellement en ${b.cave_id !== c.id && b.cave_nom ? esc(b.cave_nom) + ", " : ""}${positionCase(b)})` : ""}.`;
     $("#mode-deplacement", main).hidden = false;
     if (vueListe && !vueListe.hidden) changerVue("plan");
     $$(".case-cave:not(.pleine)", main).forEach((x) => x.classList.add("cible"));
-    $("#mode-deplacement", main).scrollIntoView({ behavior: "smooth", block: "start" });
+    if (defiler) $("#mode-deplacement", main).scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  $$("[data-deplacer-vrac]", main).forEach((bt) => { bt.onclick = () => commencerRangement(parId.get(+bt.dataset.deplacerVrac)); });
   const voirARanger = () => {
     const groupes = {};
     aRanger.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, ids: [] }; groupes[b.vin_id].ids.push(b); });
@@ -1987,6 +2010,7 @@ async function pageCaves(main, id, params) {
       try {
         await api("PUT", `bouteilles/${deplacement}`, { cave_id: k.id, rangee: +bouton.dataset.r, colonne: +bouton.dataset.c });
         toast(`Bouteille rangée en ${positionCase({ rangee: +bouton.dataset.r, colonne: +bouton.dataset.c })}`);
+        boutonADeplacer = null;
         location.hash = `#/caves/${c.id}`;
         route();
       } catch (err) { toast(err.message, true); finDeplacement(); }
@@ -2204,6 +2228,7 @@ async function pageCaves(main, id, params) {
   const idPlacer = +new URLSearchParams(params).get("placer");
   const aPlacer = aRanger.find((b) => b.id === idPlacer) || toutesBouteilles.find((b) => b.id === idPlacer);
   if (aPlacer) commencerRangement(aPlacer);
+  else if (boutonADeplacer) commencerRangement(boutonADeplacer, false);  // déplacement commencé dans une autre cave
   if (surligne) ($(".case-cave.surligne", main) || $(".liste li.surligne", main))?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
 }
 
@@ -2326,10 +2351,11 @@ async function dialogueRanger(cave, rangee, colonne) {
     } else {
       // vin déjà rangé ailleurs : on déplace une de ses bouteilles (celle d'une autre cave en priorité)
       const v = await api("GET", `vins/${f.dataset.vin}`);
-      const b = v.bouteilles.find((x) => x.cave_id !== cave.id && x.rangee) || v.bouteilles.find((x) => x.rangee);
+      // sinon une bouteille d'une cave en vrac (rangée, mais sans case)
+      const b = v.bouteilles.find((x) => x.cave_id !== cave.id && x.rangee) || v.bouteilles.find((x) => x.rangee) || v.bouteilles.find((x) => x.cave_id);
       if (!b || f.getAttribute("aria-pressed") !== "true") return;
       $("[name=bouteille_id]", d).value = b.id;
-      bouton.textContent = `Déplacer ici : ${f.dataset.nom} (depuis ${positionCase(b)}${b.cave_nom ? ` · ${b.cave_nom}` : ""})`;
+      bouton.textContent = `Déplacer ici : ${f.dataset.nom} (depuis ${b.rangee ? positionCase(b) : "rangement libre"}${b.cave_nom ? ` · ${b.cave_nom}` : ""})`;
     }
     bouton.disabled = false;
   });
@@ -2763,6 +2789,7 @@ async function route() {
   for (const [motif, fn, menu] of ROUTES) {
     const m = chemin.match(motif);
     if (!m) continue;
+    if (menu !== "caves") boutonADeplacer = null;  // quitter les plans abandonne le déplacement
     $$("#menu a").forEach((a) => a.classList.toggle("actif", a.dataset.page === menu));
     $("#autres").classList.toggle("actif", ["stats", "envies", "historique", "reglages"].includes(menu));
     $("#menu a.actif")?.scrollIntoView({ block: "nearest", inline: "nearest" });
