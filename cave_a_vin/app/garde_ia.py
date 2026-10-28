@@ -47,6 +47,15 @@ def estimer_vin(db, reglages, vin_id, appliquer=None):
     return cave.lire_vin(db, vin_id)
 
 
+def estimer_valeur_vin(db, reglages, vin_id):
+    """Interroge l'IA pour la valeur d'un vin, dans la devise choisie, et l'enregistre."""
+    vin = cave.lire_vin(db, vin_id, details=False)
+    valeur = ia.estimer_valeur(reglages, vin, annee_achat(db, vin_id))
+    with db.transaction() as conn:
+        conn.execute("UPDATE vins SET valeur = ? WHERE id = ?", (valeur, vin_id))
+    return valeur
+
+
 class Planificateur:
     """Tâche de fond : réestime chaque mois la garde des vins en cave."""
 
@@ -56,8 +65,10 @@ class Planificateur:
         self.pause = pause_entre_vins
         self._arret = threading.Event()
         self._verrou = threading.Lock()
+        self._verrou_valeurs = threading.Lock()
         self._en_cours = None
         self.etat = {"en_cours": False, "fait": 0, "total": 0, "erreurs": [], "termine_le": None}
+        self.etat_valeurs = {"en_cours": False, "fait": 0, "total": 0, "erreurs": [], "termine_le": None}
 
     # ---------------------------------------------------------------- planification
 
@@ -130,6 +141,37 @@ class Planificateur:
         finally:
             self.etat["en_cours"] = False
             self._verrou.release()
+
+    def lancer_valeurs(self):
+        """Réestime la valeur de tous les vins dans la devise choisie, en tâche de fond (après un changement de devise)."""
+        if self.etat_valeurs["en_cours"]:
+            return False
+        ids = [r["id"] for r in self.app.db.all("SELECT id FROM vins ORDER BY LOWER(nom)")]
+        self.etat_valeurs = {"en_cours": True, "fait": 0, "total": len(ids), "erreurs": [], "termine_le": None}
+        threading.Thread(target=self.toutes_les_valeurs, args=(ids,), name="valeurs-ia", daemon=True).start()
+        return True
+
+    def toutes_les_valeurs(self, ids):
+        if not self._verrou_valeurs.acquire(blocking=False):
+            return
+        try:
+            db = self.app.db
+            log.info("Estimation de la valeur par l'IA : %d vin(s)", len(ids))
+            for vin_id in ids:
+                if self._arret.is_set():
+                    break
+                try:
+                    estimer_valeur_vin(db, self.app.reglages(), vin_id)
+                except (ia.IAErreur, cave.ErreurAPI) as e:
+                    nom = (db.one("SELECT nom FROM vins WHERE id = ?", (vin_id,)) or {}).get("nom", vin_id)
+                    self.etat_valeurs["erreurs"].append(f"{nom} : {e}")
+                    log.warning("Valeur IA de « %s » : %s", nom, e)
+                self.etat_valeurs["fait"] += 1
+                time.sleep(self.pause)
+            log.info("Estimation de la valeur terminée (%d erreur(s))", len(self.etat_valeurs["erreurs"]))
+        finally:
+            self.etat_valeurs.update(en_cours=False, termine_le=maintenant())
+            self._verrou_valeurs.release()
 
     def estimer_en_arriere_plan(self, vin_id):
         """Après l'ajout d'un vin : estimation par l'IA sans faire attendre l'utilisateur."""

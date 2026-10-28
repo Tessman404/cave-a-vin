@@ -13,7 +13,7 @@ const I18N = (() => {
   const choix = lire("tessvine-langue");  // "", "fr", "en" ou "it"
   const auto = /^(fr|it)\b/i.exec(navigator.language || "fr")?.[1] || "en";
   const langue = ["fr", "en", "it"].includes(choix) ? choix : auto;
-  const DEVISES = { EUR: "€", USD: "$", GBP: "£", CHF: "CHF" };
+  const DEVISES = { EUR: "€", USD: "$", GBP: "£", CHF: "CHF", DKK: "kr." };
   const devise = DEVISES[lire("tessvine-devise")] ? lire("tessvine-devise") : (langue === "en" && /US/.test(navigator.language || "") ? "USD" : "EUR");
   const locale = langue === "fr" ? "fr-FR" : langue === "it" ? "it-IT" : (navigator.language && /^en/i.test(navigator.language) ? navigator.language : "en-US");
 
@@ -327,7 +327,13 @@ const I18N = (() => {
     "IA indisponible : Home Assistant n'est pas connecté.": "AI unavailable: Home Assistant isn't connected.",
     "Indisponible : Home Assistant n'est pas connecté": "Unavailable: Home Assistant isn't connected",
     "Langue": "Language", "Automatique": "Automatic", "Devise": "Currency", "Affichage ": "Display",
-    "Langue et devise de cet appareil. La devise ne change que l'affichage des prix, pas leurs montants.": "Language and currency on this device. The currency only changes how prices are shown, not their amounts.",
+    "Langue de cet appareil. La devise est celle de toute la cave : elle sert à afficher les prix et à estimer leur valeur avec l'IA.": "Language on this device. The currency applies to the whole cellar: it is used to show prices and to have the AI estimate their value.",
+    "Prix d'achat (par bouteille)": "Purchase price (per bottle)", "Valeur actuelle estimée": "Current estimated value",
+    "Changer la devise de la cave ?\n\nLes valeurs des vins sont enregistrées dans la devise choisie. Réestimer la valeur de tous les vins dans la nouvelle devise avec l'IA ? Les valeurs actuelles, y compris celles saisies à la main, seront remplacées. Cela peut prendre quelques minutes.": "Change the cellar's currency?\n\nWine values are stored in the chosen currency. Re-estimate the value of all wines in the new currency with the AI? Current values, including those entered by hand, will be replaced. This may take a few minutes.",
+    "Changer la devise de la cave ?\n\nL'IA n'est pas disponible : les valeurs des vins gardent leurs montants actuels, sans conversion. Vous pourrez les réestimer depuis cette page quand l'IA sera disponible.": "Change the cellar's currency?\n\nThe AI isn't available: wine values keep their current amounts, without conversion. You can re-estimate them from this page once the AI is available.",
+    "Changer et réestimer": "Change and re-estimate", "Changer sans réestimer": "Change without re-estimating", "Changer la devise": "Change currency",
+    "Réestimer la valeur de tous les vins": "Re-estimate the value of all wines", "Réestimer": "Re-estimate", "Valeurs réestimées.": "Values re-estimated.",
+    "Réestimer la valeur de tous les vins avec l'IA ? Les valeurs actuelles, y compris celles saisies à la main, seront remplacées.": "Re-estimate the value of all wines with the AI? Current values, including those entered by hand, will be replaced.",
     // messages
     "Réglages enregistrés": "Settings saved", "Nom enregistré": "Name saved", "Notifications enregistrées": "Notifications saved",
     "Notification de test envoyée": "Test notification sent", "Modifications enregistrées": "Changes saved", "Vin ajouté à la cave": "Wine added to the cellar",
@@ -489,6 +495,8 @@ const I18N = (() => {
     [/^Déjà (\d+) emplacements? choisis? : augmentez le nombre de bouteilles ou retirez-en un$/, (m) => `Already ${m[1]} spot(s) chosen: increase the number of bottles or remove one`],
     [/^Caméra en direct indisponible \((.+)\) : photographiez le code-barres ou tapez ses chiffres\.$/, (m) => `Live camera unavailable (${m[1]}): photograph the barcode or type its digits.`],
     [/^Estimation en cours : (\d+) \/ (\d+) vins…$/, (m) => `Estimating: ${m[1]} / ${m[2]} wines…`],
+    [/^Réestimation des valeurs en cours : (\d+) \/ (\d+) vins…$/, (m) => `Re-estimating values: ${m[1]} / ${m[2]} wines…`],
+    [/^Réestimation terminée : (\d+) erreur\(s\) : (.*)$/, (m) => `Re-estimation finished: ${m[1]} error(s): ${m[2]}`],
     [/^Dernier passage : (.+?)\.(.*)$/, (m) => `Last run: ${m[1]}.${m[2]}`],
     [/^✓ Connecté à Home Assistant \((\d+) capteur\(s\) de température \/ humidité trouvé\(s\)\)\.$/, (m) => `✓ Connected to Home Assistant (${m[1]} temperature / humidity sensor(s) found).`],
     [/^idéal (.+)$/, (m) => `ideal ${m[1]}`],
@@ -654,6 +662,13 @@ const I18N = (() => {
     "Un objet JSON est attendu":"È atteso un oggetto JSON", "Méthode non autorisée":"Metodo non consentito",
     "choisissez-en une autre dans les Réglages de la cave":"scegline un'altra nelle Impostazioni della cantina", "Une clé d'API est mémorisée sur cet appareil.":"Una chiave API è memorizzata su questo dispositivo.",
     "Réestimer la garde de toute la cave maintenant":"Ristima ora il periodo di consumo di tutta la cantina",
+    "Langue de cet appareil. La devise est celle de toute la cave : elle sert à afficher les prix et à estimer leur valeur avec l'IA.":"Lingua di questo dispositivo. La valuta è quella di tutta la cantina: serve a mostrare i prezzi e a stimarne il valore con l'IA.",
+    "Prix d'achat (par bouteille)":"Prezzo d'acquisto (per bottiglia)", "Valeur actuelle estimée":"Valore attuale stimato",
+    "Changer la devise de la cave ?\n\nLes valeurs des vins sont enregistrées dans la devise choisie. Réestimer la valeur de tous les vins dans la nouvelle devise avec l'IA ? Les valeurs actuelles, y compris celles saisies à la main, seront remplacées. Cela peut prendre quelques minutes.":"Cambiare la valuta della cantina?\n\nI valori dei vini sono salvati nella valuta scelta. Ristimare con l'IA il valore di tutti i vini nella nuova valuta? I valori attuali, compresi quelli inseriti a mano, saranno sostituiti. Può richiedere qualche minuto.",
+    "Changer la devise de la cave ?\n\nL'IA n'est pas disponible : les valeurs des vins gardent leurs montants actuels, sans conversion. Vous pourrez les réestimer depuis cette page quand l'IA sera disponible.":"Cambiare la valuta della cantina?\n\nL'IA non è disponibile: i valori dei vini mantengono gli importi attuali, senza conversione. Potrai ristimarli da questa pagina quando l'IA sarà disponibile.",
+    "Changer et réestimer":"Cambia e ristima", "Changer sans réestimer":"Cambia senza ristimare", "Changer la devise":"Cambia valuta",
+    "Réestimer la valeur de tous les vins":"Ristima il valore di tutti i vini", "Réestimer":"Ristima", "Valeurs réestimées.":"Valori ristimati.",
+    "Réestimer la valeur de tous les vins avec l'IA ? Les valeurs actuelles, y compris celles saisies à la main, seront remplacées.":"Ristimare con l'IA il valore di tutti i vini? I valori attuali, compresi quelli inseriti a mano, saranno sostituiti.",
     "IA indisponible : Home Assistant n'est pas connecté.":"IA non disponibile: Home Assistant non è connesso.", "Indisponible : Home Assistant n'est pas connecté":"Non disponibile: Home Assistant non è connesso",
     "Nom enregistré":"Nome salvato", "Notifications enregistrées":"Notifiche salvate", "Notification de test envoyée":"Notifica di prova inviata",
     "Modifications enregistrées":"Modifiche salvate", "Vin ajouté à la cave":"Vino aggiunto alla cantina", "Vin ajouté et rangé dans le plan":"Vino aggiunto e sistemato sulla mappa",
@@ -801,6 +816,8 @@ const I18N = (() => {
     [/^Déjà (\d+) emplacements? choisis? : augmentez le nombre de bouteilles ou retirez-en un$/, (m) => `Già ${m[1]} ${plur(m[1], "posto scelto", "posti scelti")}: aumenta il numero di bottiglie o rimuovine uno`],
     [/^Caméra en direct indisponible \((.+)\) : photographiez le code-barres ou tapez ses chiffres\.$/, (m) => `Fotocamera in diretta non disponibile (${m[1]}): fotografa il codice a barre o digitane le cifre.`],
     [/^Estimation en cours : (\d+) \/ (\d+) vins…$/, (m) => `Stima in corso: ${m[1]} / ${m[2]} vini…`],
+    [/^Réestimation des valeurs en cours : (\d+) \/ (\d+) vins…$/, (m) => `Ristima dei valori in corso: ${m[1]} / ${m[2]} vini…`],
+    [/^Réestimation terminée : (\d+) erreur\(s\) : (.*)$/, (m) => `Ristima terminata: ${m[1]} errori: ${m[2]}`],
     [/^Dernier passage : (.+?)\.(.*)$/, (m) => `Ultimo controllo: ${m[1]}.${m[2]}`],
     [/^✓ Connecté à Home Assistant \((\d+) capteur\(s\) de température \/ humidité trouvé\(s\)\)\.$/, (m) => `✓ Connesso a Home Assistant (${m[1]} ${plur(m[1], "sensore", "sensori")} di temperatura/umidità ${plur(m[1], "trovato", "trovati")}).`],
     [/^idéal (.+)$/, (m) => `ideale ${m[1]}`],

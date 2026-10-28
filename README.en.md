@@ -8,7 +8,7 @@
 
 A wine cellar manager **built into Home Assistant**: it opens in Home Assistant's sidebar, reads your cellar's temperature and humidity, and creates sensors, a wishlist and actions you can use in automations or with Assist.
 
-The app speaks **English, French and Italian** and follows the language of your phone or browser; you can switch language and currency (€, $, £, CHF) in **Settings → Display**.
+The app speaks **English, French and Italian** and follows the language of your phone or browser; you can switch language and currency (€, $, £, CHF, DKK) in **Settings → Display**. Wine values are estimated by the AI in the chosen currency, and changing currency offers to re-estimate all your wines.
 
 | Dashboard | On a phone |
 |---|---|

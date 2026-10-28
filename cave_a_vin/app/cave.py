@@ -77,10 +77,14 @@ APPELLATIONS_COURANT = [
 ]
 
 
-def niveau_du_vin(appellation="", region="", prix=None):
+# Valeur approximative d'une unité de chaque devise en euros : sert seulement à situer un prix sur les paliers ci-dessous.
+TAUX_EUR = {"EUR": 1.0, "USD": 0.92, "GBP": 1.17, "CHF": 1.05, "DKK": 0.134}
+
+
+def niveau_du_vin(appellation="", region="", prix=None, devise="EUR"):
     """Devine le potentiel de garde : d'abord par le prix, sinon par l'appellation."""
     if prix:
-        prix = float(prix)
+        prix = float(prix) * TAUX_EUR.get(devise, 1.0)
         return "courant" if prix < 10 else "moyen" if prix < 25 else "garde" if prix < 80 else "grand"
     texte = f" {appellation or ''} ".lower()
     if any(m in texte for m in APPELLATIONS_GARDE):
@@ -242,7 +246,7 @@ def statut_garde(vin, annee=None):
     return "a_boire"
 
 
-def estimer_garde(couleur, millesime, region="", appellation="", prix=None, annee_achat=None):
+def estimer_garde(couleur, millesime, region="", appellation="", prix=None, annee_achat=None, devise="EUR"):
     """Fenêtre de dégustation indicative, à affiner par l'utilisateur.
 
     Sans millésime (vin non millésimé, ou millésime inconnu), la garde est comptée à partir de l'année
@@ -254,7 +258,7 @@ def estimer_garde(couleur, millesime, region="", appellation="", prix=None, anne
     profil = GARDE.get(couleur)
     if not profil:
         return {"garde_debut": None, "garde_apogee": None, "garde_fin": None, "niveau": None}
-    niveau = niveau_du_vin(appellation, region, prix)
+    niveau = niveau_du_vin(appellation, region, prix, devise)
     d, a, f = profil[niveau]
     resultat = {"niveau": niveau, "niveau_label": NIVEAUX[niveau]}
     if millesime is None:
@@ -1054,8 +1058,6 @@ def candidats_cave(db, limite=None):
         raisons = []
         if c["garde_fin"]:
             raisons.append(f"se garde jusqu'en {c['garde_fin']}" if reste >= 3 else f"à boire d'ici {c['garde_fin']}")
-        if valeur:
-            raisons.append(f"{valeur:.0f} €")
         c["raisons"] = raisons
         candidats.append(c)
     candidats.sort(key=lambda c: (-c["priorite"], c["a_deplacer"], c["nom"].lower()))  # à prix égal, les non rangées d'abord

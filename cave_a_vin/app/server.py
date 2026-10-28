@@ -67,6 +67,7 @@ def _referentiel(app, req):
         "addon": ha.mode_addon(), "version": __version__,
         "nom_cave": app.reglages().get("nom_cave") or "Tessvine",
         "langue": app.reglages().get("langue") or "fr",
+        "devise": app.reglages().get("devise") or "",
         "retour": {k: app.reglages().get(f"retour_{k}") for k in ("actif", "libelle", "lien")},
         "ha_url": (app.reglages().get("ha_url") or "").rstrip("/"),
     }
@@ -336,6 +337,21 @@ def _lancer_gardes(app, req):
     return _etat_gardes(app, req), 202
 
 
+@route("GET", "api/ia/valeurs")
+def _etat_valeurs(app, req):
+    return {**app.planificateur.etat_valeurs, "ia": ia.etat(app.reglages(), image=False)}
+
+
+@route("POST", "api/ia/valeurs")
+def _lancer_valeurs(app, req):
+    """Réestime la valeur de tous les vins dans la devise des réglages (après un changement de devise)."""
+    possible = ia.etat(app.reglages(), image=False)
+    if not possible["possible"]:
+        raise ErreurAPI(possible["raison"], 409)
+    app.planificateur.lancer_valeurs()
+    return _etat_valeurs(app, req), 202
+
+
 @route("GET", "api/ia/diagnostic")
 def _diagnostic_ia(app, req):
     return ia.diagnostic(app.reglages())
@@ -356,7 +372,7 @@ def _garde(app, req):
         prix = None
     annee_achat = q.get("annee_achat") if (q.get("annee_achat") or "").isdigit() else None
     return cave.estimer_garde(q.get("couleur", "rouge"), q.get("millesime") or None, q.get("region", ""),
-                              q.get("appellation", ""), prix, annee_achat)
+                              q.get("appellation", ""), prix, annee_achat, ia.devise_code(app.reglages()))
 
 
 @route("GET", "api/candidats-cave")
@@ -450,6 +466,8 @@ def _reglages(app, req):
 @route("PUT", "api/reglages")
 def _modifier_reglages(app, req):
     data = req.json()
+    if data.get("devise") and data["devise"] not in ia.DEVISES:
+        raise ErreurAPI("Devise inconnue", 400)
     with app.db.transaction() as conn:
         for cle in ha.REGLAGES_DEFAUT:
             if cle in data and (cle != "ha_token" or data[cle]):
