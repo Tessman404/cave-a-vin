@@ -423,7 +423,8 @@ def supprimer_vin(db, vin_id):
 PAS_PROFONDEUR = 100
 EMPILEMENTS = ("aligne", "gauche", "droite")
 # sens des bouteilles dans un rang : goulot vers soi (avant), fond vers soi (arrière), alternés, ou allongées de côté
-SENS = ("avant", "arriere", "alterne_avant", "alterne_arriere", "allonge_droite", "allonge_gauche")
+SENS = ("avant", "arriere", "alterne_avant", "alterne_arriere", "allonge_droite", "allonge_gauche",
+        "allonge_alterne", "allonge_alterne_inverse")
 PROFONDEURS_MAX = 4
 
 

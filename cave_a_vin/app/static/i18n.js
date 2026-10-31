@@ -114,7 +114,10 @@ const I18N = (() => {
     "Température, emplacement…":"Temperatura, posizione…", "Cave électrique, armoire du garage…":"Cantinetta refrigerata, mobile in garage…",
     "Sans nom : rien n'est affiché au-dessus de l'étagère":"Senza nome: non verrà mostrato nulla sopra lo scaffale",
     "Rechercher : nom, millésime, domaine…":"Cerca: nome, annata, produttore…", "Cave du sous-sol, armoire à vin…":"Cantina in seminterrato, mobile portavini…",
-    "Vin à acheter ou à goûter…":"Vino da acquistare o assaggiare…", "Détails (millésime, caviste, prix…)":"Dettagli (annata, enoteca, prezzo…)"
+    "Vin à acheter ou à goûter…":"Vino da acquistare o assaggiare…", "Détails (millésime, caviste, prix…)":"Dettagli (annata, enoteca, prezzo…)",
+    "Allongé (alterné)":"Orizzontale (alternato)", "Allongé (alterné inversé)":"Orizzontale (alternato inverso)",
+    "de côté, goulots face à face, bouteille de droite plus basse":"orizzontali, colli contrapposti, bottiglia a destra più in basso",
+    "de côté, goulots face à face, bouteille de droite plus haute":"orizzontali, colli contrapposti, bottiglia a destra più in alto",
   };
 
   /* ---------------------------------------------------------------- correspondances exactes */
@@ -378,9 +381,9 @@ const I18N = (() => {
     "devant": "front", "derrière": "back", "Casier": "Rack",
     "Sens des bouteilles": "Bottle direction", "comment elles sont posées dans ce rang": "how they lie in this row",
     "Arrière": "Base out", "Avant": "Neck out", "Alterné (arrière)": "Alternate (base)", "Alterné (avant)": "Alternate (neck)",
-    "Allongé (droite)": "Side (right)", "Allongé (gauche)": "Side (left)", "fond vers vous": "base toward you", "goulot vers vous": "neck toward you",
+    "Allongé (droite)": "Side (right)", "Allongé (gauche)": "Side (left)", "Allongé (alterné)": "Side (alternating)", "Allongé (alterné inversé)": "Side (alternating, reversed)", "fond vers vous": "base toward you", "goulot vers vous": "neck toward you",
     "fond, goulot, fond…": "base, neck, base…", "goulot, fond, goulot…": "neck, base, neck…", "de côté, goulot à droite": "on its side, neck right",
-    "de côté, goulot à gauche": "on its side, neck left", "les bouteilles allongées s'empilent droites": "bottles on their side stack straight",
+    "de côté, goulot à gauche": "on its side, neck left", "de côté, goulots face à face, bouteille de droite plus basse": "on their side, necks facing each other, right bottle lower", "de côté, goulots face à face, bouteille de droite plus haute": "on their side, necks facing each other, right bottle higher", "les bouteilles allongées s'empilent droites": "bottles on their side stack straight",
     "Sens des bouteilles inconnu": "Unknown bottle direction",
     "Rechercher : nom, millésime, domaine…": "Search: name, vintage, producer…", "Rechercher un vin": "Search for a wine",
     "bouteilles déjà en stock, sans place": "bottles already in stock, without a spot", "Toutes vos fiches": "All your wines",
