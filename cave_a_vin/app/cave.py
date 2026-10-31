@@ -681,13 +681,18 @@ def deplacer_bouteille(db, bouteille_id, data):
     return db.one("SELECT * FROM bouteilles WHERE id = ?", (bouteille_id,))
 
 
+# une cave « en vrac » n'a ni rangées ni colonnes (voir _cases_libres) : ses bouteilles sont rangées, sans case
+SANS_PLAN_EXCLU = "(c.id IS NULL OR (COALESCE(c.rangees, 0) > 0 AND COALESCE(c.colonnes, 0) > 0))"
+
+
 def bouteilles_sans_emplacement(db):
-    """Bouteilles non rangées ou rangées « en vrac » : candidates pour une case libre du plan."""
+    """Bouteilles sans cave, ou dans une cave à plan mais sans case : candidates pour une case libre du plan.
+    Celles d'une cave « en vrac » (sans plan) sont rangées : elles ne comptent pas ici."""
     lignes = db.all(f"""SELECT b.id, b.vin_id, b.cave_id, {NOM_COMPLET} AS cave_nom, v.nom, v.millesime, v.couleur,
                               v.appellation, v.region, v.cepages, v.domaine, v.updated_at, COALESCE(v.photo, '') <> '' AS a_photo
                        FROM bouteilles b JOIN vins v ON v.id = b.vin_id LEFT JOIN caves c ON c.id = b.cave_id
                        LEFT JOIN caves p ON p.id = c.parent_id
-                       WHERE b.rangee IS NULL ORDER BY LOWER(v.nom), v.millesime, b.id""")
+                       WHERE b.rangee IS NULL AND {SANS_PLAN_EXCLU} ORDER BY LOWER(v.nom), v.millesime, b.id""")
     for l in lignes:
         l["a_photo"] = bool(l["a_photo"])
     return lignes
@@ -1123,7 +1128,8 @@ def statistiques(db):
     debut_annee = date(annee, 1, 1).isoformat()
     caves = lister_caves(db)
     non_rangees = db.scalar("SELECT COUNT(*) FROM bouteilles WHERE cave_id IS NULL") or 0
-    sans_emplacement = db.scalar("SELECT COUNT(*) FROM bouteilles WHERE rangee IS NULL") or 0  # hors cave ou en vrac
+    sans_emplacement = db.scalar(f"""SELECT COUNT(*) FROM bouteilles b LEFT JOIN caves c ON c.id = b.cave_id
+                                    WHERE b.rangee IS NULL AND {SANS_PLAN_EXCLU}""") or 0  # hors cave, ou en cave à plan sans case
     return {
         "annee": annee,
         "bouteilles": total,
