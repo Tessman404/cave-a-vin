@@ -411,6 +411,17 @@ const I18N = (() => {
     "Home Assistant n'est pas configuré": "Home Assistant isn't configured", "Plat inconnu": "Unknown dish", "Choisissez d'abord où envoyer les notifications": "First choose where to send notifications",
     "Choisissez une bouteille ou un vin ": "Choose a bottle or a wine", "Emplacement incomplet": "Incomplete spot",
     "Garde importée : l'IA l'affinera lors de son prochain passage.": "Imported window: the AI will refine it on its next run.",
+    // niveaux de garde (« Estimé comme … ») et réponses du serveur
+    "vin de tous les jours": "everyday wine", "vin de moyenne garde": "medium-term wine", "vin de garde": "wine for ageing", "grand vin de garde": "great wine for ageing",
+    "Home Assistant n'est pas connecté. Voir Réglages → IA.": "Home Assistant isn't connected. See Settings → AI.",
+    "Caves": "Cellars",
+    "Brouillon inconnu": "Unknown draft", "Emplacements invalides": "Invalid spots", "Envie introuvable": "Wish not found", "Fond inconnu": "Unknown background",
+    "Fond ou cadrage inconnu": "Unknown background or framing", "Image trop volumineuse": "Image too large", "JSON invalide": "Invalid JSON", "Limite invalide": "Invalid limit",
+    "Raison de sortie inconnue": "Unknown reason for removal", "Type de mouvement inconnu": "Unknown movement type",
+    "Code-barres invalide : 8 ou 13 chiffres attendus": "Invalid barcode: 8 or 13 digits expected",
+    // raisons d'échec de la caméra en direct
+    "accès refusé, ou bloqué dans le panneau Home Assistant": "access denied, or blocked in the Home Assistant panel", "bloquée par le navigateur": "blocked by the browser",
+    "aucune caméra trouvée": "no camera found", "caméra déjà utilisée par une autre application": "camera already in use by another app", "caméra non compatible": "incompatible camera",
   };
 
   /* ---------------------------------------------------------------- motifs (phrases avec nombres ou noms) */
@@ -477,7 +488,7 @@ const I18N = (() => {
     [/^Garde estimée par l'IA le (.+?)(?: : (.+))?$/, (m) => `Window estimated by AI on ${m[1]}${m[2] ? `: ${m[2]}` : ""}`],
     [/^Garde estimée automatiquement \(règle générale\)(.*)$/, (m) => `Window estimated automatically (general rule)${m[1].includes("affinera") ? ": the AI will refine it." : "."}`],
     [/^Garde estimée par l'IA : (\d+) → (\d+)$/, (m) => `Window estimated by AI: ${m[1]} → ${m[2]}`],
-    [/^Estimé comme (.+?)(?:\. Sans millésime, la garde est comptée à partir de l'achat \((\d+)\))?$/, (m) => `Estimated as ${m[1]}${m[2] ? `. Without a vintage, the window counts from purchase (${m[2]})` : ""}`],
+    [/^Estimé comme (.+?)(?:\. Sans millésime, la garde est comptée à partir de l'achat \((\d+)\))?$/, (m) => `Estimated as ${T(m[1])}${m[2] ? `. Without a vintage, the window counts from purchase (${m[2]})` : ""}`],
     [/^Supprimer définitivement « (.+) » et ses (\d+) bouteille\(s\) \? L'historique des dégustations est conservé\.$/, (m) => `Permanently delete “${m[1]}” and its ${m[2]} bottle(s)? The tasting history is kept.`],
     [/^Supprimer « (.+) »(?: et ses (\d+) étagères?)? \? Ses (\d+) bouteille\(s\) resteront dans votre inventaire, sans emplacement\.$/, (m) => `Delete “${m[1]}”${m[2] ? ` and its ${m[2]} rack(s)` : ""}? Its ${m[3]} bottle(s) will stay in your inventory, without a spot.`],
     [/^Supprimer « (.+) » \? Ses (\d+) bouteille\(s\) resteront dans la cave, sans emplacement précis\.$/, (m) => `Delete “${T(m[1])}”? Its ${m[2]} bottle(s) will stay in the cellar, without a specific spot.`],
@@ -487,7 +498,14 @@ const I18N = (() => {
     [/^Plus assez de place dans « (.+) » \((\d+) emplacement\(s\) libre\(s\)\)$/, (m) => `Not enough room in “${m[1]}” (${m[2]} free spot(s))`],
     [/^(\d+) bouteille\(s\) se trouvent en dehors du nouveau plan : déplacez-les d'abord$/, (m) => `${m[1]} bottle(s) would be outside the new layout: move them first`],
     [/^Déjà (\d+) emplacements? choisis? : augmentez le nombre de bouteilles ou retirez-en un$/, (m) => `Already ${m[1]} spot(s) chosen: increase the number of bottles or remove one`],
-    [/^Caméra en direct indisponible \((.+)\) : photographiez le code-barres ou tapez ses chiffres\.$/, (m) => `Live camera unavailable (${m[1]}): photograph the barcode or type its digits.`],
+    [/^Caméra en direct indisponible \((.+)\) : photographiez le code-barres ou tapez ses chiffres\.$/, (m) => `Live camera unavailable (${T(m[1])}): photograph the barcode or type its digits.`],
+    [/^Couleur inconnue : (.+)$/, (m) => `Unknown color: ${m[1]}`],
+    [/^Image illisible \((.+)\)$/, (m) => `Unreadable image (${m[1]})`],
+    [/^Image indisponible \((.+)\)$/, (m) => `Image unavailable (${m[1]})`],
+    [/^Open Food Facts injoignable \((.+)\)$/, (m) => `Open Food Facts unreachable (${m[1]})`],
+    [/^Stock insuffisant \((\d+) bouteille\(s\) en cave\)$/, (m) => `Not enough stock (${m[1]} bottle${s(m[1])} in the cellar)`],
+    [/^(\d+) bouteilles? sans prix d'achat renseigné$/, (m) => `${m[1]} bottle${s(m[1])} with no purchase price recorded`],
+    [/^(\d+) bouteilles? clignote(?:nt)? dans cette cave$/, (m) => `${m[1]} bottle${s(m[1])} ${+m[1] > 1 ? "are" : "is"} flashing in this cellar`],
     [/^Estimation en cours : (\d+) \/ (\d+) vins…$/, (m) => `Estimating: ${m[1]} / ${m[2]} wines…`],
     [/^Dernier passage : (.+?)\.(.*)$/, (m) => `Last run: ${m[1]}.${m[2]}`],
     [/^✓ Connecté à Home Assistant \((\d+) capteur\(s\) de température \/ humidité trouvé\(s\)\)\.$/, (m) => `✓ Connected to Home Assistant (${m[1]} temperature / humidity sensor(s) found).`],
