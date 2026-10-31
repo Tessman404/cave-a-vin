@@ -1,5 +1,17 @@
 # Journal des modifications
 
+## 1.20.0
+
+- **Étiquette et verso en un seul écran** : le nouveau bouton « Choisir 2 photos (étiquette + verso) » ouvre un panneau
+  à deux emplacements. Touchez chacun pour choisir sa photo (galerie ou appareil photo), puis « Importer » : l'IA lit
+  l'étiquette et le verso en une seule demande, sans redemander le verso. Avec l'étiquette seule, l'ajout se déroule
+  comme avant. « Inverser » échange les deux photos si elles ont été placées à l'envers. Le verso reste facultatif et
+  n'est jamais conservé.
+- **« Choisir les 2 d'un coup »** : dans un navigateur, les deux photos peuvent aussi être sélectionnées ensemble. Ce
+  bouton est masqué dans l'application Home Assistant, dont le sélecteur de fichiers ne transmet pas une sélection
+  multiple.
+- Le numéro de version interne de l'application suit maintenant celui du module.
+
 ## 1.19.0
 
 - **Tessvine parle italien** 🇮🇹 grâce à une contribution de Matteo Alessani (merci !), complétée pour couvrir toute
