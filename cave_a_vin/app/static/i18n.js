@@ -767,6 +767,15 @@ const I18N = (() => {
     "Garde importée : l'IA l'affinera lors de son prochain passage.":"Periodo importato: l'IA lo affinerà al prossimo controllo.",
     // textes vus dans les écrans mais absents des tables
     "Sortir":"Scarica", "Annuler la sortie":"Annulla l'uscita", "Profondeur":"Profondità",
+    "vin de tous les jours":"vino da tutti i giorni", "vin de moyenne garde":"vino di media conservazione", "vin de garde":"vino da invecchiamento",
+    "grand vin de garde":"grande vino da invecchiamento", "Home Assistant n'est pas connecté. Voir Réglages → IA.":"Home Assistant non è connesso. Vedi Impostazioni → IA.",
+    "Caves":"Cantine", "Brouillon inconnu":"Bozza sconosciuta", "Emplacements invalides":"Posti non validi", "Envie introuvable":"Desiderio non trovato",
+    "Fond inconnu":"Sfondo sconosciuto", "Fond ou cadrage inconnu":"Sfondo o inquadratura sconosciuti", "Image trop volumineuse":"Immagine troppo grande",
+    "JSON invalide":"JSON non valido", "Limite invalide":"Limite non valido", "Raison de sortie inconnue":"Motivo di uscita sconosciuto",
+    "Type de mouvement inconnu":"Tipo di movimento sconosciuto", "Code-barres invalide : 8 ou 13 chiffres attendus":"Codice a barre non valido: attese 8 o 13 cifre",
+    "accès refusé, ou bloqué dans le panneau Home Assistant":"accesso negato, o bloccato nel pannello di Home Assistant", "bloquée par le navigateur":"bloccata dal browser",
+    "aucune caméra trouvée":"nessuna fotocamera trovata", "caméra déjà utilisée par une autre application":"fotocamera già usata da un'altra app",
+    "caméra non compatible":"fotocamera non compatibile",
   });
   const jours = (n) => (+n === 1 ? "giorno" : "giorni");
   const plur = (n, un, plusieurs) => (+n === 1 ? un : plusieurs);
@@ -838,7 +847,7 @@ const I18N = (() => {
     [/^Garde estimée par l'IA le (.+?)(?: : (.+))?$/, (m) => `Periodo stimato dall'IA il ${m[1]}${m[2] ? `: ${m[2]}` : ""}`],
     [/^Garde estimée automatiquement \(règle générale\)(.*)$/, (m) => `Periodo stimato automaticamente (regola generale)${m[1].includes("affinera") ? ": l'IA lo affinerà." : "."}`],
     [/^Garde estimée par l'IA : (\d+) → (\d+)$/, (m) => `Periodo stimato dall'IA: ${m[1]} → ${m[2]}`],
-    [/^Estimé comme (.+?)(?:\. Sans millésime, la garde est comptée à partir de l'achat \((\d+)\))?$/, (m) => `Stimato come ${m[1]}${m[2] ? `. Senza annata, il periodo si conta dall'acquisto (${m[2]})` : ""}`],
+    [/^Estimé comme (.+?)(?:\. Sans millésime, la garde est comptée à partir de l'achat \((\d+)\))?$/, (m) => `Stimato come ${Ti(m[1])}${m[2] ? `. Senza annata, il periodo si conta dall'acquisto (${m[2]})` : ""}`],
     [/^Supprimer définitivement « (.+) » et ses (\d+) bouteille\(s\) \? L'historique des dégustations est conservé\.$/, (m) => `Eliminare definitivamente « ${m[1]} » e le sue ${m[2]} bottiglie? La cronologia delle degustazioni viene conservata.`],
     [/^Supprimer « (.+) »(?: et ses (\d+) étagères?)? \? Ses (\d+) bouteille\(s\) resteront dans votre inventaire, sans emplacement\.$/, (m) => `Eliminare « ${m[1]} »${m[2] ? ` e i suoi ${m[2]} scaffali` : ""}? Le sue ${m[3]} bottiglie resteranno nel tuo inventario, senza posto.`],
     [/^Supprimer « (.+) » \? Ses (\d+) bouteille\(s\) resteront dans la cave, sans emplacement précis\.$/, (m) => `Eliminare « ${Ti(m[1])} »? Le sue ${m[2]} bottiglie resteranno nella cantina, senza un posto preciso.`],
@@ -848,7 +857,7 @@ const I18N = (() => {
     [/^Plus assez de place dans « (.+) » \((\d+) emplacement\(s\) libre\(s\)\)$/, (m) => `Non c'è più abbastanza spazio in « ${m[1]} » (${m[2]} ${plur(m[2], "posto libero", "posti liberi")})`],
     [/^(\d+) bouteille\(s\) se trouvent en dehors du nouveau plan : déplacez-les d'abord$/, (m) => `${m[1]} ${plur(m[1], "bottiglia si trova", "bottiglie si trovano")} fuori dalla nuova mappa: spostale prima`],
     [/^Déjà (\d+) emplacements? choisis? : augmentez le nombre de bouteilles ou retirez-en un$/, (m) => `Già ${m[1]} ${plur(m[1], "posto scelto", "posti scelti")}: aumenta il numero di bottiglie o rimuovine uno`],
-    [/^Caméra en direct indisponible \((.+)\) : photographiez le code-barres ou tapez ses chiffres\.$/, (m) => `Fotocamera in diretta non disponibile (${m[1]}): fotografa il codice a barre o digitane le cifre.`],
+    [/^Caméra en direct indisponible \((.+)\) : photographiez le code-barres ou tapez ses chiffres\.$/, (m) => `Fotocamera in diretta non disponibile (${Ti(m[1])}): fotografa il codice a barre o digitane le cifre.`],
     [/^Estimation en cours : (\d+) \/ (\d+) vins…$/, (m) => `Stima in corso: ${m[1]} / ${m[2]} vini…`],
     [/^Réestimation des valeurs en cours : (\d+) \/ (\d+) vins…$/, (m) => `Ristima dei valori in corso: ${m[1]} / ${m[2]} vini…`],
     [/^Réestimation terminée : (\d+) erreur\(s\) : (.*)$/, (m) => `Ristima terminata: ${m[1]} errori: ${m[2]}`],
@@ -907,6 +916,13 @@ const I18N = (() => {
     [/^Pour un autre tableau de bord, ouvrez-le dans Home Assistant et copiez la fin de son adresse, à partir du « \/ » \(par exemple$/, () => "Per un'altra dashboard, aprila in Home Assistant e copia la parte finale dell'indirizzo, a partire da « / » (per esempio"],
     [/^\)\.\s*Le bouton apparaît en haut du menu sur ordinateur, et dans « Plus » sur téléphone\.(.*)$/s, (m) => `). Il pulsante appare in cima al menu su computer e in « Altro » sul telefono.${m[1].trim() ? " Fuori dal componente aggiuntivo, inserisci anche qui sotto l'indirizzo di Home Assistant." : ""}`],
     [/^Envoi impossible : (.+)$/, (m) => `Invio impossibile: ${m[1]}`],
+    [/^Couleur inconnue : (.+)$/, (m) => `Colore sconosciuto: ${m[1]}`],
+    [/^Image illisible \((.+)\)$/, (m) => `Immagine illeggibile (${m[1]})`],
+    [/^Image indisponible \((.+)\)$/, (m) => `Immagine non disponibile (${m[1]})`],
+    [/^Open Food Facts injoignable \((.+)\)$/, (m) => `Open Food Facts non raggiungibile (${m[1]})`],
+    [/^Stock insuffisant \((\d+) bouteille\(s\) en cave\)$/, (m) => `Scorte insufficienti (${m[1]} ${plur(m[1], "bottiglia", "bottiglie")} in cantina)`],
+    [/^(\d+) bouteilles? sans prix d'achat renseigné$/, (m) => `${m[1]} ${plur(m[1], "bottiglia", "bottiglie")} senza prezzo d'acquisto`],
+    [/^(\d+) bouteilles? clignote(?:nt)? dans cette cave$/, (m) => `${m[1]} ${plur(m[1], "bottiglia lampeggia", "bottiglie lampeggiano")} in questa cantina`],
     [/^Accord : (.+)$/, (m) => `Abbinamento: ${m[1]}`],
   ];
   const PARTIELS_IT = [

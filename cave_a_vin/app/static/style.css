@@ -973,7 +973,7 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .tuile-ajout.secondaire .icone { background: var(--surface-2); color: var(--texte); box-shadow: inset 0 0 0 1px var(--bord-fort); }
 .tuile-ajout b { font: 600 1.4rem/1.1 var(--serif); }
 .tuile-ajout .muted { font-size: .88rem; }
-.confirm-paire .paire-vignettes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+.confirm-paire .paire-vignettes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; max-width: 480px; }
 .confirm-paire figure { margin: 0; text-align: center; }
 .confirm-paire img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 12px; background: var(--surface-2); }
 .confirm-paire figcaption { font-weight: 600; margin-top: 4px; }

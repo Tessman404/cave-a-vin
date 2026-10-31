@@ -2,15 +2,21 @@
 
 ## 1.20.0
 
-- **Étiquette et verso en un seul écran** : le nouveau bouton « Choisir 2 photos (étiquette + verso) » ouvre un panneau
-  à deux emplacements. Touchez chacun pour choisir sa photo (galerie ou appareil photo), puis « Importer » : l'IA lit
-  l'étiquette et le verso en une seule demande, sans redemander le verso. Avec l'étiquette seule, l'ajout se déroule
-  comme avant. « Inverser » échange les deux photos si elles ont été placées à l'envers. Le verso reste facultatif et
-  n'est jamais conservé.
-- **« Choisir les 2 d'un coup »** : dans un navigateur, les deux photos peuvent aussi être sélectionnées ensemble. Ce
-  bouton est masqué dans l'application Home Assistant, dont le sélecteur de fichiers ne transmet pas une sélection
-  multiple.
-- Le numéro de version interne de l'application suit maintenant celui du module.
+Une version faite en grande partie par la communauté : merci à CABESTAN-NET, rwatjen et Matteo Alessani !
+
+- **Étiquette et verso en un seul écran** (CABESTAN-NET) : le bouton « Choisir 2 photos (étiquette + verso) » ouvre
+  un panneau à deux emplacements. Touchez chacun pour choisir sa photo, puis « Importer » : l'IA lit l'étiquette et le
+  verso en une seule demande. « Inverser » échange les deux photos. Dans un navigateur, « Choisir les 2 d'un coup »
+  sélectionne les deux ensemble (masqué dans l'application Home Assistant, qui ne le permet pas).
+- **Déplacer une bouteille d'une cave à une autre** (rwatjen), y compris vers ou depuis une cave en rangement libre :
+  bouton « Déplacer », puis ouvrez la cave de destination. Les bouteilles d'une cave en rangement libre ne sont plus
+  comptées comme « à ranger ».
+- **Couronne danoise (DKK) et devise de toute la cave** (rwatjen) : la devise est maintenant commune à tous les
+  appareils, et l'IA estime les prix directement dans cette devise. En changeant de devise, Tessvine propose de faire
+  réestimer la valeur de tous les vins par l'IA (les prix d'achat ne sont pas convertis).
+- **Nouveau sens de rangement « Allongé (alterné) »** (Matteo Alessani) : bouteilles couchées, goulots face à face,
+  comme dans certains casiers de cuisine, avec sa variante inversée.
+- Traductions anglaise et italienne complétées (rwatjen et Tessvine).
 
 ## 1.19.0
 
