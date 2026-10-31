@@ -400,7 +400,7 @@ async function dialogueCandidats(caveId) {
       <div class="etiquette">${vignetteVin(c, "mini", `Étiquette de ${c.nom}`)}</div>
       <div class="grandit"><b>${i === 0 ? `<span style="color:var(--or)">★</span> ` : ""}${titreVin(c)}</b>
         <div class="muted petit-texte">${esc([c.appellation, c.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
-        <div class="petit-texte">${badgeStatut(c.statut)} ${esc(c.raisons.join(" · "))}</div>
+        <div class="petit-texte">${badgeStatut(c.statut)} ${esc([...c.raisons, c.valeur ? euros(c.valeur) : ""].filter(Boolean).join(" · "))}</div>
         <div class="muted petit-texte">${c.a_deplacer ? `Sur ${esc(c.depuis)}` : c.depuis ? `En vrac dans ${esc(c.depuis)}` : "Non rangé"}${c.nombre > 1 ? ` · ×${c.nombre}` : ""}</div></div>
       <a class="bouton petit primaire" href="#/caves/${caveId}?placer=${c.bouteille_id}" data-fermer-lien>Ranger</a></li>`).join("")}</ul>`
       : `<p class="muted">Aucune bouteille à proposer : tout est déjà en cave électrique ou au réfrigérateur.</p>`}
@@ -840,8 +840,8 @@ async function pageFormulaire(main, id) {
         ${champ("code_barre", "Code-barres", 'inputmode="numeric" placeholder="Rempli par le scan"')}
       </fieldset>
       <fieldset><legend>Achat & valeur</legend>
-        ${champ("prix_achat", "Prix d'achat (€ / bouteille)", 'type="number" step="0.01" min="0"')}
-        ${champ("valeur", "Valeur actuelle estimée (€)", 'type="number" step="0.01" min="0"')}
+        ${champ("prix_achat", `Prix d'achat (par bouteille)<small class="muted" translate="no"> ${I18N.devise}</small>`, 'type="number" step="0.01" min="0"')}
+        ${champ("valeur", `Valeur actuelle estimée<small class="muted" translate="no"> ${I18N.devise}</small>`, 'type="number" step="0.01" min="0"')}
         ${champ("fournisseur", "Fournisseur / caviste", 'list="l-fournisseurs"')}
       </fieldset>
       <fieldset><legend>Garde</legend>
@@ -2602,8 +2602,9 @@ async function pageReglages(main) {
             <option value="en"${I18N.choix === "en" ? " selected" : ""} translate="no">English</option>
             <option value="it"${I18N.choix === "it" ? " selected" : ""} translate="no">Italiano</option></select></label>
           <label>Devise<select name="devise">${Object.entries(I18N.DEVISES).map(([c, sym]) => `<option value="${c}"${c === I18N.devise ? " selected" : ""} translate="no">${sym === c ? c : `${sym} ${c}`}</option>`).join("")}</select></label>
-          <p class="large muted petit-texte" style="margin:0">Langue et devise de cet appareil. La devise ne change que l'affichage des prix, pas leurs montants.</p>
-        </form></div>
+          <p class="large muted petit-texte" style="margin:0">Langue de cet appareil. La devise est celle de toute la cave : elle sert à afficher les prix et à estimer leur valeur avec l'IA.</p>
+        </form>
+        <div class="large muted petit-texte" id="etat-valeurs" style="margin-top:8px"></div></div>
       <div class="carte"><h2>${ic("info")}À propos</h2>
         <p>Tessvine version ${esc(REF.version)}${r.addon ? " — module complémentaire Home Assistant" : ""}.</p>
         ${cleAPI.lire() ? `<p>Une clé d'API est mémorisée sur cet appareil. <button class="bouton petit" id="oublier">Oublier la clé</button></p>` : ""}
@@ -2611,11 +2612,47 @@ async function pageReglages(main) {
     </div>`;
   $("#affichage", main).onchange = async (e) => {
     const f = Object.fromEntries(new FormData(e.currentTarget));
-    I18N.regler(f.langue, f.devise);
+    let reestimer = false;
+    if (f.devise !== I18N.devise) {
+      const reponse = CAPACITES?.ia_texte?.possible
+        ? await choisir("Changer la devise de la cave ?\n\nLes valeurs des vins sont enregistrées dans la devise choisie. Réestimer la valeur de tous les vins dans la nouvelle devise avec l'IA ? Les valeurs actuelles, y compris celles saisies à la main, seront remplacées. Cela peut prendre quelques minutes.",
+          [{ cle: "reestimer", libelle: "Changer et réestimer", primaire: true }, { cle: "garder", libelle: "Changer sans réestimer" }])
+        : await choisir("Changer la devise de la cave ?\n\nL'IA n'est pas disponible : les valeurs des vins gardent leurs montants actuels, sans conversion. Vous pourrez les réestimer depuis cette page quand l'IA sera disponible.",
+          [{ cle: "garder", libelle: "Changer la devise", primaire: true }]);
+      if (!reponse) return route();  // annulé : le menu reprend l'ancienne devise
+      reestimer = reponse === "reestimer";
+    }
     const langue = f.langue || (/^(fr|it)\b/i.exec(navigator.language || "fr")?.[1] || "en");
-    try { await api("PUT", "reglages", { langue }); } catch { /* la langue de l'appareil reste appliquée */ }
+    try { await api("PUT", "reglages", { langue, devise: f.devise }); }
+    catch (err) {
+      // la langue de l'appareil reste appliquée, mais la devise doit être enregistrée dans la cave
+      if (f.devise !== I18N.devise) { toast(err.message, true); return route(); }
+    }
+    I18N.regler(f.langue, f.devise);
+    if (reestimer) await api("POST", "ia/valeurs", {}).catch((err) => toast(err.message, true, 6000));
     location.reload();
   };
+  const etatValeurs = $("#etat-valeurs", main);
+  const afficherValeurs = (g) => {
+    if (!g) return;
+    const erreurs = g.erreurs?.length ? `Réestimation terminée : ${g.erreurs.length} erreur(s) : ${esc(g.erreurs.slice(0, 3).join(" ; "))}` : "";
+    etatValeurs.innerHTML = g.en_cours
+      ? `Réestimation des valeurs en cours : ${g.fait} / ${g.total} vins…`
+      : `${erreurs || (g.termine_le ? "Valeurs réestimées." : "")}
+         ${g.ia?.possible ? `<button class="bouton petit" type="button" id="lancer-valeurs">${ic("etincelle")} Réestimer la valeur de tous les vins</button>` : ""}`;
+    const bouton = $("#lancer-valeurs", etatValeurs);
+    if (bouton) bouton.onclick = async () => {
+      if (!await confirmer("Réestimer la valeur de tous les vins avec l'IA ? Les valeurs actuelles, y compris celles saisies à la main, seront remplacées.", "Réestimer")) return;
+      try { afficherValeurs(await api("POST", "ia/valeurs", {})); suivreValeurs(); } catch (err) { toast(err.message, true); }
+    };
+  };
+  const suivreValeurs = async () => {
+    const g = await api("GET", "ia/valeurs").catch(() => null);
+    if (!document.body.contains(etatValeurs)) return;
+    afficherValeurs(g);
+    if (g?.en_cours) setTimeout(suivreValeurs, 2000);
+  };
+  suivreValeurs();
   $("#ha", main).onsubmit = async (e) => {
     e.preventDefault();
     try {
@@ -2800,6 +2837,9 @@ async function route() {
         afficherRetour();
         // langue des notifications et de l'IA : celle de l'appareil qui utilise la cave
         if (REF.langue !== I18N.langue) api("PUT", "reglages", { langue: I18N.langue }).catch(() => {});
+        // devise des valeurs : celle de la cave (réglage partagé par tous les appareils) ; à défaut, celle de cet appareil
+        if (!REF.devise) api("PUT", "reglages", { devise: I18N.devise }).catch(() => {});
+        else if (REF.devise !== I18N.devise) { I18N.devise = REF.devise; I18N.regler(I18N.choix, REF.devise); }
       }
       if (!main.childElementCount) main.innerHTML = `<div class="chargement">Chargement…</div>`;
       await fn(main, m[1], params);

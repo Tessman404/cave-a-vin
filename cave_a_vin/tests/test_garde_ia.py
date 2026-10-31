@@ -66,7 +66,7 @@ class TestGardeIA(BaseTest):
         consigne = self.demandes[-1]["instructions"]
         self.assertIn("Millésime : 2022", consigne)
         self.assertIn("Appellation : Médoc", consigne)
-        self.assertIn("Prix : environ 12 €", consigne)
+        self.assertIn("Prix : environ 12 EUR", consigne)
         self.assertNotIn("attachments", self.demandes[-1])
 
     def test_garde_saisie_a_la_main_respectee(self):
@@ -167,6 +167,58 @@ class TestGardeIA(BaseTest):
         vin = self.appel("POST", f"api/vins/{vin['id']}/garde-ia", {}, attendu=200)
         self.assertIn(f"acheté en {cave.annee_courante()}", self.demandes[-1]["instructions"])
         self.assertEqual(vin["garde_ia_note"], "(confiance faible)")
+
+    def test_devise_dans_la_consigne_de_garde(self):
+        self.appel("PUT", "api/reglages", {"devise": "DKK"})
+        vin = self.creer(prix_achat=90)
+        self.appel("POST", f"api/vins/{vin['id']}/garde-ia", {}, attendu=200)
+        self.assertIn("Prix : environ 90 DKK", self.demandes[-1]["instructions"])
+
+    def test_devise_inconnue_refusee(self):
+        self.appel("PUT", "api/reglages", {"devise": "XYZ"}, attendu=400)
+        self.appel("PUT", "api/reglages", {"devise": "DKK"})
+        self.assertEqual(self.appel("GET", "api/referentiel")["devise"], "DKK")
+
+    def test_niveau_du_vin_selon_la_devise(self):
+        # 100 DKK ≈ 13 € : un vin de milieu de gamme, pas un grand vin comme le serait 100 €
+        self.assertEqual(cave.niveau_du_vin(prix=100, devise="DKK"), "moyen")
+        self.assertEqual(cave.niveau_du_vin(prix=100, devise="EUR"), "grand")
+        self.appel("PUT", "api/reglages", {"devise": "DKK"})
+        garde = self.appel("GET", "api/garde?couleur=rouge&millesime=2020&prix_achat=100")
+        self.assertEqual(garde["niveau"], "moyen")
+
+    def test_reestimation_des_valeurs(self):
+        a = self.creer(nom="A", valeur=15)
+        b = self.creer(nom="B", valeur=40, quantite=0)  # épuisé : sa valeur est aussi réestimée
+        self.appel("PUT", "api/reglages", {"devise": "DKK"})
+        self.reponses = [{"valeur": "110 DKK"}, {"valeur": 300}]
+        self.appel("POST", "api/ia/valeurs", {}, attendu=202)
+        etat = {}
+        for _ in range(50):
+            etat = self.appel("GET", "api/ia/valeurs")
+            if not etat["en_cours"] and etat["termine_le"]:
+                break
+            import time
+            time.sleep(0.1)
+        self.assertEqual((etat["fait"], etat["total"], etat["erreurs"]), (2, 2, []))
+        consigne = self.demandes[0]["instructions"]
+        self.assertIn("en DKK", consigne)
+        self.assertNotIn("Prix :", consigne)  # l'ancien prix, dans une autre devise, ne doit pas orienter l'IA
+        self.assertIn("DKK", self.demandes[0]["structure"]["valeur"]["description"])
+        self.assertEqual(self.appel("GET", f"api/vins/{a['id']}")["valeur"], 110)
+        self.assertEqual(self.appel("GET", f"api/vins/{b['id']}")["valeur"], 300)
+
+    def test_reestimation_valeur_invalide_garde_l_ancienne(self):
+        vin = self.creer(valeur=15)
+        self.reponses = [{"valeur": "inconnue"}]
+        self.app.planificateur.lancer_valeurs()
+        for _ in range(50):
+            if self.app.planificateur.etat_valeurs["termine_le"]:
+                break
+            import time
+            time.sleep(0.1)
+        self.assertEqual(len(self.app.planificateur.etat_valeurs["erreurs"]), 1)
+        self.assertEqual(self.appel("GET", f"api/vins/{vin['id']}")["valeur"], 15)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,16 @@ from .cave import COULEURS
 
 log = logging.getLogger("cave_a_vin")
 SOUS_DOSSIER = "cave_a_vin"
+DEVISES = ("EUR", "USD", "GBP", "CHF", "DKK")
+VALEUR_MAX = 1_000_000
+
+
+def devise_code(reglages):
+    """Devise dans laquelle les valeurs des vins sont exprimées (EUR tant qu'aucune n'est choisie)."""
+    devise = (reglages or {}).get("devise")
+    return devise if devise in DEVISES else "EUR"
+
+
 def langue_texte(reglages):
     """Langue des textes libres renvoyés par l'IA (notes, justification) : celle de l'interface."""
     langue = (reglages or {}).get("langue")
@@ -41,7 +51,7 @@ INSTRUCTIONS = (
     "2. Complète avec tes connaissances ce qui n'est pas écrit mais se déduit : la région viticole et le pays à "
     "partir de l'appellation (Haut-Médoc → Bordeaux, France ; Chablis → Bourgogne) ; la couleur (mention sur "
     "l'étiquette, appellation, cépages, couleur du vin ou de la bouteille) ; les cépages habituels de l'appellation "
-    "s'ils ne sont pas indiqués ; un prix de marché indicatif en euros pour une bouteille ; trois à cinq accords "
+    "s'ils ne sont pas indiqués ; un prix de marché indicatif en {devise} pour une bouteille ; trois à cinq accords "
     "mets-vins ; une description courte du vin.\n"
     "3. Si la cuvée porte le nom du producteur (par exemple « Château Lagrange »), mets ce nom dans les deux champs.\n"
     "Remplis tous les champs que tu peux. Seule exception : n'invente pas de millésime, laisse-le vide s'il n'est "
@@ -60,12 +70,19 @@ STRUCTURE = {
     "cepages": {"description": "Cépages, indiqués ou habituels pour l'appellation, séparés par des virgules", "selector": TEXTE},
     "degre": {"description": "Degré d'alcool en % vol.", "selector": {"number": {"min": 0, "max": 25, "step": 0.1}}},
     "format": {"description": "Contenance, par exemple 75 cl", "selector": TEXTE},
-    "valeur": {"description": "Prix de marché indicatif d'une bouteille, en euros", "selector": {"number": {"min": 0, "max": 100000, "step": 0.5}}},
+    "valeur": {"description": "Prix de marché indicatif d'une bouteille, en {devise}", "selector": {"number": {"min": 0, "max": VALEUR_MAX, "step": 0.5}}},
     "accords": {"description": "Trois à cinq accords mets-vins, séparés par des virgules", "required": True, "selector": TEXTE},
     "description": {"description": "Deux phrases : style du vin, arômes typiques, potentiel", "selector": TEXTE},
     "code_barre": {"description": "Chiffres du code-barres (EAN, 8 à 14 chiffres) s'ils sont lisibles sur la "
                                   "contre-étiquette, sinon vide", "selector": TEXTE},
 }
+
+
+def structure_etiquette(devise):
+    """STRUCTURE, avec la devise choisie dans la description du prix."""
+    return {cle: {**champ, "description": champ["description"].replace("{devise}", devise)}
+            for cle, champ in STRUCTURE.items()}
+
 # Réponses libres de certaines IA ramenées aux couleurs de la cave.
 MOTS_COULEURS = [
     ("effervescent", ("efferv", "mousseux", "champagne", "crémant", "cremant", "pétillant", "petillant", "sparkling", "brut")),
@@ -201,6 +218,11 @@ def diagnostic(reglages):
 VIDES = ("", "inconnu", "inconnue", "non indiqué", "non indiquée", "n/a", "na", "null", "none", "-", "?")
 
 
+def _nombre(v):
+    """Nombre contenu dans une réponse de l'IA, même écrite avec un symbole ou un code de devise (« 15 € », « 120 DKK »)."""
+    return float(re.sub(r"[^\d.,-]", "", str(v)).replace(",", "."))
+
+
 def _nettoyer(donnees):
     if not isinstance(donnees, dict):
         raise IAErreur("Réponse de l'IA inattendue")
@@ -213,9 +235,9 @@ def _nettoyer(donnees):
             propre[cle] = v.strip()[:300]
     if couleur := couleur_depuis(donnees.get("couleur")):
         propre["couleur"] = couleur
-    for cle, mini, maxi, conv in (("millesime", 1900, 2100, int), ("degre", 3, 25, float), ("valeur", 0.5, 100000, float)):
+    for cle, mini, maxi, conv in (("millesime", 1900, 2100, int), ("degre", 3, 25, float), ("valeur", 0.5, VALEUR_MAX, float)):
         try:
-            valeur = conv(float(str(donnees.get(cle)).replace(",", ".").replace("€", "").strip()))
+            valeur = conv(_nombre(donnees.get(cle)))
         except (TypeError, ValueError):
             continue
         if mini <= valeur <= maxi:
@@ -235,6 +257,7 @@ def lire_etiquette(reglages, image_jpeg, timeout=120, verso_jpeg=None):
     possible = etat(reglages)
     if not possible["possible"]:
         raise IAErreur(possible["raison"])
+    devise = devise_code(reglages)
     dossier = dossier_media() / SOUS_DOSSIER
     dossier.mkdir(parents=True, exist_ok=True)
     jeton = secrets.token_hex(6)
@@ -243,8 +266,8 @@ def lire_etiquette(reglages, image_jpeg, timeout=120, verso_jpeg=None):
         (dossier / nom).write_bytes(contenu)
     corps = {
         "task_name": "Lecture d'étiquette de vin",
-        "instructions": INSTRUCTIONS.replace("{langue}", langue_texte(reglages)),
-        "structure": STRUCTURE,
+        "instructions": INSTRUCTIONS.replace("{langue}", langue_texte(reglages)).replace("{devise}", devise),
+        "structure": structure_etiquette(devise),
         "attachments": [{"media_content_id": f"media-source://media_source/local/{SOUS_DOSSIER}/{nom}",
                          "media_content_type": "image/jpeg"} for nom in noms],
     }
@@ -281,7 +304,7 @@ STRUCTURE_GARDE = {
 CONFIANCES = {"faible": "faible", "moyenne": "moyenne", "elevee": "élevée", "élevée": "élevée"}
 
 
-def fiche_texte(vin, annee_achat):
+def fiche_texte(vin, annee_achat, devise="EUR", avec_prix=True):
     lignes = [f"- Vin : {vin['nom']}"]
     for cle, libelle in (("domaine", "Producteur"), ("appellation", "Appellation"), ("region", "Région"),
                          ("pays", "Pays"), ("couleur_label", "Couleur"), ("cepages", "Cépages"), ("format", "Format")):
@@ -290,8 +313,8 @@ def fiche_texte(vin, annee_achat):
     lignes.append(f"- Millésime : {vin['millesime']}" if vin.get("millesime")
                   else f"- Non millésimé (ou millésime inconnu), acheté en {annee_achat}")
     prix = vin.get("prix_achat") or vin.get("valeur")
-    if prix:
-        lignes.append(f"- Prix : environ {prix:.0f} € la bouteille")
+    if prix and avec_prix:
+        lignes.append(f"- Prix : environ {prix:.0f} {devise} la bouteille")
     return "\n".join(lignes)
 
 
@@ -302,7 +325,8 @@ def estimer_garde(reglages, vin, annee_achat, annee, timeout=90):
         raise IAErreur(possible["raison"])
     donnees = _appeler(reglages, {
         "task_name": "Garde d'un vin",
-        "instructions": INSTRUCTIONS_GARDE.format(annee=annee, fiche=fiche_texte(vin, annee_achat), langue=langue_texte(reglages)),
+        "instructions": INSTRUCTIONS_GARDE.format(annee=annee, fiche=fiche_texte(vin, annee_achat, devise_code(reglages)),
+                                         langue=langue_texte(reglages)),
         "structure": STRUCTURE_GARDE,
     }, timeout)
     try:
@@ -320,3 +344,33 @@ def estimer_garde(reglages, vin, annee_achat, annee, timeout=90):
     if confiance:
         note = f"{note} (confiance {confiance})".strip()
     return {"garde_debut": debut, "garde_apogee": apogee, "garde_fin": fin, "note": note}
+
+
+# --------------------------------------------------------------------------- estimation de la valeur
+
+INSTRUCTIONS_VALEUR = (
+    "Tu es caviste. Estime le prix de marché indicatif actuel d'une bouteille de ce vin, en {devise} :\n{fiche}\n\n"
+    "Donne un seul nombre, exprimé en {devise} (et non dans une autre devise), pour une bouteille. Si tu ne connais pas "
+    "ce vin précisément, raisonne sur le producteur, l'appellation, le millésime et le format."
+)
+
+
+def estimer_valeur(reglages, vin, annee_achat, timeout=90):
+    """Demande à l'IA la valeur d'une bouteille, dans la devise choisie ; renvoie un nombre."""
+    possible = etat(reglages, image=False)
+    if not possible["possible"]:
+        raise IAErreur(possible["raison"])
+    devise = devise_code(reglages)
+    donnees = _appeler(reglages, {
+        "task_name": "Valeur d'un vin",
+        "instructions": INSTRUCTIONS_VALEUR.format(devise=devise, fiche=fiche_texte(vin, annee_achat, devise, avec_prix=False)),
+        "structure": {"valeur": {"description": f"Prix de marché indicatif d'une bouteille, en {devise}", "required": True,
+                                 "selector": {"number": {"min": 0, "max": VALEUR_MAX, "step": 0.5}}}},
+    }, timeout)
+    try:
+        valeur = _nombre(donnees["valeur"])
+    except (KeyError, TypeError, ValueError):
+        raise IAErreur("L'IA n'a pas donné de valeur exploitable")
+    if not 0.5 <= valeur <= VALEUR_MAX:
+        raise IAErreur(f"Estimation de l'IA incohérente ({valeur:g} {devise})")
+    return round(valeur, 2)
