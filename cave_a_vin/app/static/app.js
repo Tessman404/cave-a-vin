@@ -1101,8 +1101,7 @@ function scanner() {
         return;
       }
       try {
-        flux = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+        ({ flux } = await ouvrirCamera(1920, 1080));
       } catch (err) {
         const raisons = { NotAllowedError: "accès refusé, ou bloqué dans le panneau Home Assistant", SecurityError: "bloquée par le navigateur",
           NotFoundError: "aucune caméra trouvée", NotReadableError: "caméra déjà utilisée par une autre application",
@@ -1142,6 +1141,34 @@ function scanner() {
  * nette et sans reflet, ce qui améliore la lecture de l'étiquette par l'IA et le détourage. La photo est recadrée sur
  * la bouteille. Sans caméra en direct (adresse http:// locale, refus d'accès), on revient à l'appareil photo du téléphone. */
 const cameraGuideePossible = () => !!(navigator.mediaDevices?.getUserMedia && window.isSecureContext);
+
+/* Caméra arrière. Sur les téléphones à plusieurs objectifs, le navigateur choisit parfois le grand-angle, qui lit mal
+ * les étiquettes : on prend l'objectif principal (sur Android, la caméra arrière au plus petit numéro), sauf si
+ * l'utilisateur en a choisi un autre avec le bouton « Objectif », mémorisé sur l'appareil. */
+const CLE_OBJECTIF = "tessvine-objectif";
+const objectifMemorise = () => { try { return localStorage.getItem(CLE_OBJECTIF) || ""; } catch { return ""; } };
+const memoriserObjectif = (id) => { try { localStorage.setItem(CLE_OBJECTIF, id); } catch { /* navigation privée */ } };
+async function camerasArriere() {
+  const toutes = (await navigator.mediaDevices.enumerateDevices().catch(() => [])).filter((d) => d.kind === "videoinput");
+  const arriere = toutes.filter((d) => /back|rear|arri[eè]re|environment/i.test(d.label));
+  const liste = arriere.length ? arriere : toutes.filter((d) => !/front|avant|user|facetime/i.test(d.label));
+  const numero = (d) => +((d.label.match(/camera2? ?(\d+)/i) || [])[1] ?? 99);
+  return liste.sort((a, b) => numero(a) - numero(b));
+}
+async function ouvrirCamera(largeur, hauteur, deviceId = objectifMemorise()) {
+  const video = (extra) => ({ audio: false, video: { width: { ideal: largeur }, height: { ideal: hauteur }, ...extra } });
+  let flux = null;
+  if (deviceId) flux = await navigator.mediaDevices.getUserMedia(video({ deviceId: { exact: deviceId } })).catch(() => null);
+  flux = flux || await navigator.mediaDevices.getUserMedia(video({ facingMode: { ideal: "environment" } }));
+  const cameras = await camerasArriere();  // les noms des caméras ne sont connus qu'une fois l'accès accordé
+  const actuelle = flux.getVideoTracks()[0]?.getSettings?.().deviceId;
+  const principale = cameras[0];
+  if (!objectifMemorise() && principale && actuelle && principale.deviceId !== actuelle && /camera2? ?\d/i.test(principale.label)) {
+    const autre = await navigator.mediaDevices.getUserMedia(video({ deviceId: { exact: principale.deviceId } })).catch(() => null);
+    if (autre) { flux.getTracks().forEach((t) => t.stop()); flux = autre; }
+  }
+  return { flux, cameras };
+}
 // L'app Home Assistant Android n'ouvre l'appareil photo depuis un formulaire qu'à partir de sa version 2026.11 ;
 // avant, et sans https (pas de caméra en direct), seule la galerie est proposée.
 function avertissementAndroid() {
@@ -1162,11 +1189,13 @@ function photoGuidee(mode = "face") {
       <svg class="guide" aria-hidden="true"></svg>
       <div class="camera-haut"><b>${textes.titre}</b><span>${textes.conseil}</span><span class="astuce">Bien éclairée, sans reflet · téléphone à la hauteur de l'étiquette</span></div>
       <div class="camera-message" hidden></div>
+      <label class="camera-zoom" hidden><span>Zoom</span><input type="range" min="1" max="1" step="0.1" value="1"></label>
       <img class="camera-apercu" alt="" hidden>
       <div class="camera-bas">
         <button type="button" class="bouton camera-annuler">Annuler</button>
         <button type="button" class="camera-declencheur" aria-label="Prendre la photo"></button>
         <button type="button" class="bouton camera-flash" hidden aria-pressed="false">Flash</button>
+        <button type="button" class="bouton camera-objectif" hidden>Objectif</button>
         <label class="bouton camera-natif">Appareil photo<input type="file" accept="image/*" capture="environment" hidden></label>
       </div>
       <div class="camera-bas camera-valider" hidden>
@@ -1230,21 +1259,41 @@ function photoGuidee(mode = "face") {
 
     (async () => {
       try {
-        flux = await navigator.mediaDevices.getUserMedia({ audio: false,
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } } });
-        if (fini) { flux.getTracks().forEach((t) => t.stop()); return; }
-        video.srcObject = flux;
-        await video.play().catch(() => {});
-        const piste = flux.getVideoTracks()[0];
-        const capacites = piste.getCapabilities?.() || {};
-        if (capacites.torch) {
+        const demarrer = async (deviceId) => {
+          const ouvert = await ouvrirCamera(3840, 2160, deviceId);
+          if (fini) { ouvert.flux.getTracks().forEach((t) => t.stop()); return; }
+          flux?.getTracks().forEach((t) => t.stop());
+          flux = ouvert.flux;
+          video.srcObject = flux;
+          await video.play().catch(() => {});
+          const piste = flux.getVideoTracks()[0];
+          const capacites = piste.getCapabilities?.() || {};
           const flash = $(".camera-flash", ecran);
-          flash.hidden = false;
+          flash.hidden = !capacites.torch;
+          flash.setAttribute("aria-pressed", "false");
           flash.onclick = async () => {
             const on = flash.getAttribute("aria-pressed") !== "true";
             try { await piste.applyConstraints({ advanced: [{ torch: on }] }); flash.setAttribute("aria-pressed", on); } catch { /* sans flash */ }
           };
-        }
+          // zoom de l'objectif, quand le téléphone le permet
+          const zoom = $(".camera-zoom", ecran), curseur = $("input", zoom);
+          zoom.hidden = !(capacites.zoom && capacites.zoom.max > capacites.zoom.min);
+          if (!zoom.hidden) {
+            Object.assign(curseur, { min: capacites.zoom.min, max: Math.min(capacites.zoom.max, 10), step: capacites.zoom.step || 0.1 });
+            curseur.value = piste.getSettings?.().zoom || capacites.zoom.min;
+            curseur.oninput = () => piste.applyConstraints({ advanced: [{ zoom: +curseur.value }] }).catch(() => {});
+          }
+          // changer d'objectif (principal, grand-angle, téléobjectif…) ; le choix est mémorisé
+          const objectif = $(".camera-objectif", ecran);
+          objectif.hidden = ouvert.cameras.length < 2;
+          objectif.onclick = () => {
+            const ids = ouvert.cameras.map((c) => c.deviceId);
+            const suivant = ids[(ids.indexOf(piste.getSettings?.().deviceId) + 1) % ids.length];
+            memoriserObjectif(suivant);
+            demarrer(suivant).catch(() => echec("La caméra en direct n'est pas disponible."));
+          };
+        };
+        await demarrer();
       } catch (err) {
         echec(err?.name === "NotAllowedError" ? "L'accès à la caméra a été refusé." : "La caméra en direct n'est pas disponible.");
       }

@@ -31,9 +31,13 @@ class TestGardeIA(BaseTest):
         super().setUp()
         self.reponses = []  # réponses successives de l'IA
         self.demandes = []
+        self.valeurs = []  # demandes de valeur (vins sans valeur estimée), quand valeur_auto est vrai
 
         def repondre(methode, chemin, corps):
             if chemin.startswith("/api/services/ai_task/generate_data"):
+                if json.loads(corps).get("task_name") == "Valeur d'un vin" and getattr(self, "valeur_auto", False):
+                    self.valeurs.append(json.loads(corps))
+                    return 200, {"service_response": {"data": {"valeur": 25}}}
                 self.demandes.append(json.loads(corps))
                 reponse = self.reponses.pop(0) if self.reponses else {"garde_debut": 2024, "garde_apogee": 2027,
                                                                        "garde_fin": 2032, "justification": "Médoc classique.",
@@ -117,8 +121,9 @@ class TestGardeIA(BaseTest):
         self.assertEqual((vin["garde_fin"], vin["garde_source"]), (2032, "ia"))
 
     def test_passage_mensuel(self):
+        self.valeur_auto = True
         self.creer(nom="A")
-        self.creer(nom="B", garde_debut=2023, garde_fin=2026)
+        self.creer(nom="B", garde_debut=2023, garde_fin=2026, valeur=40)
         self.creer(nom="Épuisé", quantite=0)
         planif = self.app.planificateur
         self.assertTrue(planif.a_faire())
@@ -127,6 +132,9 @@ class TestGardeIA(BaseTest):
         self.assertFalse(planif.a_faire())  # rien avant un mois
         self.assertEqual(len(self.demandes), 2)  # le vin épuisé n'est pas estimé
         self.assertEqual([v["garde_source"] for v in self.appel("GET", "api/vins")], ["ia", "ia"])
+        # le vin sans valeur estimée la reçoit de l'IA ; une valeur existante n'est pas remplacée
+        self.assertEqual(len(self.valeurs), 1)
+        self.assertEqual({v["nom"]: v["valeur"] for v in self.appel("GET", "api/vins")}, {"A": 25, "B": 40})
         self.app.ecrire_reglage("ia_garde_derniere", (datetime.now() - timedelta(days=31)).isoformat())
         self.assertTrue(planif.a_faire())
         self.appel("PUT", "api/reglages", {"ia_garde_auto": "0"})

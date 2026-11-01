@@ -614,7 +614,8 @@ class Handler(BaseHTTPRequestHandler):
                     raise ErreurAPI("Méthode non autorisée", 405)
                 return self._fichier_statique(chemin)
             query = parse_qs(url.query)
-            if not self._autorise(query):
+            # api/health (simple « ok », sans données) reste accessible sans clé : healthcheck de Docker
+            if chemin != "api/health" and not self._autorise(query):
                 raise ErreurAPI("Clé d'API manquante ou invalide", 401)
             longueur = int(self.headers.get("Content-Length") or 0)
             if longueur > TAILLE_MAX:

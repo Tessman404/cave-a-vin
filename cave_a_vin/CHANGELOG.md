@@ -1,5 +1,23 @@
 # Journal des modifications
 
+## 1.21.0
+
+Correctifs signalés sur GitHub, merci à tous pour vos retours !
+
+- **Lecture d'étiquette avec l'IA Anthropic (Claude)** : elle échouait (« refusé la demande (500) ») car cette IA
+  refuse les bornes minimum/maximum dans le format de réponse demandé. Tessvine ne les envoie plus et vérifie lui-même
+  les valeurs reçues. Corrige aussi l'estimation de la garde et de la valeur avec cette IA. (#3)
+- **Choix de l'objectif photo** : sur les téléphones à plusieurs objectifs, Tessvine prend maintenant l'objectif
+  principal au lieu du grand-angle, qui lisait mal les étiquettes. Un bouton « Objectif » permet d'en changer (le
+  choix est mémorisé) et un curseur de zoom apparaît quand le téléphone le permet. (#4)
+- **Valeur estimée automatique** : un vin sans valeur estimée (saisi à la main par exemple) la reçoit de l'IA après
+  son ajout, puis lors du passage mensuel. Une valeur déjà renseignée n'est jamais remplacée. (#2)
+- **Tâche IA toute neuve ignorée** en mode « Automatique » : une tâche IA jamais utilisée est maintenant reconnue. (#10)
+- **Docker avec clé d'API** : le contrôle de santé du conteneur n'est plus refusé, le conteneur ne passe plus
+  « unhealthy ». (#10)
+- **Mets & Vins plus juste** : les accords cherchent des mots entiers. « Fruits de mer » ne compte plus pour un
+  dessert, « barbecue » pour un poisson, ni « poulet rôti » pour du bœuf. (#10)
+
 ## 1.20.0
 
 Une version faite en grande partie par la communauté : merci à CABESTAN-NET, rwatjen et Matteo Alessani !

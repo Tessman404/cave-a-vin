@@ -402,6 +402,7 @@ class TestCleAPI(BaseTest):
         self.appel("GET", "api/stats", entetes={"X-API-Key": "s3cret"}, attendu=200)
         self.appel("GET", "api/stats", entetes={"Authorization": "Bearer s3cret"}, attendu=200)
         self.appel("GET", "", attendu=200)  # l'interface elle-même reste accessible
+        self.appel("GET", "api/health", attendu=200)  # healthcheck de Docker, sans clé
 
 
 if __name__ == "__main__":

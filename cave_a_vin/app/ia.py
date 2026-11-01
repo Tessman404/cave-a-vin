@@ -19,6 +19,9 @@ from .cave import COULEURS
 
 log = logging.getLogger("cave_a_vin")
 SOUS_DOSSIER = "cave_a_vin"
+# Nombre demandé à l'IA : sans bornes min/max, que certaines IA (Anthropic) refusent dans le schéma de réponse ;
+# les valeurs sont vérifiées par Tessvine à la réception.
+NOMBRE = {"number": {"mode": "box"}}
 DEVISES = ("EUR", "USD", "GBP", "CHF", "DKK")
 VALEUR_MAX = 1_000_000
 
@@ -66,11 +69,11 @@ STRUCTURE = {
                "required": True, "selector": TEXTE},
     "pays": {"description": "Pays de production", "required": True, "selector": TEXTE},
     "couleur": {"description": "Type de vin", "required": True, "selector": {"select": {"options": list(COULEURS)}}},
-    "millesime": {"description": "Année de récolte, seulement si elle est lisible", "selector": {"number": {"min": 1900, "max": 2100}}},
+    "millesime": {"description": "Année de récolte, seulement si elle est lisible", "selector": NOMBRE},
     "cepages": {"description": "Cépages, indiqués ou habituels pour l'appellation, séparés par des virgules", "selector": TEXTE},
-    "degre": {"description": "Degré d'alcool en % vol.", "selector": {"number": {"min": 0, "max": 25, "step": 0.1}}},
+    "degre": {"description": "Degré d'alcool en % vol.", "selector": NOMBRE},
     "format": {"description": "Contenance, par exemple 75 cl", "selector": TEXTE},
-    "valeur": {"description": "Prix de marché indicatif d'une bouteille, en {devise}", "selector": {"number": {"min": 0, "max": VALEUR_MAX, "step": 0.5}}},
+    "valeur": {"description": "Prix de marché indicatif d'une bouteille, en {devise}", "selector": NOMBRE},
     "accords": {"description": "Trois à cinq accords mets-vins, séparés par des virgules", "required": True, "selector": TEXTE},
     "description": {"description": "Deux phrases : style du vin, arômes typiques, potentiel", "selector": TEXTE},
     "code_barre": {"description": "Chiffres du code-barres (EAN, 8 à 14 chiffres) s'ils sont lisibles sur la "
@@ -130,7 +133,8 @@ def entite_a_utiliser(reglages):
     """L'IA choisie dans les réglages, sinon la première IA « tâche IA » disponible dans Home Assistant."""
     if reglages.get("ia_entite"):
         return reglages["ia_entite"]
-    disponibles = [e for e in entites(reglages) if e.get("etat") not in ("unavailable", "unknown")]
+    # l'état d'une tâche IA est l'heure de sa dernière utilisation : « unknown » tant qu'elle n'a jamais servi
+    disponibles = [e for e in entites(reglages) if e.get("etat") != "unavailable"]
     return disponibles[0]["entity_id"] if disponibles else None
 
 
@@ -295,9 +299,9 @@ INSTRUCTIONS_GARDE = (
 )
 STRUCTURE_GARDE = {
     "garde_debut": {"description": "Année à partir de laquelle le vin est bon à boire", "required": True,
-                    "selector": {"number": {"min": 1900, "max": 2200}}},
-    "garde_apogee": {"description": "Année de l'apogée", "required": True, "selector": {"number": {"min": 1900, "max": 2200}}},
-    "garde_fin": {"description": "Dernière année recommandée", "required": True, "selector": {"number": {"min": 1900, "max": 2200}}},
+                    "selector": NOMBRE},
+    "garde_apogee": {"description": "Année de l'apogée", "required": True, "selector": NOMBRE},
+    "garde_fin": {"description": "Dernière année recommandée", "required": True, "selector": NOMBRE},
     "justification": {"description": "Explication courte", "selector": {"text": {}}},
     "confiance": {"description": "Confiance dans l'estimation", "selector": {"select": {"options": ["faible", "moyenne", "elevee"]}}},
 }
@@ -365,7 +369,7 @@ def estimer_valeur(reglages, vin, annee_achat, timeout=90):
         "task_name": "Valeur d'un vin",
         "instructions": INSTRUCTIONS_VALEUR.format(devise=devise, fiche=fiche_texte(vin, annee_achat, devise, avec_prix=False)),
         "structure": {"valeur": {"description": f"Prix de marché indicatif d'une bouteille, en {devise}", "required": True,
-                                 "selector": {"number": {"min": 0, "max": VALEUR_MAX, "step": 0.5}}}},
+                                 "selector": NOMBRE}},
     }, timeout)
     try:
         valeur = _nombre(donnees["valeur"])

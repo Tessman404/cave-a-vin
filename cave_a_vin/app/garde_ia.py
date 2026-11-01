@@ -1,4 +1,5 @@
-"""Estimation de la garde par l'IA : à la demande, à l'ajout d'un vin, et automatiquement chaque mois."""
+"""Estimation de la garde par l'IA (et de la valeur des vins qui n'en ont pas) : à la demande, à l'ajout d'un vin,
+et automatiquement chaque mois."""
 
 import logging
 import threading
@@ -54,6 +55,17 @@ def estimer_valeur_vin(db, reglages, vin_id):
     with db.transaction() as conn:
         conn.execute("UPDATE vins SET valeur = ? WHERE id = ?", (valeur, vin_id))
     return valeur
+
+
+def completer_valeur(db, reglages, vin_id):
+    """Vin sans valeur estimée : l'IA la remplit (une valeur existante, saisie ou non, n'est jamais remplacée ici)."""
+    if db.scalar("SELECT valeur FROM vins WHERE id = ?", (vin_id,)):
+        return None
+    try:
+        return estimer_valeur_vin(db, reglages, vin_id)
+    except (ia.IAErreur, cave.ErreurAPI) as e:
+        log.warning("Valeur IA du vin %s : %s", vin_id, e)
+        return None
 
 
 class Planificateur:
@@ -124,6 +136,7 @@ class Planificateur:
                     break
                 try:
                     estimer_vin(db, self.app.reglages(), vin_id)
+                    completer_valeur(db, self.app.reglages(), vin_id)
                 except (ia.IAErreur, cave.ErreurAPI) as e:
                     nom = (db.one("SELECT nom FROM vins WHERE id = ?", (vin_id,)) or {}).get("nom", vin_id)
                     self.etat["erreurs"].append(f"{nom} : {e}")
@@ -184,5 +197,6 @@ class Planificateur:
                 estimer_vin(self.app.db, self.app.reglages(), vin_id)
             except (ia.IAErreur, cave.ErreurAPI) as e:
                 log.warning("Garde IA du vin %s : %s", vin_id, e)
+            completer_valeur(self.app.db, self.app.reglages(), vin_id)  # vin saisi à la main, sans prix
 
         threading.Thread(target=tache, name=f"garde-ia-{vin_id}", daemon=True).start()

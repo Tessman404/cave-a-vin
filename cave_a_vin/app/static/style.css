@@ -1251,3 +1251,7 @@ html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
 .note-android { display: flex; gap: .75rem; align-items: flex-start; margin-top: 1rem; font-size: .9rem; }
 .note-android > svg { flex: none; width: 1.3rem; height: 1.3rem; color: var(--accent-lien); margin-top: .1rem; }
 .note-android b { display: block; margin-bottom: .25rem; }
+
+.camera-zoom { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(150px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px;
+  color: #fff; font: 600 .85rem var(--sans); background: rgba(0,0,0,.45); padding: 6px 14px; border-radius: 999px; z-index: 3; }
+.camera-zoom input { width: min(56vw, 240px); accent-color: #d6b26a; }

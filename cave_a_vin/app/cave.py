@@ -118,10 +118,12 @@ PLATS = {
     "volaille": {"label": "Volaille", "icone": "🍗", "couleurs": {"rouge": 2, "blanc": 2},
                  "mots": ["bourgogne", "pinot", "beaujolais", "gamay", "chardonnay", "morgon", "fleurie", "jura",
                           "mâcon", "macon", "chinon", "saumur"],
-                 "synonymes": ["volaille", "poulet", "dinde", "chapon", "pintade", "viande blanche"]},
+                 "synonymes": ["volaille", "poulet", "dinde", "chapon", "pintade", "viande blanche",
+                               "poulet rôti", "volaille rôtie", "rôti de dinde", "dinde rôtie"]},
     "porc": {"label": "Porc & charcuterie", "icone": "🥓", "couleurs": {"rouge": 2, "rose": 2, "blanc": 1},
              "mots": ["beaujolais", "gamay", "morgon", "côtes-du-rhône", "alsace", "pinot", "chinon", "saumur", "savoie"],
-             "synonymes": ["porc", "charcuterie", "saucisse", "jambon", "filet mignon", "travers", "choucroute"]},
+             "synonymes": ["porc", "charcuterie", "saucisse", "jambon", "filet mignon", "travers", "choucroute",
+                           "rôti de porc", "porc rôti"]},
     "poisson": {"label": "Poisson", "icone": "🐟", "couleurs": {"blanc": 3, "rose": 1},
                 "mots": ["chablis", "sancerre", "pouilly", "sauvignon", "chardonnay", "loire", "muscadet", "meursault",
                          "graves", "entre-deux-mers"],
@@ -989,13 +991,34 @@ def supprimer_envie(db, envie_id):
 
 # --------------------------------------------------------------------------- accords & suggestions
 
+_LETTRE = "a-zà-ÿœæ"
+_TOUS_LES_MOTS = None
+
+
+def _mots_trouves(mots, texte):
+    """Mots (ou expressions) présents dans le texte en tant que mots entiers, au pluriel près : « bar » ne se trouve
+    pas dans « barbecue ». Les expressions les plus longues de tous les plats passent d'abord et masquent leurs
+    morceaux : « fruits de mer » n'est pas compté comme « fruits » (dessert), ni « poulet rôti » comme « rôti »."""
+    global _TOUS_LES_MOTS
+    if _TOUS_LES_MOTS is None:
+        _TOUS_LES_MOTS = sorted({m for r in PLATS.values() for m in (*r["mots"], *r["synonymes"])}, key=len, reverse=True)
+    voulus, trouves = set(mots), []
+    for m in _TOUS_LES_MOTS:
+        motif = rf"(?<![{_LETTRE}]){re.escape(m)}(?:s|x)?(?![{_LETTRE}])"
+        if re.search(motif, texte):
+            if m in voulus:
+                trouves.append(m)
+            texte = re.sub(motif, " ", texte)  # l'expression est prise : ses morceaux ne comptent plus
+    return [m for m in mots if m in trouves]
+
+
 def _accord(regle, vin):
     """Note de l'accord entre un plat et un vin (0 à 100) et ce qui la justifie."""
     poids = regle["couleurs"].get(vin["couleur"], 0)
     texte = " ".join(str(vin.get(c) or "") for c in ("region", "appellation", "cepages", "nom", "domaine")).lower()
     accords = (vin.get("accords") or "").lower()
-    mots = [m for m in regle["mots"] if m in texte]
-    cites = [m for m in regle["synonymes"] if m in accords]
+    mots = _mots_trouves(regle["mots"], texte)
+    cites = _mots_trouves(regle["synonymes"], accords)
     note = poids * 15 + min(len(mots), 2) * 12 + (31 if cites else 0)
     raisons = []
     if cites:
