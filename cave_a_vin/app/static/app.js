@@ -62,6 +62,14 @@ function toast(message, erreur = false, duree, action) {
     b.onclick = () => { clearTimeout(toast.minuteur); t.className = ""; action.faire(); };
     t.append(" ", b);
   }
+  // au premier plan, même au-dessus d'une fenêtre ouverte (sinon le message d'erreur reste caché derrière)
+  if (t.showPopover) {
+    try {
+      if (!t.hasAttribute("popover")) t.setAttribute("popover", "manual");
+      if (t.matches(":popover-open")) t.hidePopover();
+      t.showPopover();
+    } catch { /* navigateur ancien : le message reste sous la fenêtre */ }
+  }
   t.className = "visible" + (erreur ? " erreur" : "") + (action ? " avec-action" : "");
   clearTimeout(toast.minuteur);
   toast.minuteur = setTimeout(() => (t.className = ""), duree || (action ? 8000 : erreur ? 5000 : 2500));
@@ -135,7 +143,7 @@ function histogramme(lignes, { lien } = {}) {
 
 function dialogue(html, { onSubmit, large } = {}) {
   const d = $("#dialogue");
-  d.innerHTML = `<form method="dialog">${html}</form>`;
+  d.innerHTML = `<form method="dialog"><button type="button" class="fermer-dialogue" data-fermer aria-label="Fermer" title="Fermer">${ic("fermer")}</button>${html}</form>`;
   d.style.width = large ? "min(760px, calc(100% - 32px))" : "";
   const form = $("form", d);
   $$("[data-fermer]", d).forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); d.close(); }));

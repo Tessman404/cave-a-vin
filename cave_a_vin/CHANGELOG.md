@@ -1,5 +1,15 @@
 # Journal des modifications
 
+## 1.22.0
+
+- **Réduire un casier sans perdre l'étage du bas** : en passant par exemple de 5 à 4 étages alors que l'étage du bas
+  contient des bouteilles, Tessvine retire maintenant un étage vide et resserre les bouteilles, au lieu de refuser.
+  Même chose pour les colonnes. S'il n'y a pas assez d'étages vides, rien n'est modifié. (#15)
+- **Messages d'erreur visibles dans les fenêtres** : ils s'affichaient derrière la fenêtre ouverte et n'étaient
+  lisibles qu'après l'avoir fermée. (#15)
+- **Croix pour fermer les fenêtres**, toujours visible en haut à droite, même en bas d'une longue fenêtre. (#16)
+- **Licence MIT** ajoutée au projet. (#17)
+
 ## 1.21.0
 
 Correctifs signalés sur GitHub, merci à tous pour vos retours !

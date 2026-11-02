@@ -885,6 +885,42 @@ def creer_cave(db, data):
     return lire_cave(db, cur.lastrowid)
 
 
+def _retirer_lignes_vides(conn, cave_id, anciennes, nouvelles):
+    """Casier rétréci (moins d'étages ou de colonnes dans un rang) : par défaut, ce sont les étages du bas et les
+    colonnes de droite qui disparaissent. S'ils contiennent des bouteilles mais que d'autres étages ou colonnes du
+    même rang sont vides, on retire plutôt ces lignes vides et on resserre les bouteilles, sans en déplacer aucune
+    d'une étagère à l'autre. Renvoie le nombre de bouteilles renumérotées."""
+    if len(anciennes) != len(nouvelles):
+        return 0
+    bouteilles = conn.execute("SELECT id, rangee, colonne FROM bouteilles WHERE cave_id = ? AND rangee IS NOT NULL",
+                              (cave_id,)).fetchall()
+    changements = {}
+    for p, (avant, apres) in enumerate(zip(anciennes, nouvelles)):
+        if avant.get("sans") or apres.get("sans"):
+            continue  # emplacements retirés à la main : on ne devine rien
+        du_rang = [(b[0], b[1] - p * PAS_PROFONDEUR, b[2]) for b in bouteilles if (b[1] - 1) // PAS_PROFONDEUR == p]
+
+        def correspondance(total, garde, pris):
+            """Numéros gardés (anciens → nouveaux), ou None s'il faut garder le comportement par défaut."""
+            if garde >= total or all(n <= garde for n in pris):
+                return None
+            vides = [n for n in range(total, 0, -1) if n not in pris]  # les vides du bas (ou de droite) d'abord
+            if len(vides) < total - garde:
+                return None  # pas assez de lignes vides : l'utilisateur doit déplacer des bouteilles
+            retires = set(vides[:total - garde])
+            return {n: i for i, n in enumerate((n for n in range(1, total + 1) if n not in retires), 1)}
+
+        etages = correspondance(avant["hauteur"], apres["hauteur"], {e for _, e, _ in du_rang})
+        colonnes = correspondance(avant["largeur"], apres["largeur"], {c for _, _, c in du_rang})
+        for ident, e, c in du_rang:
+            ne, nc = (etages or {}).get(e, e), (colonnes or {}).get(c, c)
+            if (ne, nc) != (e, c):
+                changements[ident] = (p * PAS_PROFONDEUR + ne, nc)
+    for ident, (r, c) in changements.items():
+        conn.execute("UPDATE bouteilles SET rangee = ?, colonne = ? WHERE id = ?", (r, c, ident))
+    return len(changements)
+
+
 def modifier_cave(db, cave_id, data):
     actuelle = _lire_casier(db, cave_id)
     if not any(k in data for k in ("disposition", "rangees", "colonnes")):
@@ -896,6 +932,9 @@ def modifier_cave(db, cave_id, data):
         raise ErreurAPI("Une étagère a au moins une rangée et une colonne")
     nouvelles = set(cases(_Ligne(rangees=rangees, colonnes=colonnes, disposition=disposition)))
     with db.transaction() as conn:
+        if rangees and colonnes and profondeurs(actuelle):
+            _retirer_lignes_vides(conn, cave_id, profondeurs(actuelle),
+                                  profondeurs(_Ligne(rangees=rangees, colonnes=colonnes, disposition=disposition)))
         # aucune bouteille ne doit se retrouver hors du nouveau plan (rien n'est déplacé sans le demander)
         hors_plan = sum(1 for r, c in conn.execute(
             "SELECT rangee, colonne FROM bouteilles WHERE cave_id = ? AND rangee IS NOT NULL", (cave_id,))

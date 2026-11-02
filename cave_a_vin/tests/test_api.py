@@ -161,6 +161,26 @@ class TestCave(BaseTest):
         self.appel("PUT", f"api/caves/{c['id']}/filtre", {"filtre_mois": 0}, attendu=200)
         self.assertEqual(self.appel("GET", "api/stats")["filtres"], [])
 
+    def test_retirer_un_etage_vide(self):
+        """#15 : passer de 5 à 4 étages alors que l'étage du bas est occupé retire un étage vide (le plus bas des vides)."""
+        cave = self.appel("POST", "api/caves", {"nom": "Casier", "rangees": 5, "colonnes": 3}, attendu=201)
+        vin = self.creer_vin(quantite=0)
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 2, "emplacements": [
+            {"cave_id": cave["id"], "rangee": 5, "colonne": 1}, {"cave_id": cave["id"], "rangee": 2, "colonne": 3}]}, attendu=200)
+        cave = self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Casier", "rangees": 4, "colonnes": 3}, attendu=200)
+        places = sorted((b["rangee"], b["colonne"]) for b in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"])
+        self.assertEqual(places, [(2, 3), (4, 1)])  # l'étage 4 (vide) est parti, l'étage 5 prend sa place
+        # une colonne vide au milieu : 3 → 2 colonnes retire la colonne 2
+        self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Casier", "rangees": 4, "colonnes": 2}, attendu=200)
+        places = sorted((b["rangee"], b["colonne"]) for b in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"])
+        self.assertEqual(places, [(2, 2), (4, 1)])
+        # plus aucune ligne vide à retirer : refus, rien ne bouge
+        self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Casier", "rangees": 4, "colonnes": 1}, attendu=409)
+        self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Casier", "rangees": 2, "colonnes": 2}, attendu=200)
+        self.appel("PUT", f"api/caves/{cave['id']}", {"nom": "Casier", "rangees": 1, "colonnes": 2}, attendu=409)
+        places = sorted((b["rangee"], b["colonne"]) for b in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"])
+        self.assertEqual(places, [(1, 2), (2, 1)])  # les étages 1 et 3 (vides) sont partis
+
     def test_emplacements_retires(self):
         """Casier en diagonale : les coins n'existent pas."""
         disposition = {"profondeurs": [{"largeur": 3, "hauteur": 3, "sans": [[1, 1], [1, 3], [3, 1], [3, 3], [1, 1], [9, 9]]}]}

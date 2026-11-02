@@ -305,3 +305,7 @@ cd cave_a_vin && python3 -m unittest discover -s tests
 ## Support the project
 
 Tessvine is free and built in my spare time. If it's useful to you, you can [buy me a coffee on Ko-fi](https://ko-fi.com/tessman) 🍷 Thank you!
+
+## License
+
+Tessvine is released under the [MIT License](LICENSE): free to use, modify and share, as long as the copyright notice is kept.
