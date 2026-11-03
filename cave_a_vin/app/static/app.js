@@ -2088,11 +2088,15 @@ async function pageCaves(main, id, params) {
         <div class="grandit"><b>${titreVin(g)}</b>
           <div class="muted petit-texte">${esc([g.appellation, g.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
           <div class="muted petit-texte">${g.ids[0].cave_nom ? `En vrac dans ${esc(g.ids[0].cave_nom)}` : "Hors cave"} · ×${g.ids.length}</div></div>
-        ${capacite ? `<button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button>` : ""}</li>`).join("")}</ul>
+        ${(() => { const cible = capacite ? g.ids[0] : g.ids.find((b) => b.cave_id !== c.id); return cible ? `<button type="button" class="bouton petit primaire" data-ranger="${cible.id}">Ranger</button>` : ""; })()}</li>`).join("")}</ul>
       <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
     $$("[data-ranger]", d).forEach((bt) => bt.onclick = () => {
       d.close();
-      commencerRangement(aRanger.find((b) => b.id === +bt.dataset.ranger));
+      const b = aRanger.find((x) => x.id === +bt.dataset.ranger);
+      if (capacite) return commencerRangement(b);
+      api("PUT", `bouteilles/${b.id}`, { cave_id: c.id })
+        .then(() => { toast(`Bouteille rangée dans ${c.nom}`); route(); })
+        .catch((err) => toast(err.message, true));
     });
   };
   const boutonARanger = $("#voir-a-ranger", main);
