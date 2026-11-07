@@ -1262,3 +1262,13 @@ html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
   cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 .fermer-dialogue:hover { background: var(--surface-2); }
 .fermer-dialogue svg { width: 18px; height: 18px; }
+
+/* fenêtre « Déguster / sortir » : où se trouve la bouteille */
+.sortie-plan { margin: 4px 0 16px; }
+.sortie-casier + .sortie-casier { margin-top: 12px; }
+.sortie-lieu { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 6px; }
+.sortie-lieu .ic { width: 18px; height: 18px; }
+.sortie-plan .plan-conteneur { --case: 36px; max-width: 100%; max-height: 42vh; }
+.sortie-plan .case-cave.trouvee { cursor: pointer; }
+.sortie-plan .case-cave:disabled { cursor: default; }
+.sortie-aide, .sortie-vrac { margin: 6px 0 0; font-size: .9rem; }

@@ -413,7 +413,7 @@ const I18N = (() => {
     "Contre-étiquette dans le cadre, code-barres bien visible": "Back label in the frame, barcode clearly visible",
     "Bouteille dans la silhouette, étiquette de face dans le cadre": "Bottle inside the outline, label facing you in the frame",
     "Bien éclairée, sans reflet · téléphone à la hauteur de l'étiquette": "Good light, no glare · phone level with the label",
-    "Prendre la photo": "Take the photo", "Objectif": "Lens", "Flash": "Flash", "Appareil photo": "Camera", "Reprendre": "Retake", "Utiliser cette photo": "Use this photo",
+    "Prendre la photo": "Take the photo", "Objectif": "Lens", "La bouteille qui clignote est celle qui sera sortie : touchez-en une autre de ce vin pour changer.": "The blinking bottle is the one that will be taken out: tap another bottle of this wine to change.", "La bouteille qui clignote est celle à sortir.": "The blinking bottle is the one to take out.", "Touchez sur le plan la bouteille que vous prenez (sinon, c'est une bouteille non rangée qui sera sortie).": "Tap the bottle you take on the map (otherwise an unplaced bottle will be taken out).", "Flash": "Flash", "Appareil photo": "Camera", "Reprendre": "Retake", "Utiliser cette photo": "Use this photo",
     "L'accès à la caméra a été refusé.": "Camera access was denied.", "La caméra en direct n'est pas disponible.": "The live camera isn't available.",
     "Utilisez le bouton « Appareil photo » ci-dessous.": "Use the “Camera” button below.", "ÉTIQUETTE": "LABEL", "CONTRE-ÉTIQUETTE": "BACK LABEL",
     "Bouton de retour vers Home Assistant": "Back to Home Assistant button", "Afficher le bouton": "Show the button",
@@ -442,6 +442,7 @@ const I18N = (() => {
   const s = (n) => (+n > 1 ? "s" : "");
   const T = (x) => traduire(x);  // traduction d'un morceau capturé
   const MOTIFS = [
+    [/^\+ (\d+) en vrac dans (.+)$/, (m) => `+ ${m[1]} loose in ${T(m[2])}`],
     [/^(\d[\d\s ]*) bouteilles?$/, (m) => `${m[1]} bottle${s(m[1])}`],
     [/^(\d[\d\s ]*) références? · (\d[\d\s ]*) bouteilles?$/, (m) => `${m[1]} wine${s(m[1])} · ${m[2]} bottle${s(m[2])}`],
     [/^(.+) : (\d[\d\s ]*) bouteilles?$/, (m) => `${T(m[1])}: ${m[2]} bottle${s(m[2])}`],
@@ -755,7 +756,7 @@ const I18N = (() => {
     "Contre-étiquette dans le cadre, code-barres bien visible":"Retroetichetta nel riquadro, codice a barre ben visibile",
     "Bouteille dans la silhouette, étiquette de face dans le cadre":"Bottiglia nella sagoma, etichetta di fronte nel riquadro",
     "Bien éclairée, sans reflet · téléphone à la hauteur de l'étiquette":"Ben illuminata, senza riflessi · telefono all'altezza dell'etichetta",
-    "Prendre la photo":"Scatta la foto", "Objectif":"Obiettivo", "Flash":"Flash", "Appareil photo":"Fotocamera", "Reprendre":"Riprova", "Utiliser cette photo":"Usa questa foto",
+    "Prendre la photo":"Scatta la foto", "Objectif":"Obiettivo", "La bouteille qui clignote est celle qui sera sortie : touchez-en une autre de ce vin pour changer.":"La bottiglia che lampeggia è quella che verrà scaricata: tocca un'altra bottiglia di questo vino per cambiare.", "La bouteille qui clignote est celle à sortir.":"La bottiglia che lampeggia è quella da scaricare.", "Touchez sur le plan la bouteille que vous prenez (sinon, c'est une bouteille non rangée qui sera sortie).":"Tocca sulla mappa la bottiglia che prendi (altrimenti verrà scaricata una bottiglia non sistemata).", "Flash":"Flash", "Appareil photo":"Fotocamera", "Reprendre":"Riprova", "Utiliser cette photo":"Usa questa foto",
     "L'accès à la caméra a été refusé.":"L'accesso alla fotocamera è stato negato.", "La caméra en direct n'est pas disponible.":"La fotocamera in diretta non è disponibile.",
     "Utilisez le bouton « Appareil photo » ci-dessous.":"Usa il pulsante « Fotocamera » qui sotto.", "ÉTIQUETTE":"ETICHETTA", "CONTRE-ÉTIQUETTE":"RETROETICHETTA",
     "Essayer":"Prova", "Bouton de retour enregistré":"Pulsante di ritorno salvato",
@@ -916,6 +917,7 @@ const I18N = (() => {
     [/^Pour un autre tableau de bord, ouvrez-le dans Home Assistant et copiez la fin de son adresse, à partir du « \/ » \(par exemple$/, () => "Per un'altra dashboard, aprila in Home Assistant e copia la parte finale dell'indirizzo, a partire da « / » (per esempio"],
     [/^\)\.\s*Le bouton apparaît en haut du menu sur ordinateur, et dans « Plus » sur téléphone\.(.*)$/s, (m) => `). Il pulsante appare in cima al menu su computer e in « Altro » sul telefono.${m[1].trim() ? " Fuori dal componente aggiuntivo, inserisci anche qui sotto l'indirizzo di Home Assistant." : ""}`],
     [/^Envoi impossible : (.+)$/, (m) => `Invio impossibile: ${m[1]}`],
+    [/^\+ (\d+) en vrac dans (.+)$/, (m) => `+ ${m[1]} alla rinfusa in ${Ti(m[2])}`],
     [/^Couleur inconnue : (.+)$/, (m) => `Colore sconosciuto: ${m[1]}`],
     [/^Image illisible \((.+)\)$/, (m) => `Immagine illeggibile (${m[1]})`],
     [/^Image indisponible \((.+)\)$/, (m) => `Immagine non disponibile (${m[1]})`],

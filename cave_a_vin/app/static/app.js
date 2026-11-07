@@ -227,7 +227,10 @@ async function dialogueSortie(vin, bouteilleId, apres) {
     if (!choix) return;
     effacerNote = choix === "effacer";
   }
+  // où est la bouteille ? le plan des casiers qui contiennent ce vin, la bouteille à prendre clignote
+  const ou = bouteilleId ? null : await planSortie(vin).catch(() => null);
   const d = dialogue(`<span class="surtitre">Déguster / sortir</span><h2>${titreVin(vin)}</h2>
+    ${ou ? ou.html : ""}
     <div class="form">
       ${bouteilleId ? "" : `<label>Nombre de bouteilles<input type="number" name="quantite" min="1" max="${vin.stock}" value="1" required></label>`}
       <label>Raison<select name="raison">${options(REF.raisons_sortie, "bue")}</select></label>
@@ -237,8 +240,10 @@ async function dialogueSortie(vin, bouteilleId, apres) {
     </div>
     <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Valider la sortie</button></div>`,
   {
+    large: !!ou,
     onSubmit: async (data) => {
       if (bouteilleId) data.bouteille_id = bouteilleId;
+      else if (ou?.choisie() && +data.quantite === 1) data.bouteille_id = ou.choisie();
       if (effacerNote) data.effacer_note = true;
       const r = await api("POST", `vins/${vin.id}/sortie`, data);
       toast(`${+data.quantite > 1 ? "Bouteilles sorties" : "Bouteille sortie"}, santé !`, false, null, r.mouvement_id ? {
@@ -253,6 +258,61 @@ async function dialogueSortie(vin, bouteilleId, apres) {
     },
   });
   activerEtoiles($("form", d));
+  ou?.activer(d);
+}
+
+/** Plan de sortie : les casiers où se trouve ce vin. Ses bouteilles brillent, celle qui sera sortie clignote ;
+ *  toucher une autre de ses bouteilles la choisit. Rien si aucune bouteille n'est rangée sur un plan. */
+async function planSortie(vin) {
+  const v = vin.bouteilles ? vin : await api("GET", `vins/${vin.id}`);
+  const placees = v.bouteilles.filter((b) => b.cave_id && b.rangee);
+  const enVrac = v.bouteilles.filter((b) => b.cave_id && !b.rangee);
+  if (!placees.length) return null;
+  const racines = [...new Set(placees.map((b) => b.cave_racine))];
+  const caves = await Promise.all(racines.map((id) => api("GET", `caves/${id}`)));
+  const ids = new Set(placees.map((b) => b.id));
+  // même ordre que le serveur quand on ne choisit rien : bouteilles non rangées d'abord, puis la plus récente
+  let choisie = v.bouteilles.some((b) => !b.rangee) ? null : Math.max(...placees.map((b) => b.id));
+  const blocs = caves.flatMap((c) => [c, ...c.etageres]
+    .filter((k) => k.bouteilles.some((b) => ids.has(b.id)))
+    .map((k) => {
+      const ici = placees.filter((b) => b.cave_id === k.id).map((b) => positionCase(b)).join(", ");
+      const nomCave = k.parent_id ? `${esc(c.nom)} · ${esc(nomCasier(k))}` : (c.etageres.length ? `${esc(c.nom)} · ${esc(nomCasier(k))}` : esc(c.nom));
+      return `<div class="sortie-casier"><p class="sortie-lieu">${ic("cave")} <b>${nomCave}</b> <span class="muted">${ici}</span></p>
+        <div class="plan-conteneur">${dessinerCasier(k)}</div></div>`;
+    }));
+  const html = `<div class="sortie-plan">${blocs.join("")}
+    ${enVrac.length ? `<p class="muted sortie-vrac">+ ${enVrac.length} en vrac dans ${[...new Set(enVrac.map((b) => esc(b.cave_nom)))].join(", ")}</p>` : ""}
+    <p class="muted sortie-aide">${choisie === null ? "Touchez sur le plan la bouteille que vous prenez (sinon, c'est une bouteille non rangée qui sera sortie)."
+      : placees.length > 1 ? "La bouteille qui clignote est celle qui sera sortie : touchez-en une autre de ce vin pour changer." : "La bouteille qui clignote est celle à sortir."}</p></div>`;
+  const marquer = (d) => $$(".sortie-plan .case-cave.pleine", d).forEach((el) => {
+    const b = +el.dataset.b;
+    el.classList.toggle("trouvee", ids.has(b));
+    el.classList.toggle("estompee", !ids.has(b));
+    el.classList.toggle("surligne", b === choisie);
+    el.disabled = !ids.has(b);
+  });
+  return {
+    html,
+    choisie: () => choisie,
+    activer(d) {
+      marquer(d);
+      $$(".sortie-plan .case-cave:not(.pleine)", d).forEach((el) => { el.disabled = true; });
+      $(".sortie-plan", d).addEventListener("click", (e) => {
+        const el = e.target.closest(".case-cave.trouvee");
+        if (!el) return;
+        e.preventDefault();
+        choisie = +el.dataset.b;
+        const q = $("input[name=quantite]", d);
+        if (q) q.value = 1;
+        marquer(d);
+      });
+      const q = $("input[name=quantite]", d);
+      if (q) q.addEventListener("input", () => { if (+q.value > 1) { choisie = null; marquer(d); } });
+      // la bouteille à sortir visible dans son casier
+      requestAnimationFrame(() => $(".sortie-plan .surligne", d)?.scrollIntoView({ block: "nearest", inline: "center" }));
+    },
+  };
 }
 
 async function dialogueEntree(vin, apres) {

@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.23.0
+
+- **Le plan s'affiche quand on sort un vin** : dans « Déguster / sortir », Tessvine montre maintenant le ou les casiers
+  où se trouve ce vin, avec le nom de la cave et du casier et les emplacements (ex. « B1, B2 »). Les bouteilles de ce
+  vin brillent et celle qui sera sortie clignote : touchez-en une autre pour la choisir. C'est bien cette bouteille-là
+  qui est retirée du plan.
+
 ## 1.22.0
 
 - **Réduire un casier sans perdre l'étage du bas** : en passant par exemple de 5 à 4 étages alors que l'étage du bas
