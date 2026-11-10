@@ -54,7 +54,7 @@ def main():
     serveur = creer_serveur(application, port=port)
     application.planificateur.demarrer()  # estimation mensuelle de la garde par l'IA
     application.surveillance.demarrer()  # notifications de fin de garde
-    logging.info("Tessvine %s démarrée sur le port %s (données : %s)%s", __version__, port, dossier.resolve(),
+    logging.info("Tessvine %s démarrée sur http://127.0.0.1:%s (données : %s)%s", __version__, port, dossier.resolve(),
                  " — clé d'API activée" if api_key else "")
     if photo.RAISON_SANS_DETOURAGE:
         logging.warning("Détourage des photos désactivé : %s. La cave fonctionne normalement, les photos sont gardées "
