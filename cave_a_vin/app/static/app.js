@@ -2142,7 +2142,7 @@ async function pageCaves(main, id, params) {
     const groupes = {};
     aRanger.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, ids: [] }; groupes[b.vin_id].ids.push(b); });
     const d = dialogue(`<span class="surtitre">À ranger</span><h2>Bouteilles non rangées</h2>
-      <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis l'emplacement voulu." : " Touchez « Ranger » puis « Ranger ici » pour la mettre dans cette cave."}</p>
+      <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis l'emplacement voulu." : ""}</p>
       <ul class="a-ranger-liste">${Object.values(groupes).map((g) => `<li>
         <div class="etiquette">${vignetteVin(g, "mini", `Étiquette de ${g.nom}`)}</div>
         <div class="grandit"><b>${titreVin(g)}</b>
