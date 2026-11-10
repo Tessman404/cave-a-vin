@@ -2142,17 +2142,24 @@ async function pageCaves(main, id, params) {
     const groupes = {};
     aRanger.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, ids: [] }; groupes[b.vin_id].ids.push(b); });
     const d = dialogue(`<span class="surtitre">À ranger</span><h2>Bouteilles non rangées</h2>
-      <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis l'emplacement voulu." : ""}</p>
+      <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis l'emplacement voulu." : " Touchez « Ranger » puis « Ranger ici » pour la mettre dans cette cave."}</p>
       <ul class="a-ranger-liste">${Object.values(groupes).map((g) => `<li>
         <div class="etiquette">${vignetteVin(g, "mini", `Étiquette de ${g.nom}`)}</div>
         <div class="grandit"><b>${titreVin(g)}</b>
           <div class="muted petit-texte">${esc([g.appellation, g.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
           <div class="muted petit-texte">${g.ids[0].cave_nom ? `En vrac dans ${esc(g.ids[0].cave_nom)}` : "Hors cave"} · ×${g.ids.length}</div></div>
-        ${capacite ? `<button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button>` : ""}</li>`).join("")}</ul>
+        ${capacite || g.ids[0].cave_id !== c.id ? `<button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button>` : ""}</li>`).join("")}</ul>
       <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
-    $$("[data-ranger]", d).forEach((bt) => bt.onclick = () => {
+    $$("[data-ranger]", d).forEach((bt) => bt.onclick = async () => {
+      const b = aRanger.find((x) => x.id === +bt.dataset.ranger);
       d.close();
-      commencerRangement(aRanger.find((b) => b.id === +bt.dataset.ranger));
+      if (capacite) { commencerRangement(b); return; }
+      // rangement libre : pas d'emplacement à choisir, on range tout de suite dans cette cave
+      try {
+        await api("PUT", `bouteilles/${b.id}`, { cave_id: c.id });
+        toast(`Bouteille rangée dans ${c.nom}`);
+        route();
+      } catch (err) { toast(err.message, true); }
     });
   };
   const boutonARanger = $("#voir-a-ranger", main);
