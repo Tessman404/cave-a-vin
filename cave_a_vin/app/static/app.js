@@ -575,7 +575,7 @@ async function pageStats(main) {
       <div class="carte"><h3>Par couleur</h3>${barres(s.par_couleur, { couleur: true, lien: (l) => versVins({ couleur: l.cle }) })}</div>
       <div class="carte"><h3>Par garde</h3>${barres(s.par_statut.filter((l) => l.bouteilles), { statut: true, lien: (l) => versVins({ statut: l.cle }) })}</div>
       <div class="carte"><h3>Par région</h3>${barres(s.par_region, { lien: (l) => l.cle !== "—" ? versVins({ region: l.cle }) : "" })}</div>
-      <div class="carte"><h3>Par cave</h3>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.nom, bouteilles: c.bouteilles })),
+      <div class="carte"><h3>Par cave</h3>${barres(s.par_cave.map((c) => ({ cle: c.id, label: c.capacite ? `${c.nom} (${c.bouteilles}/${c.capacite})` : c.id === null ? "Hors cave" : c.nom, bouteilles: c.bouteilles })),
         { lien: (l) => l.cle ? versVins({ cave_id: String(l.cle) }) : `role="link" tabindex="0" data-aller="#/caves?ranger=1"` })}</div>
       <div class="carte large"><h3>Par millésime</h3>${histogramme(s.par_millesime, { lien: (l) => versVins({ millesime: l.cle }) })}</div>
     </div>
@@ -746,7 +746,7 @@ async function pageVin(main, id) {
   const v = await api("GET", `vins/${id}`);
   const recharger = () => route();
   const prop = (titre, valeur) => valeur || valeur === 0 ? `<div><dt>${titre}</dt><dd>${valeur}</dd></div>` : "";
-  const emplacement = (b) => b.cave_id ? `${esc(b.cave_nom)}${b.rangee ? ` — ${positionCase(b)}` : " — en vrac"}` : "Non rangée";
+  const emplacement = (b) => b.cave_id ? `${esc(b.casier || b.cave_nom)}${b.rangee ? `\u0001${positionCase(b)}` : " · en vrac"}` : "Hors cave · non rangée";
   const groupes = {};
   v.bouteilles.forEach((b) => { const k = emplacement(b); groupes[k] = groupes[k] || { b, n: 0 }; groupes[k].n++; });
   const surtitre = [v.appellation, v.region, v.pays !== "France" ? v.pays : ""].filter(Boolean);
@@ -800,7 +800,7 @@ async function pageVin(main, id) {
         ${v.notes ? `<h3 style="margin-top:20px">Notes</h3><p style="white-space:pre-line">${esc(v.notes)}</p>` : ""}</div>
         <div class="carte"><div class="titre-carte"><h2>Emplacements</h2>
           ${v.bouteilles.some((b) => b.cave_id) ? `<button class="bouton petit" id="localiser">${ICONE_LOCALISER} Localiser dans la cave</button>` : ""}</div>
-          ${v.bouteilles.length ? `<ul class="liste">${Object.entries(groupes).map(([k, g]) => `<li class="emplacement-ligne">${g.b.rangee ? `<span class="position">${positionCase(g.b)}</span>` : `<span class="position" style="opacity:.5">—</span>`}<span class="grandit">${g.b.cave_id ? `<a href="#/caves/${g.b.cave_id}?vin=${v.id}">${k}</a>` : k}</span><span class="qte">×${g.n}</span></li>`).join("")}</ul>`
+          ${v.bouteilles.length ? `<ul class="liste">${Object.entries(groupes).map(([k, g]) => `<li class="emplacement-ligne">${g.b.rangee ? `<span class="position">${positionCase(g.b)}</span>` : `<span class="position" style="opacity:.5">—</span>`}<span class="grandit">${g.b.cave_id ? `<a href="#/caves/${g.b.cave_id}?vin=${v.id}">${k.split("\u0001")[0]}</a>` : k}</span><span class="qte">×${g.n}</span></li>`).join("")}</ul>`
             : `<p class="muted">Plus aucune bouteille en cave.</p>`}</div>
         <div class="carte"><h2>Historique & dégustations</h2>
           ${v.mouvements.length ? `<div class="defile"><table class="tableau"><thead><tr><th>Date</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
@@ -2072,7 +2072,7 @@ async function pageCaves(main, id, params) {
       <div id="mode-deplacement" hidden><span class="grandit" id="texte-deplacement">Choisissez l'emplacement de destination…</span> ${c.capacite ? "" : `<label class="nb-ici" id="nb-ici-l" hidden>Combien <input type="number" id="nb-ici" min="1" value="1"></label> <button class="bouton petit primaire" id="deplacer-ici">Ranger ici</button> `}<button class="bouton petit" id="annuler-depl">Annuler</button></div>
       ${plan}
       ${vrac.length ? `<h3 style="margin-top:24px">${c.capacite ? "Sans emplacement précis" : "Bouteilles"}</h3><ul class="liste">${Object.values(groupesVrac).map((b) =>
-        `<li class="${b.vin_id === surligne ? "surligne" : ""}"><span class="mini-bouteille">${bouteilleSVG(b, "silhouette")}</span><a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="qte">×${b.n}</span><button type="button" class="bouton petit" data-deplacer-vrac="${b.id}" title="Déplacer une bouteille vers une autre cave">${ic("deplacer")} Déplacer</button></li>`).join("")}</ul>` : ""}
+        `<li class="${b.vin_id === surligne ? "surligne" : ""}"><span class="mini-bouteille">${bouteilleSVG(b, "silhouette")}</span><a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="qte">×${b.n}</span><button type="button" class="bouton petit deplacer-vrac" data-deplacer-vrac="${b.id}" title="Déplacer une bouteille vers une autre cave">${ic("deplacer")} Déplacer</button></li>`).join("")}</ul>` : ""}
       ${!c.bouteilles.length && !c.capacite ? `<p class="muted">Aucune bouteille. Ajoutez-en depuis la fiche d'un vin.</p>` : ""}
     </section>`;
   $("#nouvelle", main).onclick = () => dialogueCave();
@@ -2693,7 +2693,7 @@ async function pageHistorique(main) {
     <div class="carte defile" id="table"></div>`;
   const charger = async () => {
     const ms = await api("GET", "mouvements?" + new URLSearchParams({ limite: 1000, ...(type ? { type } : {}) }));
-    $("#table", main).innerHTML = ms.length ? `<table class="tableau"><thead><tr><th>Date</th><th>Vin</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
+    $("#table", main).innerHTML = ms.length ? `<table class="tableau empilable"><thead><tr><th>Date</th><th>Vin</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
       ${ms.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
         <td>${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</td>
         <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
@@ -2800,10 +2800,10 @@ async function pageReglages(main) {
           <a class="bouton" href="${avecCle("api/export.csv")}" download>Exporter en CSV (Excel)</a>
           <a class="bouton" href="${avecCle("api/export.json")}" download>Sauvegarde complète (JSON)</a></div>
         <hr class="sep">
-        <label>Importer des vins depuis un fichier CSV (colonnes : nom, domaine, appellation, region, couleur, millesime, quantite…)
-          <input type="file" accept=".csv,text/csv" id="import-csv"></label>
-        <label style="margin-top:12px">Restaurer une sauvegarde JSON (remplace toute la cave !)
-          <input type="file" accept=".json,application/json" id="import-json"></label>
+        <p class="petit-texte" style="margin:0 0 8px">Importer des vins depuis un fichier CSV (colonnes : nom, domaine, appellation, region, couleur, millesime, quantite…)</p>
+        <label class="bouton">${ic("entree")} Choisir un fichier CSV<input type="file" accept=".csv,text/csv" id="import-csv" hidden></label>
+        <p class="petit-texte" style="margin:16px 0 8px">Restaurer une sauvegarde JSON (remplace toute la cave !)</p>
+        <label class="bouton">${ic("sauvegarde")} Choisir une sauvegarde<input type="file" accept=".json,application/json" id="import-json" hidden></label>
       </div>
       <div class="carte"><h2>${ic("info")}Affichage</h2>
         <form class="form" id="affichage">

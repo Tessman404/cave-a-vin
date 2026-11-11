@@ -1,5 +1,20 @@
 # Journal des modifications
 
+## 1.25.0
+
+Tour complet de l'application : présentation et cohérence.
+
+- **Historique lisible sur téléphone** : une ligne claire par mouvement (vin, date, quantité, note) au lieu d'un
+  tableau trop large où les noms étaient coupés mot par mot.
+- **Emplacements de la fiche d'un vin** : le casier est maintenant nommé (« Cellier · Cave électrique ») et la position
+  n'est plus écrite deux fois.
+- **Réglages** : les cartes se rangent sur deux colonnes sans grands vides, et les boutons d'import sont en français
+  et dans le style de l'application (au lieu de « Choose File »).
+- **Plan de cave** : dans les filtres, l'icône de bouteille ne colle plus au texte ; sur téléphone, la liste « Sans
+  emplacement précis » est alignée (statut à gauche, « Déplacer » à droite).
+- **Statistiques** : les libellés longs (« Liquoreux / moelleux ») ne sont plus coupés ; les bouteilles qui ne sont
+  dans aucune cave s'appellent « Hors cave », pour ne plus les confondre avec les bouteilles « à ranger ».
+
 ## 1.24.0
 
 - **Ranger un carton d'un coup** : à l'ajout d'un vin ou de bouteilles, la cave est maintenant proposée d'office

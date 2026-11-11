@@ -352,9 +352,10 @@ def lire_vin(db, vin_id, details=True):
             f"""SELECT b.*, {NOM_COMPLET} AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_racine FROM bouteilles b
                LEFT JOIN caves c ON c.id = b.cave_id LEFT JOIN caves p ON p.id = c.parent_id
                WHERE b.vin_id = ? ORDER BY cave_nom, b.rangee, b.colonne, b.id""", (vin_id,))
-        lieux = {e["bouteille_id"]: e["lieu"] for e in emplacements(db, [vin_id]).get(vin_id, [])}
+        lieux = {e["bouteille_id"]: e for e in emplacements(db, [vin_id]).get(vin_id, [])}
         for b in vin["bouteilles"]:
-            b["lieu"] = lieux.get(b["id"])
+            b["lieu"] = lieux.get(b["id"], {}).get("lieu")
+            b["casier"] = lieux.get(b["id"], {}).get("casier")  # « Cellier · Cave électrique », sans la position
         vin["mouvements"] = db.all(
             "SELECT * FROM mouvements WHERE vin_id = ? ORDER BY date DESC, id DESC", (vin_id,))
         notes = [m["note"] for m in vin["mouvements"] if m["note"] is not None]
@@ -823,7 +824,7 @@ def emplacements(db, vin_ids=None):
             morceaux = [b["parent_nom"] if b["parent_id"] else b["nom"]]
             if b["parent_id"]:
                 morceaux.append(b["nom"] or f"étagère {cotes.get(b['position'], 'du bas')}")
-            elif b["nb_etageres"]:
+            elif b["nb_etageres"] and b["rangee"]:  # en vrac : dans la cave, pas dans un casier précis
                 morceaux.append(b["nom_casier"] or "casier principal")
             if b["rangee"]:
                 profs = profondeurs(b)
@@ -838,6 +839,7 @@ def emplacements(db, vin_ids=None):
                 morceaux.append("en vrac")
             lieu = " · ".join(m for m in morceaux if m)
         resultat.setdefault(b["vin_id"], []).append({"bouteille_id": b["id"], "lieu": lieu})
+        resultat[b["vin_id"]][-1]["casier"] = " · ".join(m for m in morceaux[:2] if m) if b["cave_id"] else ""
     return resultat
 
 
