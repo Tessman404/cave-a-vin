@@ -2159,6 +2159,7 @@ async function pageCaves(main, id, params) {
   /* --- déplacer / ranger une bouteille : les places libres s'allument */
   let deplacement = null;
   const finDeplacement = () => {
+    $$(".case-cave.surligne, .liste li.surligne", main).forEach((x) => x.classList.remove("surligne"));
     deplacement = null;
     boutonADeplacer = null;
     serieADeplacer = [];
@@ -2182,6 +2183,11 @@ async function pageCaves(main, id, params) {
     if (b.cave_id && !b.cave_nom) b = { ...b, cave_nom: b.cave_id === c.id ? c.nom : nomCasier(casierDe(b)) };
     deplacement = b.id;
     boutonADeplacer = b;
+    // la bouteille à déplacer clignote (seule), qu'elle soit sur ce plan ou dans la liste en vrac
+    $$(".case-cave.surligne, .liste li.surligne", main).forEach((x) => x.classList.remove("surligne"));
+    const source = $(`.case-cave[data-b="${b.id}"]`, main) || $(`[data-deplacer-vrac="${b.id}"]`, main)?.closest("li");
+    source?.classList.add("surligne");
+    if (source && !defiler) requestAnimationFrame(() => source.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" }));
     if (!capacite) {  // rangement libre : pas d'emplacement à toucher, on range dans la cave
       const dejaIci = b.cave_id === c.id;
       if (ici) ici.hidden = dejaIci;

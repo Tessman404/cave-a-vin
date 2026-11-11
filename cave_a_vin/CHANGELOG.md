@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.27.1
+
+- **La bouteille à déplacer clignote sur le plan** : après « Déplacer » (depuis la fiche d'un vin ou le plan), elle
+  est mise en évidence à sa place actuelle, et le plan se place dessus.
+
 ## 1.27.0
 
 - **Bouton « Déplacer » dans la fiche d'un vin**, à côté de « Déguster / sortir » : on choisit la bouteille sur le plan
