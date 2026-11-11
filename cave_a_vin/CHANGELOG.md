@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.27.0
+
+- **Bouton « Déplacer » dans la fiche d'un vin**, à côté de « Déguster / sortir » : on choisit la bouteille sur le plan
+  (celle qui clignote) ou « Déplacer les N bouteilles », puis le plan de cave s'ouvre en mode déplacement. Il suffit de
+  toucher la nouvelle place, ou d'ouvrir une autre cave avec ses onglets pour l'y emmener (« Ranger ici » dans une cave
+  sans plan).
+
 ## 1.26.0
 
 - **Couleur du vin visible dans « Mes vins »** : chaque fiche affiche une pastille et la couleur (Rouge, Blanc,

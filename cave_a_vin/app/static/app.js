@@ -266,7 +266,7 @@ async function dialogueSortie(vin, bouteilleId, apres) {
 
 /** Plan de sortie : les casiers où se trouve ce vin. Ses bouteilles brillent, celle qui sera sortie clignote ;
  *  toucher une autre de ses bouteilles la choisit. Rien si aucune bouteille n'est rangée sur un plan. */
-async function planSortie(vin) {
+async function planSortie(vin, aide = null) {
   const v = vin.bouteilles ? vin : await api("GET", `vins/${vin.id}`);
   const placees = v.bouteilles.filter((b) => b.cave_id && b.rangee);
   const enVrac = v.bouteilles.filter((b) => b.cave_id && !b.rangee);
@@ -286,7 +286,7 @@ async function planSortie(vin) {
     }));
   const html = `<div class="sortie-plan">${blocs.join("")}
     ${enVrac.length ? `<p class="muted sortie-vrac">+ ${enVrac.length} en vrac dans ${[...new Set(enVrac.map((b) => esc(b.cave_nom)))].join(", ")}</p>` : ""}
-    <p class="muted sortie-aide">${choisie === null ? "Touchez sur le plan la bouteille que vous prenez (sinon, c'est une bouteille non rangée qui sera sortie)."
+    <p class="muted sortie-aide">${aide ? aide(choisie, placees.length) : choisie === null ? "Touchez sur le plan la bouteille que vous prenez (sinon, c'est une bouteille non rangée qui sera sortie)."
       : placees.length > 1 ? "La bouteille qui clignote est celle qui sera sortie : touchez-en une autre de ce vin pour changer." : "La bouteille qui clignote est celle à sortir."}</p></div>`;
   const marquer = (d) => $$(".sortie-plan .case-cave.pleine", d).forEach((el) => {
     const b = +el.dataset.b;
@@ -316,6 +316,47 @@ async function planSortie(vin) {
       requestAnimationFrame(() => $(".sortie-plan .surligne", d)?.scrollIntoView({ block: "nearest", inline: "center" }));
     },
   };
+}
+
+/** « Déplacer » depuis la fiche d'un vin : on choisit la bouteille sur le plan (ou toutes), puis le plan de cave
+ *  s'ouvre en mode déplacement ; les onglets des caves permettent de l'emmener dans une autre cave. */
+async function dialogueDeplacer(vin) {
+  const v = vin.bouteilles ? vin : await api("GET", `vins/${vin.id}`);
+  const bouteilles = v.bouteilles.map((b) => ({ ...b, nom: v.nom, millesime: v.millesime, vin_id: v.id }));
+  if (!bouteilles.length) return;
+  const caves = bouteilles.some((b) => b.cave_id) ? null : await api("GET", "caves");
+  const partir = (b, suite = []) => {
+    boutonADeplacer = b;
+    serieADeplacer = suite;
+    const cible = b.cave_racine || b.cave_id || caves?.find((c) => !c.parent_id)?.id;
+    if (!cible) { toast("Créez d'abord une cave dans le plan de cave", true); return; }
+    location.hash = `#/caves/${cible}`;
+  };
+  if (bouteilles.length === 1) { partir(bouteilles[0]); return; }
+  const ou = await planSortie(v, (choisie, n) => choisie === null
+    ? "Touchez sur le plan la bouteille à déplacer."
+    : `La bouteille qui clignote est celle qui sera déplacée${n > 1 ? " : touchez-en une autre pour changer" : ""}.`).catch(() => null);
+  const d = dialogue(`<span class="surtitre">Déplacer</span><h2>${titreVin(v)}</h2>
+    ${ou ? ou.html : `<p class="muted">${pluriel(bouteilles.length, "bouteille")} de ce vin, sans emplacement sur un plan.</p>`}
+    <p class="muted petit-texte">Le plan de cave s'ouvre ensuite : touchez la nouvelle place, ou ouvrez une autre cave avec les onglets.</p>
+    <div class="actions">
+      ${ou ? `<button type="button" class="bouton primaire" id="dep-une">${ic("deplacer")} Déplacer cette bouteille</button>` : ""}
+      <button type="button" class="bouton${ou ? "" : " primaire"}" id="dep-toutes">Déplacer les ${bouteilles.length} bouteilles</button>
+      <button type="button" class="bouton discret" data-fermer>Annuler</button>
+    </div>`, { large: !!ou });
+  ou?.activer(d);
+  if (ou && ou.choisie() === null) $(".sortie-plan .case-cave.trouvee", d)?.click();  // une bouteille du plan choisie d'office
+  const parId = new Map(bouteilles.map((b) => [b.id, b]));
+  $("#dep-une", d)?.addEventListener("click", () => {
+    const b = parId.get(ou.choisie());
+    if (!b) { toast("Touchez d'abord sur le plan la bouteille à déplacer", true); return; }
+    d.close(); partir(b);
+  });
+  $("#dep-toutes", d).addEventListener("click", () => {
+    // celles du plan d'abord (dans l'ordre affiché), puis les autres
+    const tri = [...bouteilles].sort((a, b) => (!a.rangee) - (!b.rangee));
+    d.close(); partir(tri[0], tri.slice(1));
+  });
 }
 
 async function dialogueEntree(vin, apres) {
@@ -782,6 +823,7 @@ async function pageVin(main, id) {
           ${origineGarde(v)}
           <div class="actions actions-vin">
             <button class="bouton primaire" id="sortir" ${v.stock ? "" : "disabled"}>${ic("soir")} Déguster / sortir</button>
+            <button class="bouton" id="deplacer" ${v.stock ? "" : "disabled"}>${ic("deplacer")} Déplacer</button>
             <button class="bouton" id="entrer">${ic("entree")} Ajouter des bouteilles</button>
             <a class="bouton" href="#/vins/${v.id}/modifier">${ic("crayon")} Modifier</a>
             <button class="bouton" id="garde-ia">${ic("etincelle")} Garde par l'IA</button>
@@ -812,6 +854,7 @@ async function pageVin(main, id) {
     </div>`;
   $("#moins", main).onclick = () => dialogueSortie(v, null, recharger);
   $("#sortir", main).onclick = () => dialogueSortie(v, null, recharger);
+  $("#deplacer", main).onclick = () => dialogueDeplacer(v).catch((err) => toast(err.message, true));
   $("#plus", main).onclick = () => dialogueEntree(v, recharger);
   $("#entrer", main).onclick = () => dialogueEntree(v, recharger);
   const boutonIA = $("#garde-ia", main);
@@ -2155,7 +2198,8 @@ async function pageCaves(main, id, params) {
       return;
     }
     $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement libre où ranger <b>${titreVin(b)}</b>${b.rangee ? ` (actuellement en ${b.cave_id !== c.id && b.cave_nom ? esc(b.cave_nom) + ", " : ""}${positionCase(b)})` : ""}.`
-      + (serieADeplacer.length ? ` <span class="muted">Encore ${pluriel(serieADeplacer.length, "bouteille")} de ce vin à la suite.</span>` : "");
+      + (serieADeplacer.length ? ` <span class="muted">Encore ${pluriel(serieADeplacer.length, "bouteille")} de ce vin à la suite.</span>` : "")
+      + (caves.length > 1 ? ` <span class="muted">Pour une autre cave, ouvrez son onglet ci-dessus.</span>` : "");
     $("#mode-deplacement", main).hidden = false;
     if (vueListe && !vueListe.hidden) changerVue("plan");
     $$(".case-cave:not(.pleine)", main).forEach((x) => x.classList.add("cible"));
