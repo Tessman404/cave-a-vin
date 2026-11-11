@@ -2519,10 +2519,10 @@ async function dialogueRanger(cave, rangee, colonne) {
     <label class="recherche recherche-fiches">${ic("recherche")}<input type="search" id="fiches-recherche" placeholder="Rechercher : nom, millésime, domaine…" aria-label="Rechercher un vin" autocomplete="off"></label>
     <div class="fiches-liste" id="fiches-liste">
       ${ailleurs.length ? `<h3>À ranger <span class="muted petit-texte">bouteilles déjà en stock, sans place</span></h3>
-        <div class="fiches-grille">${ailleurs.map((b) => carte(b, `data-bouteille="${b.id}" data-nom="${esc(titreVin(b))}"`,
+        <div class="fiches-grille">${ailleurs.map((b) => carte(b, `data-bouteille="${b.id}" data-nom="${titreVin(b)}"`,
           `×${b.n}<small>${b.cave_nom ? `en vrac · ${esc(b.cave_nom)}` : "non rangée"}</small>`)).join("")}</div>` : ""}
       ${fiches.length ? `<h3>Déplacer une bouteille déjà rangée <span class="muted petit-texte">elle quitte sa place actuelle</span></h3>
-      <div class="fiches-grille">${fiches.map((v) => carte(v, `data-vin="${v.id}" data-nom="${esc(titreVin(v))}"`,
+      <div class="fiches-grille">${fiches.map((v) => carte(v, `data-vin="${v.id}" data-nom="${titreVin(v)}"`,
         `${v.stock}<small>en cave</small>`)).join("")}</div>` : ""}
       ${!ailleurs.length && !fiches.length ? `<p class="muted">Aucune bouteille en stock. Ajoutez d'abord un vin à votre cave.</p>` : ""}
       <p class="muted petit-texte" id="fiches-vide" hidden>Aucun vin ne correspond.</p>
