@@ -17,6 +17,7 @@ let REF = null;          // référentiel (couleurs, statuts, plats, autocomplé
 let CAPACITES = null;    // détourage, fonds, IA disponibles
 let ajout = null;        // ajout en cours : { champs, code_barre, brouillon, fond, source }
 let boutonADeplacer = null;  // bouteille en cours de déplacement : conservée d'une cave à l'autre (onglets)
+let serieADeplacer = [];  // les bouteilles suivantes du même vin, rangées à la suite (un carton de 6…)
 let rangement = null;    // case du plan où ranger le vin en cours d'ajout : { cave_id, cave_nom, rangee, colonne }
 let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", region: "", millesime: "", stock: "1", tri: "nom" };
 
@@ -324,7 +325,7 @@ async function dialogueEntree(vin, apres) {
       <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
       ${place ? `<p class="large" style="margin:0">Emplacement ${positionCase(place)} de <b>${esc(place.cave_nom)}</b> (les bouteilles suivantes dans les cases libres)</p>`
         : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.filter((c) => !c.parent_id).map((c) =>
-        `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
+        `<option value="${c.id}" data-libre="${c.capacite ? c.capacite - c.bouteilles : ""}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
         <div class="large choix-emplacements"></div>`}
       <label>Date<input type="date" name="date" value="${aujourdhui()}"></label>
       <label class="large">Commentaire<input name="commentaire" placeholder="Caviste, salon, prix payé…"></label>
@@ -925,7 +926,7 @@ async function pageFormulaire(main, id) {
         ${rangement ? `<p style="margin:0;align-self:end">${esc(rangement.cave_nom)}, emplacement ${positionCase(rangement)}</p>
           <input type="hidden" name="cave_id" value="${rangement.cave_id}"><input type="hidden" name="rangee" value="${rangement.rangee}">
           <input type="hidden" name="colonne" value="${rangement.colonne}">`
-        : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.filter((c) => !c.parent_id).map((c) => `<option value="${c.id}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
+        : `<label>Ranger dans<select name="cave_id"><option value="">Non rangées</option>${caves.filter((c) => !c.parent_id).map((c) => `<option value="${c.id}" data-libre="${c.capacite ? c.capacite - c.bouteilles : ""}">${esc(c.nom)}${c.capacite ? ` (${c.capacite - c.bouteilles} place(s) libre(s))` : ""}</option>`).join("")}</select></label>
           <div class="large choix-emplacements"></div>`}
         <label>Raison<select name="raison">${options(REF.raisons_entree, "achat")}</select></label>
       </fieldset>`}
@@ -1893,7 +1894,20 @@ function selecteurEmplacements(select, zone, { quantite, couleur }) {
     }));
     marquer();
   };
-  select.addEventListener("change", () => afficher().catch((err) => toast(err.message, true)));
+  // la dernière cave choisie (ou la première qui a de la place) est proposée d'office : le plan s'ouvre tout de suite
+  const CLE = "tessvine-cave-rangement";
+  select.addEventListener("change", () => {
+    try { localStorage.setItem(CLE, select.value); } catch { /* navigation privée */ }
+    afficher().catch((err) => toast(err.message, true));
+  });
+  if (!select.value) {
+    let memo = null;
+    try { memo = localStorage.getItem(CLE); } catch { /* navigation privée */ }
+    const options = [...select.options].filter((o) => o.value);
+    const libre = (o) => o.dataset.libre !== "0";
+    const choix = memo === "" ? null : (options.find((o) => o.value === memo && libre(o)) || options.find(libre));
+    if (choix) { select.value = choix.value; afficher().catch(() => {}); }
+  }
   return {
     valeur: () => choisis.slice(0, max()),
     rafraichir: () => { choisis = choisis.slice(0, max()); marquer(); },
@@ -2055,7 +2069,7 @@ async function pageCaves(main, id, params) {
         ${c.description ? `<p class="muted petit-texte" style="margin:6px 0 0">${esc(c.description)}</p>` : ""}</div>
         <div class="actions">${c.capacite ? `<button class="bouton petit" id="etagere">${ic("plus")} Rangée</button>` : ""}<button class="bouton petit" id="modifier">${ic("crayon")} Modifier</button><button class="bouton petit discret" id="supprimer" title="Supprimer la cave">${ic("poubelle")}<span class="seul-texte">Supprimer</span></button></div></div>
       ${aRanger.length ? `<p style="margin:0 0 14px"><button type="button" class="pastille-ranger" id="voir-a-ranger">${ic("boite")} ${pluriel(aRanger.length, "bouteille non rangée", "bouteilles non rangées")} <span aria-hidden="true">›</span></button></p>` : ""}
-      <div id="mode-deplacement" hidden><span class="grandit" id="texte-deplacement">Choisissez l'emplacement de destination…</span> ${c.capacite ? "" : `<button class="bouton petit primaire" id="deplacer-ici">Ranger ici</button> `}<button class="bouton petit" id="annuler-depl">Annuler</button></div>
+      <div id="mode-deplacement" hidden><span class="grandit" id="texte-deplacement">Choisissez l'emplacement de destination…</span> ${c.capacite ? "" : `<label class="nb-ici" id="nb-ici-l" hidden>Combien <input type="number" id="nb-ici" min="1" value="1"></label> <button class="bouton petit primaire" id="deplacer-ici">Ranger ici</button> `}<button class="bouton petit" id="annuler-depl">Annuler</button></div>
       ${plan}
       ${vrac.length ? `<h3 style="margin-top:24px">${c.capacite ? "Sans emplacement précis" : "Bouteilles"}</h3><ul class="liste">${Object.values(groupesVrac).map((b) =>
         `<li class="${b.vin_id === surligne ? "surligne" : ""}"><span class="mini-bouteille">${bouteilleSVG(b, "silhouette")}</span><a class="grandit titre" href="#/vins/${b.vin_id}">${titreVin(b)}</a>${badgeStatut(b.statut)}<span class="qte">×${b.n}</span><button type="button" class="bouton petit" data-deplacer-vrac="${b.id}" title="Déplacer une bouteille vers une autre cave">${ic("deplacer")} Déplacer</button></li>`).join("")}</ul>` : ""}
@@ -2105,6 +2119,7 @@ async function pageCaves(main, id, params) {
   const finDeplacement = () => {
     deplacement = null;
     boutonADeplacer = null;
+    serieADeplacer = [];
     $("#mode-deplacement", main).hidden = true;
     $$(".case-cave.cible", main).forEach((x) => x.classList.remove("cible"));
   };
@@ -2112,9 +2127,12 @@ async function pageCaves(main, id, params) {
   const ici = $("#deplacer-ici", main);
   if (ici) ici.onclick = async () => {
     try {
-      await api("PUT", `bouteilles/${deplacement}`, { cave_id: c.id });
-      toast(`Bouteille rangée dans ${c.nom}`);
-      boutonADeplacer = null;
+      const n = Math.min(1 + serieADeplacer.length, Math.max(1, +($("#nb-ici", main)?.value) || 1));
+      const ids = [deplacement, ...serieADeplacer.slice(0, n - 1).map((b) => b.id)];
+      for (const b of ids) await api("PUT", `bouteilles/${b}`, { cave_id: c.id });
+      toast(ids.length > 1 ? `${ids.length} bouteilles rangées dans ${c.nom}` : `Bouteille rangée dans ${c.nom}`);
+      serieADeplacer = serieADeplacer.slice(n - 1);
+      boutonADeplacer = serieADeplacer.shift() || null;
       route();
     } catch (err) { toast(err.message, true); finDeplacement(); }
   };
@@ -2128,31 +2146,44 @@ async function pageCaves(main, id, params) {
       $("#texte-deplacement", main).innerHTML = dejaIci
         ? `Ouvrez la cave de destination (onglets ci-dessus) pour y déplacer <b>${titreVin(b)}</b>.`
         : `Ranger <b>${titreVin(b)}</b>${b.cave_nom ? ` (actuellement dans ${esc(b.cave_nom)}${b.rangee ? ", " + positionCase(b) : ""})` : ""} dans <b>${esc(c.nom)}</b>.`;
+      const nb = $("#nb-ici-l", main);
+      if (nb) {
+        nb.hidden = dejaIci || !serieADeplacer.length;
+        const champ = $("input", nb);
+        champ.max = champ.value = 1 + serieADeplacer.length;
+      }
       $("#mode-deplacement", main).hidden = false;
       return;
     }
-    $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement libre où ranger <b>${titreVin(b)}</b>${b.rangee ? ` (actuellement en ${b.cave_id !== c.id && b.cave_nom ? esc(b.cave_nom) + ", " : ""}${positionCase(b)})` : ""}.`;
+    $("#texte-deplacement", main).innerHTML = `Touchez l'emplacement libre où ranger <b>${titreVin(b)}</b>${b.rangee ? ` (actuellement en ${b.cave_id !== c.id && b.cave_nom ? esc(b.cave_nom) + ", " : ""}${positionCase(b)})` : ""}.`
+      + (serieADeplacer.length ? ` <span class="muted">Encore ${pluriel(serieADeplacer.length, "bouteille")} de ce vin à la suite.</span>` : "");
     $("#mode-deplacement", main).hidden = false;
     if (vueListe && !vueListe.hidden) changerVue("plan");
     $$(".case-cave:not(.pleine)", main).forEach((x) => x.classList.add("cible"));
     if (defiler) $("#mode-deplacement", main).scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  $$("[data-deplacer-vrac]", main).forEach((bt) => { bt.onclick = () => commencerRangement(parId.get(+bt.dataset.deplacerVrac)); });
+  $$("[data-deplacer-vrac]", main).forEach((bt) => { bt.onclick = () => {
+    const b = parId.get(+bt.dataset.deplacerVrac);
+    serieADeplacer = vrac.filter((x) => x.vin_id === b.vin_id && x.id !== b.id);  // tout le carton peut suivre
+    commencerRangement(b);
+  }; });
   const voirARanger = () => {
     const groupes = {};
     aRanger.forEach((b) => { groupes[b.vin_id] = groupes[b.vin_id] || { ...b, ids: [] }; groupes[b.vin_id].ids.push(b); });
     const d = dialogue(`<span class="surtitre">À ranger</span><h2>Bouteilles non rangées</h2>
-      <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis l'emplacement voulu." : ""}</p>
+      <p class="muted petit-texte">${pluriel(aRanger.length, "bouteille")} sans emplacement sur un plan.${capacite ? " Touchez « Ranger » puis les emplacements voulus : les bouteilles d'un même vin se rangent à la suite." : ""}</p>
       <ul class="a-ranger-liste">${Object.values(groupes).map((g) => `<li>
         <div class="etiquette">${vignetteVin(g, "mini", `Étiquette de ${g.nom}`)}</div>
         <div class="grandit"><b>${titreVin(g)}</b>
           <div class="muted petit-texte">${esc([g.appellation, g.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
           <div class="muted petit-texte">${g.ids[0].cave_nom ? `En vrac dans ${esc(g.ids[0].cave_nom)}` : "Hors cave"} · ×${g.ids.length}</div></div>
-        ${capacite ? `<button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button>` : ""}</li>`).join("")}</ul>
+        <button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button></li>`).join("")}</ul>
       <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
     $$("[data-ranger]", d).forEach((bt) => bt.onclick = () => {
       d.close();
-      commencerRangement(aRanger.find((b) => b.id === +bt.dataset.ranger));
+      const b = aRanger.find((x) => x.id === +bt.dataset.ranger);
+      serieADeplacer = aRanger.filter((x) => x.vin_id === b.vin_id && x.id !== b.id);
+      commencerRangement(b);
     });
   };
   const boutonARanger = $("#voir-a-ranger", main);
@@ -2188,8 +2219,9 @@ async function pageCaves(main, id, params) {
     else if (deplacement) {
       try {
         await api("PUT", `bouteilles/${deplacement}`, { cave_id: k.id, rangee: +bouton.dataset.r, colonne: +bouton.dataset.c });
-        toast(`Bouteille rangée en ${positionCase({ rangee: +bouton.dataset.r, colonne: +bouton.dataset.c })}`);
-        boutonADeplacer = null;
+        toast(`Bouteille rangée en ${positionCase({ rangee: +bouton.dataset.r, colonne: +bouton.dataset.c })}`
+          + (serieADeplacer.length ? ` · encore ${serieADeplacer.length}` : ""));
+        boutonADeplacer = serieADeplacer.shift() || null;  // la suivante du carton, tout de suite
         location.hash = `#/caves/${c.id}`;
         route();
       } catch (err) { toast(err.message, true); finDeplacement(); }

@@ -335,6 +335,10 @@ def lister_vins(db, filtres):
     if filtres.get("statut"):
         statuts = set(filtres["statut"].split(","))
         vins = [v for v in vins if v["statut"] in statuts]
+    if filtres.get("emplacements") in ("1", "true"):
+        lieux = emplacements(db, [v["id"] for v in vins])
+        for v in vins:
+            v["emplacements"] = lieux.get(v["id"], [])
     return vins
 
 
@@ -348,6 +352,9 @@ def lire_vin(db, vin_id, details=True):
             f"""SELECT b.*, {NOM_COMPLET} AS cave_nom, COALESCE(c.parent_id, c.id) AS cave_racine FROM bouteilles b
                LEFT JOIN caves c ON c.id = b.cave_id LEFT JOIN caves p ON p.id = c.parent_id
                WHERE b.vin_id = ? ORDER BY cave_nom, b.rangee, b.colonne, b.id""", (vin_id,))
+        lieux = {e["bouteille_id"]: e["lieu"] for e in emplacements(db, [vin_id]).get(vin_id, [])}
+        for b in vin["bouteilles"]:
+            b["lieu"] = lieux.get(b["id"])
         vin["mouvements"] = db.all(
             "SELECT * FROM mouvements WHERE vin_id = ? ORDER BY date DESC, id DESC", (vin_id,))
         notes = [m["note"] for m in vin["mouvements"] if m["note"] is not None]
@@ -785,6 +792,53 @@ POSITIONS = {"bas": "en bas", "haut": "en haut", "gauche": "à gauche", "droite"
 NOM_ETAGERE = ("CASE WHEN c.nom <> '' THEN c.nom ELSE 'étagère ' || CASE c.position WHEN 'haut' THEN 'du haut' "
                "WHEN 'gauche' THEN 'de gauche' WHEN 'droite' THEN 'de droite' ELSE 'du bas' END END")
 NOM_COMPLET = f"CASE WHEN p.id IS NULL THEN c.nom ELSE p.nom || ' · ' || {NOM_ETAGERE} END"
+
+
+def _lettre_rang(n):
+    return chr(64 + ((n - 1) % 26) + 1) + (str((n - 1) // 26 + 1) if n > 26 else "")
+
+
+def emplacements(db, vin_ids=None):
+    """Où se trouve chaque bouteille, en toutes lettres et avec les mêmes repères que le plan : vin_id → liste de
+    {bouteille_id, lieu}, par exemple « Cave électrique · Rangée 3 · place 2 » ou « Armoire · B4 · derrière ».
+    Pour les assistants vocaux et les scripts Home Assistant."""
+    filtre, params = "", []
+    if vin_ids is not None:
+        vin_ids = list(vin_ids)
+        if not vin_ids:
+            return {}
+        filtre = f" WHERE b.vin_id IN ({','.join('?' * len(vin_ids))})"
+        params = vin_ids
+    lignes = db.all(f"""SELECT b.id, b.vin_id, b.rangee, b.colonne, c.id AS cave_id, c.nom, c.nom_casier, c.position,
+                               c.parent_id, c.rangees, c.colonnes, c.disposition, p.nom AS parent_nom,
+                               (SELECT COUNT(*) FROM caves e WHERE e.parent_id = c.id) AS nb_etageres
+                        FROM bouteilles b LEFT JOIN caves c ON c.id = b.cave_id LEFT JOIN caves p ON p.id = c.parent_id
+                        {filtre} ORDER BY b.vin_id, c.id, b.rangee, b.colonne, b.id""", params)
+    cotes = {"haut": "du haut", "gauche": "de gauche", "droite": "de droite"}
+    resultat = {}
+    for b in lignes:
+        if not b["cave_id"]:
+            lieu = "non rangée"
+        else:
+            morceaux = [b["parent_nom"] if b["parent_id"] else b["nom"]]
+            if b["parent_id"]:
+                morceaux.append(b["nom"] or f"étagère {cotes.get(b['position'], 'du bas')}")
+            elif b["nb_etageres"]:
+                morceaux.append(b["nom_casier"] or "casier principal")
+            if b["rangee"]:
+                profs = profondeurs(b)
+                p, etage = (b["rangee"] - 1) // PAS_PROFONDEUR, (b["rangee"] - 1) % PAS_PROFONDEUR + 1
+                if len(profs) == 1 and profs[0]["hauteur"] == 1:
+                    morceaux.append(f"place {b['colonne']}")  # étagère d'un seul rang : la lettre n'apporte rien
+                else:
+                    morceaux.append(f"{_lettre_rang(etage)}{b['colonne']}")
+                if p:
+                    morceaux.append("derrière" if p == 1 else f"rang {p + 1}")
+            else:
+                morceaux.append("en vrac")
+            lieu = " · ".join(m for m in morceaux if m)
+        resultat.setdefault(b["vin_id"], []).append({"bouteille_id": b["id"], "lieu": lieu})
+    return resultat
 
 
 def lister_caves(db):

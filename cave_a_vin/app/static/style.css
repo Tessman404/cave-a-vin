@@ -1272,3 +1272,6 @@ html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
 .sortie-plan .case-cave.trouvee { cursor: pointer; }
 .sortie-plan .case-cave:disabled { cursor: default; }
 .sortie-aide, .sortie-vrac { margin: 6px 0 0; font-size: .9rem; }
+
+.nb-ici { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; }
+.nb-ici input { width: 64px; padding: 6px 8px; }

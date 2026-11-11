@@ -1,5 +1,20 @@
 # Journal des modifications
 
+## 1.24.0
+
+- **Ranger un carton d'un coup** : à l'ajout d'un vin ou de bouteilles, la cave est maintenant proposée d'office
+  (la dernière utilisée, ou la première qui a de la place) : le plan s'affiche tout de suite et on touche autant
+  d'emplacements que de bouteilles.
+- **Bouteilles « à ranger » à la suite** : « Ranger » sur un vin qui a plusieurs bouteilles sans place les range l'une
+  après l'autre (« encore 4 bouteilles de ce vin à la suite ») : il suffit de toucher les emplacements. Vers une cave
+  sans plan (garage, carton…), « Ranger ici » demande combien de bouteilles déplacer : toutes par défaut. Même chose
+  avec « Déplacer » depuis une cave sans plan.
+- **Emplacements lisibles par Home Assistant** : chaque bouteille a maintenant son lieu en toutes lettres, avec les
+  mêmes noms que le plan (« Cave électrique · Rangée 3 · place 2 », « Armoire · B4 · derrière ») : dans la fiche d'un
+  vin (`lieu`), dans « Rechercher un vin » et « Suggérer un vin » (liste `emplacements`). L'action « Sortir une
+  bouteille » accepte un `bouteille_id` pour sortir celle-là précisément : un assistant vocal peut dire où est la
+  bouteille, puis sortir celle qu'on a prise. (Intégration Home Assistant 1.1.0.)
+
 ## 1.23.0
 
 - **Le plan s'affiche quand on sort un vin** : dans « Déguster / sortir », Tessvine montre maintenant le ou les casiers

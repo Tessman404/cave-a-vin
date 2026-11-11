@@ -136,6 +136,10 @@
           "name": "Wine ID",
           "description": "Wine number (shown in its page address, or found with the “Search wine” action)."
         },
+        "bouteille_id": {
+          "name": "Bottle ID",
+          "description": "A precise bottle to take out (bouteille_id in the “emplacements” list returned by “Search wine” or “Suggest wine”). Leave empty to let Tessvine choose."
+        },
         "quantite": {
           "name": "Quantity",
           "description": "Number of bottles."

@@ -136,6 +136,10 @@
           "name": "Identifiant du vin",
           "description": "Numéro du vin (visible dans l'adresse de sa fiche, ou via l'action « Rechercher un vin »)."
         },
+        "bouteille_id": {
+          "name": "Bouteille",
+          "description": "Une bouteille précise à sortir (bouteille_id dans la liste « emplacements » renvoyée par « Rechercher un vin » ou « Suggérer un vin »). Vide : Tessvine choisit."
+        },
         "quantite": {
           "name": "Quantité",
           "description": "Nombre de bouteilles."

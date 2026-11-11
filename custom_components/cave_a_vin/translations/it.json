@@ -136,6 +136,10 @@
           "name": "ID del vino",
           "description": "Numero del vino (visibile nell’indirizzo della scheda o reperibile con l’azione «Cerca vino»)."
         },
+        "bouteille_id": {
+          "name": "Bottiglia",
+          "description": "Una bottiglia precisa da scaricare (bouteille_id nell'elenco « emplacements » restituito da « Cerca un vino » o « Suggerisci un vino »). Vuoto: sceglie Tessvine."
+        },
         "quantite": {
           "name": "Quantità",
           "description": "Numero di bottiglie."

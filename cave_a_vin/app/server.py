@@ -452,7 +452,11 @@ def _suggestion(app, req):
         limite = int(req.query.get("limite", 5))
     except ValueError:
         raise ErreurAPI("Limite invalide")
-    return cave.suggerer(app.db, req.query.get("plat") or None, req.query.get("couleur") or None, limite)
+    res = cave.suggerer(app.db, req.query.get("plat") or None, req.query.get("couleur") or None, limite)
+    lieux = cave.emplacements(app.db, [r["vin"]["id"] for r in res])
+    for r in res:
+        r["vin"]["emplacements"] = lieux.get(r["vin"]["id"], [])
+    return res
 
 
 @route("GET", "api/reglages")

@@ -26,6 +26,7 @@ ATTR_ENTRY = "config_entry_id"
 SCHEMA_SORTIE = vol.Schema({
     vol.Optional(ATTR_ENTRY): cv.string,
     vol.Required("vin_id"): vol.Coerce(int),
+    vol.Optional("bouteille_id"): vol.Coerce(int),
     vol.Optional("quantite", default=1): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
     vol.Optional("raison", default="bue"): vol.In(RAISONS_SORTIE),
     vol.Optional("note"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
@@ -67,6 +68,9 @@ def _resume_vin(vin: dict[str, Any]) -> dict[str, Any]:
         "bouteilles": vin.get("stock"),
         "garde": vin.get("statut_label"),
         "a_boire_avant": vin.get("garde_fin"),
+        # où est chaque bouteille (« Cave électrique · Rangée 3 · place 2 ») : bouteille_id sert à sortir celle-là
+        "emplacements": vin.get("emplacements") or [
+            {"bouteille_id": b["id"], "lieu": b.get("lieu")} for b in vin.get("bouteilles") or []],
     }
 
 
@@ -93,7 +97,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def sortir_bouteille(call: ServiceCall) -> ServiceResponse:
         coord = coordinateur(call)
-        champs = {k: call.data[k] for k in ("quantite", "raison", "note", "commentaire") if k in call.data}
+        champs = {k: call.data[k] for k in ("bouteille_id", "quantite", "raison", "note", "commentaire") if k in call.data}
+        if "bouteille_id" in champs:
+            champs["quantite"] = 1  # une bouteille précise
         vin = await appeler(coord.api.sortir(call.data["vin_id"], **champs))
         await coord.async_refresh()
         return _resume_vin(vin)
@@ -113,7 +119,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def rechercher_vin(call: ServiceCall) -> ServiceResponse:
         coord = coordinateur(call)
-        vins = await appeler(coord.api.vins(q=call.data["recherche"],
+        vins = await appeler(coord.api.vins(q=call.data["recherche"], emplacements="1",
                                             stock="all" if call.data["inclure_epuises"] else "1"))
         return {"vins": [_resume_vin(v) for v in vins[:25]]}
 

@@ -8,6 +8,13 @@ sortir_bouteille:
           min: 1
           max: 1000000
           mode: box
+    bouteille_id:
+      example: 45
+      selector:
+        number:
+          min: 1
+          max: 1000000
+          mode: box
     quantite:
       default: 1
       selector:

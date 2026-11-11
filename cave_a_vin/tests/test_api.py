@@ -161,6 +161,30 @@ class TestCave(BaseTest):
         self.appel("PUT", f"api/caves/{c['id']}/filtre", {"filtre_mois": 0}, attendu=200)
         self.assertEqual(self.appel("GET", "api/stats")["filtres"], [])
 
+    def test_emplacements_lisibles(self):
+        """Chaque bouteille a un lieu en toutes lettres (assistants vocaux, scripts) et peut être sortie par son id."""
+        cave = self.appel("POST", "api/caves", {"nom": "Cave électrique", "rangees": 1, "colonnes": 4}, attendu=201)
+        etagere = self.appel("POST", "api/caves", {"nom": "Rangée 2", "rangees": 1, "colonnes": 4, "parent_id": cave["id"],
+                                                   "position": "bas"}, attendu=201)
+        armoire = self.appel("POST", "api/caves", {"nom": "Armoire", "rangees": 3, "colonnes": 3}, attendu=201)
+        vin = self.creer_vin(quantite=0)
+        self.appel("POST", f"api/vins/{vin['id']}/entree", {"quantite": 3, "emplacements": [
+            {"cave_id": etagere["id"], "rangee": 1, "colonne": 2}, {"cave_id": armoire["id"], "rangee": 2, "colonne": 3}]},
+            attendu=200)
+        lieux = sorted(b["lieu"] for b in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"])
+        # la 3e bouteille va dans la première place libre de la même cave
+        self.assertEqual(lieux, ["Armoire · B3", "Cave électrique · Rangée 2 · place 1", "Cave électrique · Rangée 2 · place 2"])
+        liste = self.appel("GET", "api/vins?emplacements=1")
+        self.assertEqual(len(liste[0]["emplacements"]), 3)
+        self.assertNotIn("emplacements", self.appel("GET", "api/vins")[0])
+        # sortir précisément la bouteille de la rangée 2
+        cible = next(e for e in liste[0]["emplacements"] if e["lieu"].endswith("place 2"))
+        self.appel("POST", f"api/vins/{vin['id']}/sortie", {"bouteille_id": cible["bouteille_id"], "raison": "bue"}, attendu=200)
+        restants = sorted(b["lieu"] for b in self.appel("GET", f"api/vins/{vin['id']}")["bouteilles"])
+        self.assertEqual(restants, ["Armoire · B3", "Cave électrique · Rangée 2 · place 1"])
+        vin2 = self.creer_vin(nom="Hors cave", quantite=1)
+        self.assertEqual([b["lieu"] for b in self.appel("GET", f"api/vins/{vin2['id']}")["bouteilles"]], ["non rangée"])
+
     def test_retirer_un_etage_vide(self):
         """#15 : passer de 5 à 4 étages alors que l'étage du bas est occupé retire un étage vide (le plus bas des vides)."""
         cave = self.appel("POST", "api/caves", {"nom": "Casier", "rangees": 5, "colonnes": 3}, attendu=201)
