@@ -1296,3 +1296,11 @@ html.camera-ouverte, html.camera-ouverte body { overflow: hidden; }
   .tableau.empilable td:nth-child(5) { grid-column: 1 / -1; color: var(--texte-2); font-size: .9rem; }
   .tableau.empilable td:empty { display: none; }
 }
+
+@media (max-width: 760px) {
+  /* historique de la fiche d'un vin : mouvement et note, date dessous, commentaire sur toute la largeur */
+  .tableau.empilable.sans-vin td:nth-child(1) { grid-area: 2 / 1; color: var(--texte-3); font: inherit; font-size: .82rem; }
+  .tableau.empilable.sans-vin td:nth-child(2) { grid-area: 1 / 1; font: inherit; text-align: left; }
+  .tableau.empilable.sans-vin td:nth-child(3) { grid-area: 1 / 2; text-align: right; }
+  .tableau.empilable.sans-vin td:nth-child(4) { grid-area: auto; grid-column: 1 / -1; text-align: left; color: var(--texte-2); font-size: .9rem; }
+}

@@ -14,6 +14,11 @@ Tour complet de l'application : présentation et cohérence.
   emplacement précis » est alignée (statut à gauche, « Déplacer » à droite).
 - **Statistiques** : les libellés longs (« Liquoreux / moelleux ») ne sont plus coupés ; les bouteilles qui ne sont
   dans aucune cave s'appellent « Hors cave », pour ne plus les confondre avec les bouteilles « à ranger ».
+- **Un seul nom pour sortir une bouteille** : le bouton s'appelle « Déguster / sortir » partout (fiche, plan, Mets &
+  Vins).
+- **Fenêtres** : la croix suffit pour fermer, le bouton « Fermer » en double est retiré (« Annuler » reste à côté des
+  boutons de validation).
+- **Historique de la fiche d'un vin** lisible sur téléphone : mouvement et note, date dessous, commentaire en entier.
 
 ## 1.24.0
 

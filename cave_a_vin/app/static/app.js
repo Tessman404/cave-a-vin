@@ -472,8 +472,7 @@ async function dialogueCandidats(caveId) {
         <div class="petit-texte">${badgeStatut(c.statut)} ${esc([...c.raisons, c.valeur ? euros(c.valeur) : ""].filter(Boolean).join(" · "))}</div>
         <div class="muted petit-texte">${c.a_deplacer ? `Sur ${esc(c.depuis)}` : c.depuis ? `En vrac dans ${esc(c.depuis)}` : "Non rangé"}${c.nombre > 1 ? ` · ×${c.nombre}` : ""}</div></div>
       <a class="bouton petit primaire" href="#/caves/${caveId}?placer=${c.bouteille_id}" data-fermer-lien>Ranger</a></li>`).join("")}</ul>`
-      : `<p class="muted">Aucune bouteille à proposer : tout est déjà en cave électrique ou au réfrigérateur.</p>`}
-    <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
+      : `<p class="muted">Aucune bouteille à proposer : tout est déjà en cave électrique ou au réfrigérateur.</p>`}`, { large: true });
   $$("[data-fermer-lien]", d).forEach((a) => a.addEventListener("click", () => d.close()));
 }
 
@@ -481,8 +480,7 @@ function feuillePlus() {
   const lien = (page, icone, titre) => `<a href="#/${page}"><svg><use href="#i-${icone}"/></svg>${titre}</a>`;
   dialogue(`<span class="surtitre">Tessvine</span><h2>Plus</h2><nav class="feuille-plus">
     ${lien("stats", "stats", "Statistiques")}${lien("envies", "envies", "Envies")}${lien("historique", "historique", "Historique")}${lien("reglages", "reglages", "Réglages")}
-    ${$("#retour-ha").hidden ? "" : `<a href="${esc($("#retour-ha").href)}" data-retour-ha><svg><use href="#i-retour"/></svg>${esc(REF.retour?.libelle || "Aperçu")}</a>`}</nav>
-    <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
+    ${$("#retour-ha").hidden ? "" : `<a href="${esc($("#retour-ha").href)}" data-retour-ha><svg><use href="#i-retour"/></svg>${esc(REF.retour?.libelle || "Aperçu")}</a>`}</nav>`);
   $("[data-retour-ha]")?.addEventListener("click", (e) => { $("#dialogue").close(); allerVersHomeAssistant(e); });
 }
 
@@ -803,7 +801,7 @@ async function pageVin(main, id) {
           ${v.bouteilles.length ? `<ul class="liste">${Object.entries(groupes).map(([k, g]) => `<li class="emplacement-ligne">${g.b.rangee ? `<span class="position">${positionCase(g.b)}</span>` : `<span class="position" style="opacity:.5">—</span>`}<span class="grandit">${g.b.cave_id ? `<a href="#/caves/${g.b.cave_id}?vin=${v.id}">${k.split("\u0001")[0]}</a>` : k}</span><span class="qte">×${g.n}</span></li>`).join("")}</ul>`
             : `<p class="muted">Plus aucune bouteille en cave.</p>`}</div>
         <div class="carte"><h2>Historique & dégustations</h2>
-          ${v.mouvements.length ? `<div class="defile"><table class="tableau"><thead><tr><th>Date</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
+          ${v.mouvements.length ? `<div class="defile"><table class="tableau empilable sans-vin"><thead><tr><th>Date</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
           ${v.mouvements.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
             <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
             <td>${etoiles(m.note)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Aucun mouvement.</p>`}</div>
@@ -992,8 +990,7 @@ async function pageFormulaire(main, id) {
 /** Photo en grand (pour lire l'étiquette), avec bascule vers la photo d'origine. */
 function plein_ecran(url, urlOriginal, titre) {
   const d = dialogue(`<div class="plein-ecran"><img src="${url}" alt="${titre}" id="pe-image"></div>
-    <div class="actions">${urlOriginal ? `<button type="button" class="bouton" id="pe-original">Photo d'origine</button>` : ""}
-    <button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
+    ${urlOriginal ? `<div class="actions"><button type="button" class="bouton" id="pe-original">Photo d'origine</button></div>` : ""}`, { large: true });
   const bascule = $("#pe-original", d);
   if (bascule) bascule.onclick = () => {
     const img = $("#pe-image", d);
@@ -1011,8 +1008,7 @@ function dialogueFond(choisir, urlOriginal, cadrageActuel) {
     <div class="plats cadrages" role="radiogroup" aria-label="Cadrage">${(CAPACITES.cadrages || []).map((c) =>
       `<button type="button" class="bouton petit${c.id === cadrage ? " actif" : ""}" data-cadrage="${esc(c.id)}">${esc(c.label)}</button>`).join("")}</div>
     <div class="fonds">${vignettes}<button type="button" class="vignette-fond" data-fond=""><img src="${urlOriginal}" alt=""><span>Photo d'origine</span></button></div>
-    <p class="muted petit-texte" id="etat-fond"></p>
-    <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`);
+    <p class="muted petit-texte" id="etat-fond"></p>`);
   $$("[data-cadrage]", d).forEach((b) => (b.onclick = () => {
     cadrage = b.dataset.cadrage;
     $$("[data-cadrage]", d).forEach((x) => x.classList.toggle("actif", x === b));
@@ -2177,8 +2173,7 @@ async function pageCaves(main, id, params) {
         <div class="grandit"><b>${titreVin(g)}</b>
           <div class="muted petit-texte">${esc([g.appellation, g.domaine].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
           <div class="muted petit-texte">${g.ids[0].cave_nom ? `En vrac dans ${esc(g.ids[0].cave_nom)}` : "Hors cave"} · ×${g.ids.length}</div></div>
-        <button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button></li>`).join("")}</ul>
-      <div class="actions"><button class="bouton" data-fermer>Fermer</button></div>`, { large: true });
+        <button type="button" class="bouton petit primaire" data-ranger="${g.ids[0].id}">Ranger</button></li>`).join("")}</ul>`, { large: true });
     $$("[data-ranger]", d).forEach((bt) => bt.onclick = () => {
       d.close();
       const b = aRanger.find((x) => x.id === +bt.dataset.ranger);
@@ -2204,10 +2199,9 @@ async function pageCaves(main, id, params) {
           <div class="actions" style="margin:0;gap:10px">${badgeStatut(b.statut)}${garde}</div>
         </div></div>
       <div class="actions" style="justify-content:flex-start">
-        <button class="bouton primaire" type="button" data-action="sortir">${ic("soir")} Sortir cette bouteille</button>
+        <button class="bouton primaire" type="button" data-action="sortir">${ic("soir")} Déguster / sortir</button>
         <button class="bouton" type="button" data-action="deplacer">${ic("deplacer")} Déplacer</button>
-        <a class="bouton" href="#/vins/${b.vin_id}" data-action="fiche">${ic("fiche")} Fiche du vin</a>
-        <button class="bouton discret" data-fermer style="margin-left:auto">Fermer</button></div>`);
+        <a class="bouton" href="#/vins/${b.vin_id}" data-action="fiche">${ic("fiche")} Fiche du vin</a></div>`);
     $("[data-action=sortir]", d).onclick = () => { d.close(); dialogueSortie(vin, b.id, () => route()); };
     $("[data-action=fiche]", d).onclick = () => d.close();
     $("[data-action=deplacer]", d).onclick = () => { d.close(); commencerRangement(b); };
@@ -2647,7 +2641,7 @@ async function pageCeSoir(main) {
           <div class="muted petit-texte">${sousTitre(s.vin)}</div>
           <div class="petit-texte raisons">${s.raisons.map(esc).join(" · ")}</div>
         </div>
-        <div class="cote"><span class="qte">×${s.vin.stock}</span><button class="bouton petit primaire" data-i="${i}">${ic("soir")} Déguster</button></div>
+        <div class="cote"><span class="qte">×${s.vin.stock}</span><button class="bouton petit primaire" data-i="${i}">${ic("soir")} Déguster / sortir</button></div>
       </div>`).join("")
       : `<div class="carte vide"><span class="surtitre">Aucun accord</span>Aucune bouteille prête à boire ne s'accorde avec ce plat. Essayez une autre couleur ou un autre plat.</div>`;
     $$("[data-i]", main).forEach((b) => (b.onclick = () => dialogueSortie(res[+b.dataset.i].vin, null, charger)));
