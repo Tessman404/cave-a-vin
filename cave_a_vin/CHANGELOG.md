@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.27.2
+
+- **Bouton « Localiser » à côté de « Déplacer »** dans la fiche d'un vin : il ouvre le plan de cave avec les bouteilles
+  de ce vin qui clignotent. Le bouton en bas de la fiche (carte « Emplacements ») est retiré.
+
 ## 1.27.1
 
 - **La bouteille à déplacer clignote sur le plan** : après « Déplacer » (depuis la fiche d'un vin ou le plan), elle

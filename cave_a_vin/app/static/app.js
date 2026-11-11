@@ -824,6 +824,7 @@ async function pageVin(main, id) {
           <div class="actions actions-vin">
             <button class="bouton primaire" id="sortir" ${v.stock ? "" : "disabled"}>${ic("soir")} Déguster / sortir</button>
             <button class="bouton" id="deplacer" ${v.stock ? "" : "disabled"}>${ic("deplacer")} Déplacer</button>
+            ${v.bouteilles.some((b) => b.cave_id) ? `<button class="bouton" id="localiser">${ICONE_LOCALISER} Localiser</button>` : ""}
             <button class="bouton" id="entrer">${ic("entree")} Ajouter des bouteilles</button>
             <a class="bouton" href="#/vins/${v.id}/modifier">${ic("crayon")} Modifier</a>
             <button class="bouton" id="garde-ia">${ic("etincelle")} Garde par l'IA</button>
@@ -841,8 +842,7 @@ async function pageVin(main, id) {
         </dl>
         ${v.accords ? `<h3 style="margin-top:20px">Accords</h3><p>${esc(v.accords)}</p>` : ""}
         ${v.notes ? `<h3 style="margin-top:20px">Notes</h3><p style="white-space:pre-line">${esc(v.notes)}</p>` : ""}</div>
-        <div class="carte"><div class="titre-carte"><h2>Emplacements</h2>
-          ${v.bouteilles.some((b) => b.cave_id) ? `<button class="bouton petit" id="localiser">${ICONE_LOCALISER} Localiser dans la cave</button>` : ""}</div>
+        <div class="carte"><div class="titre-carte"><h2>Emplacements</h2></div>
           ${v.bouteilles.length ? `<ul class="liste">${Object.entries(groupes).map(([k, g]) => `<li class="emplacement-ligne">${g.b.rangee ? `<span class="position">${positionCase(g.b)}</span>` : `<span class="position" style="opacity:.5">—</span>`}<span class="grandit">${g.b.cave_id ? `<a href="#/caves/${g.b.cave_id}?vin=${v.id}">${k.split("\u0001")[0]}</a>` : k}</span><span class="qte">×${g.n}</span></li>`).join("")}</ul>`
             : `<p class="muted">Plus aucune bouteille en cave.</p>`}</div>
         <div class="carte"><h2>Historique & dégustations</h2>
