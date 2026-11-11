@@ -19,7 +19,9 @@ let ajout = null;        // ajout en cours : { champs, code_barre, brouillon, fo
 let boutonADeplacer = null;  // bouteille en cours de déplacement : conservée d'une cave à l'autre (onglets)
 let serieADeplacer = [];  // les bouteilles suivantes du même vin, rangées à la suite (un carton de 6…)
 let rangement = null;    // case du plan où ranger le vin en cours d'ajout : { cave_id, cave_nom, rangee, colonne }
-let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", region: "", millesime: "", stock: "1", tri: "nom" };
+// le tri choisi dans « Mes vins » est mémorisé sur l'appareil
+const TRI_MEMO = (() => { try { return localStorage.getItem("tessvine-tri") || "nom"; } catch { return "nom"; } })();
+let filtresVins = { q: "", couleur: "", statut: "", cave_id: "", region: "", millesime: "", stock: "1", tri: TRI_MEMO };
 
 /* ------------------------------------------------------------------ API */
 
@@ -675,7 +677,7 @@ async function pageVins(main) {
         <div class="infos">
           ${v.appellation || (!v.appellation && v.domaine) ? `<span class="appellation tronque">${esc(v.appellation || v.domaine)}</span>` : ""}
           <span class="nom">${v.favori ? `<span class="coeur" aria-label="Favori">♥</span>` : ""}${titreVin(v)}</span>
-          ${details.length ? `<span class="details tronque">${esc([...new Set(details)].join(" · "))}</span>` : ""}
+          <span class="details tronque"><span class="pastille ${esc(v.couleur)}"></span> <span>${esc(REF.couleurs[v.couleur] || "")}</span>${details.length ? " · " + esc([...new Set(details)].join(" · ")) : ""}</span>
           <span class="pied">${badgeStatut(v.statut)}${garde ? `<span class="garde" title="Fenêtre de dégustation">${garde}</span>` : ""}</span></div>
         <div class="stock chiffre">${v.stock}<small>${v.stock > 1 ? "bouteilles" : "bouteille"}</small></div>
         ${v.stock ? `<span class="localiser" role="button" tabindex="0" data-localiser="${v.id}" aria-label="Localiser ${esc(v.nom)} dans la cave" title="Localiser dans la cave">${ICONE_LOCALISER}</span>` : ""}
@@ -701,6 +703,7 @@ async function pageVins(main) {
   let minuteur;
   $(".filtres", main).addEventListener("input", (e) => {
     filtresVins[e.target.name] = e.target.value;
+    if (e.target.name === "tri") { try { localStorage.setItem("tessvine-tri", e.target.value); } catch { /* navigation privée */ } }
     clearTimeout(minuteur);
     minuteur = setTimeout(() => charger().catch((err) => toast(err.message, true)), e.target.type === "search" ? 250 : 0);
   });

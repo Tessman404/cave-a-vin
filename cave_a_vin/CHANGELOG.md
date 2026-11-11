@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.26.0
+
+- **Couleur du vin visible dans « Mes vins »** : chaque fiche affiche une pastille et la couleur (Rouge, Blanc,
+  Effervescent…) avant le domaine. (#21)
+- **Tri mémorisé** : le tri choisi dans « Mes vins » (par exemple « à boire en premier ») est conservé sur l'appareil
+  d'une visite à l'autre. (#21)
+- **Apostrophes dans le nom d'un vin** : le bouton « Ranger ici » affichait des caractères parasites pour un nom comme
+  « Moscato d'Asti ». Corrigé par rwatjen, merci ! (#19)
+
 ## 1.25.0
 
 Tour complet de l'application : présentation et cohérence.
