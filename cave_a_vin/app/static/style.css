@@ -332,6 +332,9 @@ main { max-width: 1240px; margin: 0 auto; padding: max(34px, env(safe-area-inset
 .statut.inconnu { --s: var(--s-inconnu); }
 @media (prefers-color-scheme: dark) { .statut.urgent, .statut.depasse { color: #1a1210; } }
 .etoiles { color: var(--or); letter-spacing: 1.5px; white-space: nowrap; font-size: .95rem; }
+.lien-noter { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 2px 4px; color: var(--accent-lien); font: inherit; font-size: .82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.lien-noter svg { width: 13px; height: 13px; }
+.lien-noter:hover { text-decoration-thickness: 2px; }
 
 /* ---------- listes ---------- */
 .liste { list-style: none; margin: 0; padding: 0; }
@@ -748,7 +751,7 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .plan-conteneur {
   --case: 58px;
   --fantome: rgba(241, 233, 220, .07);
-  position: relative; overflow: auto; overscroll-behavior: contain; padding: 26px 24px 22px; border-radius: 18px;
+  position: relative; overflow: auto; overscroll-behavior-x: contain; overscroll-behavior-y: auto; padding: 26px 24px 22px; border-radius: 18px;
   color: var(--nuit-texte);
   background:
     radial-gradient(90% 60% at 50% -10%, rgba(255, 236, 205, .09), transparent 70%),
@@ -857,7 +860,7 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .plan .case-cave.choisie svg { opacity: 1; filter: drop-shadow(0 0 2px var(--or-vif)) drop-shadow(0 0 6px rgba(217, 185, 107, .7)); }
 .choix-emplacements:empty { display: none; }
 .choix-emplacements .choix-info { margin: 0 0 10px; color: var(--texte-2); }
-.choix-emplacements .plan-conteneur { --case: 46px; max-width: 100%; max-height: 60vh; }
+.choix-emplacements .plan-conteneur { --case: 46px; max-width: 100%; max-height: none; overflow-y: hidden; overscroll-behavior-y: auto; }  /* un seul défilement vertical : celui de la page */
 
 .legende { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: .8rem; color: var(--texte-3); }
 .legende span { display: inline-flex; align-items: center; gap: 6px; }
@@ -980,6 +983,10 @@ dialog .actions { justify-content: flex-end; margin-top: 22px; }
 .confirm-paire .emplacement { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 3/4; border: 2px dashed var(--bord-fort); border-radius: 12px; overflow: hidden; cursor: pointer; box-sizing: border-box; }
 .confirm-paire .emplacement:has(img) { border-style: solid; }
 .confirm-paire .emplacement .vide { display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: .7; padding: 8px; }
+.confirm-paire .emplacement.survol { border-color: var(--accent); border-style: solid; box-shadow: 0 0 0 3px var(--accent-doux); }
+.confirm-paire .emplacement img { pointer-events: none; }
+.confirm-paire .paire-astuce { text-align: center; margin: 4px 0 0; }
+@media (hover: none) { .confirm-paire .paire-astuce { display: none; } }
 .confirm-paire button[disabled] { opacity: .45; }
 .resultat-scan, .traitement { display: flex; gap: 18px; align-items: flex-start; margin-top: 18px; flex-wrap: wrap; }
 .resultat-scan > img, .resultat-scan > svg { width: 110px; max-height: 160px; object-fit: contain; border-radius: 10px; flex: none; }

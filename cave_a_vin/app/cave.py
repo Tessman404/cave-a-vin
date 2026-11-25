@@ -679,6 +679,20 @@ def annuler_sortie(db, mouvement_id):
     return lire_vin(db, m["vin_id"])
 
 
+def noter_mouvement(db, mouvement_id, data):
+    """Note et commentaire d'une sortie, ajoutés ou corrigés après coup (on ne goûte pas toujours le vin en le sortant)."""
+    note = _reel(data.get("note"), "note")
+    if note is not None and not 0 <= note <= 5:
+        raise ErreurAPI("La note doit être comprise entre 0 et 5")
+    commentaire = str(data.get("commentaire") or "").strip()[:2000]
+    with db.transaction() as conn:
+        m = conn.execute("SELECT * FROM mouvements WHERE id = ?", (mouvement_id,)).fetchone()
+        if not m or m["type"] != "sortie":
+            raise ErreurAPI("Seule une sortie peut être notée", 404)
+        conn.execute("UPDATE mouvements SET note = ?, commentaire = ? WHERE id = ?", (note, commentaire, mouvement_id))
+    return {"id": mouvement_id, "vin_id": m["vin_id"], "note": note, "commentaire": commentaire}
+
+
 def deplacer_bouteille(db, bouteille_id, data):
     cave_id = _entier(data.get("cave_id"), "cave_id")
     rangee, colonne = _entier(data.get("rangee"), "rangee"), _entier(data.get("colonne"), "colonne")

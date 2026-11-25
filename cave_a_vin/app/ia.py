@@ -129,8 +129,11 @@ AUCUNE_IA = ("Home Assistant n'a aucune IA de type « tâche IA » : ajoutez une
              "Anthropic, Ollama…) et, dans ses options, une « tâche IA » (AI Task). La cave l'utilisera automatiquement.")
 
 
-def entite_a_utiliser(reglages):
-    """L'IA choisie dans les réglages, sinon la première IA « tâche IA » disponible dans Home Assistant."""
+def entite_a_utiliser(reglages, usage="etiquette"):
+    """L'IA choisie dans les réglages, sinon la première IA « tâche IA » disponible dans Home Assistant.
+    La garde et la valeur peuvent avoir leur propre IA (« ia_entite_garde ») ; à défaut, la même que les étiquettes."""
+    if usage == "garde" and reglages.get("ia_entite_garde"):
+        return reglages["ia_entite_garde"]
     if reglages.get("ia_entite"):
         return reglages["ia_entite"]
     # l'état d'une tâche IA est l'heure de sa dernière utilisation : « unknown » tant qu'elle n'a jamais servi
@@ -138,10 +141,11 @@ def entite_a_utiliser(reglages):
     return disponibles[0]["entity_id"] if disponibles else None
 
 
-def _appeler(reglages, corps, timeout):
+def _appeler(reglages, corps, timeout, usage="etiquette", entite=None):
     """Appelle ai_task.generate_data et renvoie les données structurées de la réponse."""
     url, jeton = ha.connexion(reglages)
-    entite = entite_a_utiliser(reglages)
+    entite = entite or entite_a_utiliser(reglages, usage)
+    corps = dict(corps)
     if entite:
         corps["entity_id"] = entite
     req = urllib.request.Request(f"{url}/services/ai_task/generate_data?return_response", method="POST",
@@ -276,7 +280,18 @@ def lire_etiquette(reglages, image_jpeg, timeout=120, verso_jpeg=None):
                          "media_content_type": "image/jpeg"} for nom in noms],
     }
     try:
-        champs = _nettoyer(_appeler(reglages, corps, timeout))
+        try:
+            champs = _nettoyer(_appeler(reglages, corps, timeout))
+        except IAErreur as erreur:
+            # IA surchargée, en panne ou trop lente : on tente l'IA de secours, si elle est choisie et différente
+            secours = reglages.get("ia_entite_secours")
+            if not secours or secours == entite_a_utiliser(reglages):
+                raise
+            log.warning("Lecture d'étiquette : la première IA a échoué (%s), essai avec l'IA de secours %s", erreur, secours)
+            try:
+                champs = _nettoyer(_appeler(reglages, corps, timeout, entite=secours))
+            except IAErreur as erreur2:
+                raise IAErreur(f"{erreur} — l'IA de secours a aussi échoué : {erreur2}")
         log.info("Étiquette lue par l'IA%s : %s", " (avec le verso)" if verso_jpeg else "",
                  ", ".join(f"{k}={v}" for k, v in champs.items() if k != "notes"))
         return champs
@@ -332,7 +347,7 @@ def estimer_garde(reglages, vin, annee_achat, annee, timeout=90):
         "instructions": INSTRUCTIONS_GARDE.format(annee=annee, fiche=fiche_texte(vin, annee_achat, devise_code(reglages)),
                                          langue=langue_texte(reglages)),
         "structure": STRUCTURE_GARDE,
-    }, timeout)
+    }, timeout, usage="garde")
     try:
         debut, fin = int(float(donnees["garde_debut"])), int(float(donnees["garde_fin"]))
         apogee = int(float(donnees["garde_apogee"])) if donnees.get("garde_apogee") not in (None, "") else None
@@ -370,7 +385,7 @@ def estimer_valeur(reglages, vin, annee_achat, timeout=90):
         "instructions": INSTRUCTIONS_VALEUR.format(devise=devise, fiche=fiche_texte(vin, annee_achat, devise, avec_prix=False)),
         "structure": {"valeur": {"description": f"Prix de marché indicatif d'une bouteille, en {devise}", "required": True,
                                  "selector": NOMBRE}},
-    }, timeout)
+    }, timeout, usage="garde")
     try:
         valeur = _nombre(donnees["valeur"])
     except (KeyError, TypeError, ValueError):

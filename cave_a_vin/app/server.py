@@ -52,6 +52,35 @@ def _sante(app, req):
     return {"status": "ok", "version": __version__, "addon": ha.mode_addon()}
 
 
+_derniere_version = {"quand": 0.0, "valeur": None}
+DEPOT = "https://github.com/Tessman404/cave-a-vin"
+
+
+def _version_tuple(v):
+    return tuple(int(x) for x in re.findall(r"\d+", v or "")[:3])
+
+
+@route("GET", "api/version")
+def _version(app, req):
+    """Version installée et dernière version publiée sur GitHub (vérifiée au plus toutes les 6 heures)."""
+    import time
+    import urllib.request
+    if time.time() - _derniere_version["quand"] > 6 * 3600:
+        _derniere_version["quand"] = time.time()
+        try:
+            with urllib.request.urlopen("https://raw.githubusercontent.com/Tessman404/cave-a-vin/main/cave_a_vin/config.yaml",
+                                        timeout=8) as rep:
+                m = re.search(r'^version:\s*"?([\d.]+)', rep.read().decode(errors="replace"), re.M)
+                _derniere_version["valeur"] = m.group(1) if m else None
+        except Exception as e:  # pas d'internet, GitHub injoignable : on ne bloque rien
+            log.info("Vérification de mise à jour impossible : %s", e)
+            _derniere_version["quand"] = time.time() - 5 * 3600  # nouvel essai dans une heure
+    derniere = _derniere_version["valeur"]
+    return {"version": __version__, "latest_version": derniere,
+            "update_available": bool(derniere) and _version_tuple(derniere) > _version_tuple(__version__),
+            "changelog_url": f"{DEPOT}/blob/main/cave_a_vin/CHANGELOG.md"}
+
+
 @route("GET", "api/stats")
 def _stats(app, req):
     return cave.statistiques(app.db)
@@ -116,6 +145,11 @@ def _entree(app, req, vin_id):
 @route("POST", r"api/mouvements/(\d+)/annuler")
 def _annuler_sortie(app, req, mouvement_id):
     return cave.annuler_sortie(app.db, int(mouvement_id))
+
+
+@route("PUT", r"api/mouvements/(\d+)")
+def _noter_mouvement(app, req, mouvement_id):
+    return cave.noter_mouvement(app.db, int(mouvement_id), req.json())
 
 
 @route("POST", r"api/vins/(\d+)/sortie")

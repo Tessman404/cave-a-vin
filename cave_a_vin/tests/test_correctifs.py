@@ -48,3 +48,33 @@ class TestAccords(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestChoixIA(unittest.TestCase):
+    """#30 : une IA pour les étiquettes, une autre pour la garde, et une IA de secours pour les étiquettes."""
+
+    def test_ia_par_usage(self):
+        from app import ia
+        r = {"ia_entite": "ai_task.vision", "ia_entite_garde": "ai_task.gemini"}
+        self.assertEqual(ia.entite_a_utiliser(r), "ai_task.vision")
+        self.assertEqual(ia.entite_a_utiliser(r, "garde"), "ai_task.gemini")
+        self.assertEqual(ia.entite_a_utiliser({"ia_entite": "ai_task.vision"}, "garde"), "ai_task.vision")
+
+    def test_ia_de_secours(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        from app import ia
+        appels = []
+
+        def faux_appel(reglages, corps, timeout, usage="etiquette", entite=None):
+            appels.append(entite or ia.entite_a_utiliser(reglages, usage))
+            if len(appels) == 1:
+                raise ia.IAErreur("modèle surchargé")
+            return {"nom": "Chablis"}
+
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(ia, "dossier_media", return_value=Path(d)), \
+                mock.patch.object(ia, "_appeler", faux_appel), mock.patch.object(ia.ha, "connexion", return_value=("http://x/api", "j")):
+            champs = ia.lire_etiquette({"ia_entite": "ai_task.gemini", "ia_entite_secours": "ai_task.ollama"}, b"jpeg")
+        self.assertEqual(champs["nom"], "Chablis")
+        self.assertEqual(appels, ["ai_task.gemini", "ai_task.ollama"])

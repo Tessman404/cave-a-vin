@@ -200,9 +200,40 @@ function confirmer(message, libelle = "Confirmer") {
   });
 }
 
-function champEtoiles(nom = "note") {
-  return `<label>Note</label><input type="hidden" name="${nom}" value="">
-    <div class="notes-etoiles" data-etoiles>${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-n="${n}" aria-label="${n} sur 5">★</button>`).join("")}</div>`;
+function champEtoiles(nom = "note", valeur = null) {
+  const v = valeur == null || valeur === "" ? "" : Math.round(valeur);
+  return `<label>Note</label><input type="hidden" name="${nom}" value="${v}">
+    <div class="notes-etoiles" data-etoiles>${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-n="${n}" aria-label="${n} sur 5"${v !== "" && n <= v ? ' class="on"' : ""}>★</button>`).join("")}</div>`;
+}
+
+/** Cellule « Note » d'un historique : une sortie peut être notée (ou sa note corrigée) après coup. */
+const celluleNote = (m) => m.type === "sortie" && m.id
+  ? `${etoiles(m.note)} <button type="button" class="lien-noter" data-noter="${m.id}">${ic("crayon")}${m.note == null ? "Noter" : "Modifier"}</button>`
+  : etoiles(m.note);
+
+function activerNoter(zone, mouvements, apres) {
+  zone.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-noter]");
+    const m = b && mouvements().find((x) => String(x.id) === b.dataset.noter);
+    if (m) dialogueNoter(m, apres);
+  });
+}
+
+function dialogueNoter(m, apres) {
+  const d = dialogue(`<span class="surtitre">Dégustation</span><h2>${esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</h2>
+    <p class="muted">Sortie du ${dateFr(m.date)}</p>
+    <div class="form">
+      <div class="large">${champEtoiles("note", m.note)}</div>
+      <label class="large">Commentaire de dégustation<textarea name="commentaire" placeholder="Robe, nez, bouche, accord du jour…">${esc(m.commentaire || "")}</textarea></label>
+    </div>
+    <div class="actions"><button class="bouton" data-fermer>Annuler</button><button class="bouton primaire" type="submit">Enregistrer</button></div>`, {
+    onSubmit: async (data) => {
+      await api("PUT", `mouvements/${m.id}`, data);
+      toast("Note enregistrée");
+      apres && apres();
+    },
+  });
+  activerEtoiles($("form", d));
 }
 
 function activerEtoiles(form) {
@@ -849,10 +880,11 @@ async function pageVin(main, id) {
           ${v.mouvements.length ? `<div class="defile"><table class="tableau empilable sans-vin"><thead><tr><th>Date</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
           ${v.mouvements.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
             <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc(I18N.t((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison))}</td>
-            <td>${etoiles(m.note)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Aucun mouvement.</p>`}</div>
+            <td>${celluleNote(m)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Aucun mouvement.</p>`}</div>
       </div>
     </div>`;
   $("#moins", main).onclick = () => dialogueSortie(v, null, recharger);
+  if ($(".sans-vin", main)) activerNoter($(".sans-vin", main), () => v.mouvements, recharger);
   $("#sortir", main).onclick = () => dialogueSortie(v, null, recharger);
   $("#deplacer", main).onclick = () => dialogueDeplacer(v).catch((err) => toast(err.message, true));
   $("#plus", main).onclick = () => dialogueEntree(v, recharger);
@@ -1589,10 +1621,11 @@ async function pageAjouter(main) {
       liberer();
       urls = paire.map((f) => (f ? URL.createObjectURL(f) : null));
       resultat.innerHTML = `<div class="carte confirm-paire"><div class="paire-vignettes">
-        ${noms.map((nom, i) => `<figure><label class="emplacement">${urls[i] ? `<img src="${urls[i]}" alt="${nom}">` : `<span class="vide">${ic("camera")}<span>Choisir la photo</span></span>`}
+        ${noms.map((nom, i) => `<figure><label class="emplacement" data-place="${i}"${urls[i] ? ' draggable="true" title="Glissez sur l\'autre photo pour les intervertir"' : ""}>${urls[i] ? `<img src="${urls[i]}" alt="${nom}">` : `<span class="vide">${ic("camera")}<span>Choisir la photo</span></span>`}
           <input type="file" accept="image/*" hidden data-i="${i}"></label><figcaption>${nom}</figcaption></figure>`).join("")}</div>
-        ${appHA ? "" : `<div class="actions"><label class="bouton">Choisir les 2 d'un coup<input type="file" accept="image/*" multiple hidden id="p-multiple"></label></div>`}
-        <div class="actions"><button class="bouton" id="p-inverser"${paire[0] && paire[1] ? "" : " disabled"}>Inverser</button>
+        ${appHA ? "" : `<div class="actions"><label class="bouton">Choisir les 2 d'un coup<input type="file" accept="image/*" multiple hidden id="p-multiple"></label></div>
+          <p class="muted petit-texte paire-astuce">Vous pouvez aussi glisser vos photos depuis l'ordinateur sur les cases.</p>`}
+        <div class="actions"><button class="bouton" id="p-inverser"${paire[0] && paire[1] ? "" : " disabled"}>⇄ Inverser étiquette et verso</button>
           <button class="bouton" id="p-annuler">Annuler</button>
           <button class="bouton primaire" id="p-importer"${paire[0] ? "" : " disabled"}>Importer</button></div></div>`;
       $$("img", resultat).forEach((img) => { img.onerror = () => img.replaceWith(Object.assign(document.createElement("span"), { className: "muted", textContent: img.alt })); });
@@ -1605,6 +1638,23 @@ async function pageAjouter(main) {
         if (f.length) { paire[0] = f[0]; paire[1] = f[1] || paire[1]; afficher(); }
       };
       $("#p-inverser", resultat).onclick = () => { paire.reverse(); afficher(); };
+      // glisser-déposer : des photos depuis l'ordinateur, ou une vignette sur l'autre pour les intervertir
+      $$(".emplacement", resultat).forEach((zone) => {
+        const i = Number(zone.dataset.place);
+        zone.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/x-tessvine-place", String(i)); e.dataTransfer.effectAllowed = "move"; });
+        zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("survol"); });
+        zone.addEventListener("dragleave", () => zone.classList.remove("survol"));
+        zone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          zone.classList.remove("survol");
+          const images = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith("image/"));
+          if (images.length >= 2) { paire[0] = images[0]; paire[1] = images[1]; }
+          else if (images.length === 1) paire[i] = images[0];
+          else if (e.dataTransfer.getData("text/x-tessvine-place") !== "" && e.dataTransfer.getData("text/x-tessvine-place") !== String(i)) paire.reverse();
+          else return;
+          afficher();
+        });
+      });
       $("#p-annuler", resultat).onclick = () => { liberer(); resultat.innerHTML = ""; };
       $("#p-importer", resultat).onclick = () => { liberer(); traiterPhoto(paire[0], paire[1]); };
     };
@@ -1920,10 +1970,13 @@ function selecteurEmplacements(select, zone, { quantite, couleur }) {
     cave = await api("GET", `caves/${id}`);
     if (!cave.capacite) { zone.innerHTML = `<p class="muted petit-texte" style="margin:0">Cave sans plan : les bouteilles y seront rangées en vrac.</p>`; return; }
     const dispo = disposerCasiers(cave);
+    // mêmes repères que sur le plan de la cave : nom du casier, sinon « Rangée 2 » quand il y en a plusieurs
+    const numeros = numerosCasiers(dispo);
+    const titre = (k) => titreCasier(k) || (dispo.length > 1 ? `Rangée ${numeros.get(k.id)}` : "");
     zone.innerHTML = `<p class="choix-info petit-texte"></p>
       <div class="plan-conteneur">${grilleCasiers(dispo, (k) => `
         <div class="casier-bloc${k.refrigere ? " refrigere" : ""}">
-          ${titreCasier(k) ? `<div class="casier-titre"><span>${esc(titreCasier(k))}</span></div>` : ""}
+          ${titre(k) ? `<div class="casier-titre"><span>${esc(titre(k))}</span></div>` : ""}
           ${dessinerCasier(k, { choix: true, eclate: true })}</div>`)}</div>`;
     $$(".case-cave:not(.pleine)", zone).forEach((b) => b.addEventListener("click", () => {
       const e = { cave_id: +b.dataset.k, rangee: +b.dataset.r, colonne: +b.dataset.c };
@@ -1982,6 +2035,9 @@ function disposerCasiers(cave) {
 }
 
 /** Assemble les casiers en colonnes (de gauche à droite), empilés de haut en bas dans chaque colonne. */
+/** Numéro de chaque casier (« Rangée 1, 2… »), de gauche à droite puis de haut en bas. */
+const numerosCasiers = (dispo) => new Map(dispo.slice().sort((a, b) => a.col - b.col || a.rang - b.rang).map((d, i) => [d.casier.id, i + 1]));
+
 function grilleCasiers(dispo, bloc) {
   const colonnes = {};
   dispo.forEach((d) => { (colonnes[d.col] = colonnes[d.col] || []).push(d); });
@@ -2027,7 +2083,7 @@ async function pageCaves(main, id, params) {
 
   const disposition = c.capacite ? disposerCasiers(c) : [];
   const plusieurs = disposition.length > 1;
-  const numeros = new Map(disposition.slice().sort((a, b) => a.col - b.col || a.rang - b.rang).map((d, i) => [d.casier.id, i + 1]));
+  const numeros = numerosCasiers(disposition);
   const blocCasier = (k) => {
     const pleines = k.bouteilles.filter((b) => b.rangee).length;
     const taux = `<span class="casier-taux" title="Emplacements occupés">${pleines}/${k.capacite}</span>`;
@@ -2739,14 +2795,16 @@ async function pageHistorique(main) {
   main.innerHTML = `${enTete("Entrées et sorties", "Historique", `<select id="type" style="width:auto;margin:0" aria-label="Type">${options({ entree: "Entrées", sortie: "Sorties" }, "", "Entrées et sorties")}</select>`)}
     <div class="carte defile" id="table"></div>`;
   const charger = async () => {
-    const ms = await api("GET", "mouvements?" + new URLSearchParams({ limite: 1000, ...(type ? { type } : {}) }));
+    ms = await api("GET", "mouvements?" + new URLSearchParams({ limite: 1000, ...(type ? { type } : {}) }));
     $("#table", main).innerHTML = ms.length ? `<table class="tableau empilable"><thead><tr><th>Date</th><th>Vin</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
       ${ms.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
         <td>${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</td>
         <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc(I18N.t((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison))}</td>
-        <td>${etoiles(m.note)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table>` : `<p class="vide">Aucun mouvement pour l'instant.</p>`;
+        <td>${celluleNote(m)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table>` : `<p class="vide">Aucun mouvement pour l'instant.</p>`;
   };
+  let ms = [];
   $("#type", main).onchange = (e) => { type = e.target.value; charger(); };
+  activerNoter($("#table", main), () => ms, () => charger());
   await charger();
 }
 
@@ -2754,6 +2812,7 @@ async function pageReglages(main) {
   const [r, capteurs, entitesIA, gardes, diagIA, servicesNotif] = await Promise.all([api("GET", "reglages"), api("GET", "ha/capteurs").catch(() => []),
     api("GET", "ia/entites").catch(() => []), api("GET", "ia/gardes").catch(() => null), api("GET", "ia/diagnostic").catch(() => null),
     api("GET", "notifications/services").catch(() => [])]);
+  const choixIA = (choisie) => entitesIA.map((e) => `<option value="${esc(e.entity_id)}"${e.entity_id === choisie ? " selected" : ""}>${esc(e.nom)}</option>`).join("");
   CAPACITES = await api("GET", "capacites");
   const choixCapteur = (nom, type) => {
     const liste = capteurs.filter((c) => c.type === type);
@@ -2816,8 +2875,12 @@ async function pageReglages(main) {
           <label class="large">Estimation de la garde par l'IA, chaque mois
             <select name="ia_garde_auto">${options({ 1: "Activée", 0: "Désactivée" }, r.ia_garde_auto)}</select></label>
           <div class="large petit-texte" id="etat-gardes"></div>
-          <label class="large">IA à utiliser
-            <select name="ia_entite"><option value="">Automatique${entitesIA.length ? ` (${esc(entitesIA[0].nom)})` : " — aucune IA trouvée"}</option>${entitesIA.map((e) => `<option value="${esc(e.entity_id)}"${e.entity_id === r.ia_entite ? " selected" : ""}>${esc(e.nom)}</option>`).join("")}</select></label>
+          <label class="large">IA pour lire les étiquettes
+            <select name="ia_entite"><option value="">Automatique${entitesIA.length ? ` (${esc(entitesIA[0].nom)})` : " — aucune IA trouvée"}</option>${choixIA(r.ia_entite)}</select></label>
+          <label class="large">IA de secours pour les étiquettes (si la première échoue ou est surchargée)
+            <select name="ia_entite_secours"><option value="">Aucune</option>${choixIA(r.ia_entite_secours)}</select></label>
+          <label class="large">IA pour estimer la garde et la valeur
+            <select name="ia_entite_garde"><option value="">La même que pour les étiquettes</option>${choixIA(r.ia_entite_garde)}</select></label>
           ${entitesIA.length || !diagIA ? "" : `<div class="large petit-texte diagnostic-ia">
             <b>IA trouvées dans Home Assistant</b><br>
             Tâches IA (photos, garde) : <b>aucune</b><br>
@@ -2865,9 +2928,17 @@ async function pageReglages(main) {
         <div class="large muted petit-texte" id="etat-valeurs" style="margin-top:8px"></div></div>
       <div class="carte"><h2>${ic("info")}À propos</h2>
         <p>Tessvine version ${esc(REF.version)}${r.addon ? " — module complémentaire Home Assistant" : ""}.</p>
+        <p class="petit-texte" id="maj-version"></p>
         ${cleAPI.lire() ? `<p>Une clé d'API est mémorisée sur cet appareil. <button class="bouton petit" id="oublier">Oublier la clé</button></p>` : ""}
       </div>
     </div>`;
+  api("GET", "version").then((v) => {
+    const zone = $("#maj-version", main);
+    if (!zone || !v.latest_version) return;
+    zone.innerHTML = v.update_available
+      ? `<span style="color:var(--attention)">⚠ La version ${esc(v.latest_version)} est disponible.</span> <a href="${esc(v.changelog_url)}" target="_blank" rel="noopener">Voir les nouveautés</a>`
+      : `<span style="color:var(--ok)">✓ À jour</span>`;
+  }).catch(() => {});
   $("#affichage", main).onchange = async (e) => {
     const f = Object.fromEntries(new FormData(e.currentTarget));
     let reestimer = false;

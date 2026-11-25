@@ -437,7 +437,15 @@ const I18N = (() => {
     "Code-barres invalide : 8 ou 13 chiffres attendus": "Invalid barcode: 8 or 13 digits expected",
     // raisons d'échec de la caméra en direct
     "accès refusé, ou bloqué dans le panneau Home Assistant": "access denied, or blocked in the Home Assistant panel", "bloquée par le navigateur": "blocked by the browser",
-    "aucune caméra trouvée": "no camera found", "caméra déjà utilisée par une autre application": "camera already in use by another app", "caméra non compatible": "incompatible camera",
+    "aucune caméra trouvée": "no camera found", "caméra déjà utilisée par une autre application": "camera already in use by another app",
+    "caméra non compatible": "incompatible camera",
+    // 1.28
+    "Noter": "Rate", "Dégustation": "Tasting", "Note enregistrée": "Rating saved", "Seule une sortie peut être notée": "Only a removal can be rated",
+    "IA pour lire les étiquettes": "AI for reading labels", "IA de secours pour les étiquettes (si la première échoue ou est surchargée)": "Backup AI for labels (if the first one fails or is overloaded)",
+    "Aucune": "None", "IA pour estimer la garde et la valeur": "AI for drinking window and value", "La même que pour les étiquettes": "Same as for labels",
+    "✓ À jour": "✓ Up to date", "Voir les nouveautés": "See what's new",
+    "⇄ Inverser étiquette et verso": "⇄ Swap label and back", "Vous pouvez aussi glisser vos photos depuis l'ordinateur sur les cases.": "You can also drag your photos from your computer onto the boxes.",
+    "Glissez sur l'autre photo pour les intervertir": "Drag onto the other photo to swap them",
   };
 
   /* ---------------------------------------------------------------- motifs (phrases avec nombres ou noms) */
@@ -599,6 +607,9 @@ const I18N = (() => {
     [/^✕ Détourage impossible : (.+)$/, (m) => `✕ Cut-out failed: ${T(m[1])}`],
     [/^✕ Lecture impossible : (.+)$/, (m) => `✕ Reading failed: ${T(m[1])}`],
     [/^Accord : (.+)$/, (m) => `Pairing: ${m[1]}`],
+    [/^Sortie du (.+)$/, (m) => `Taken out on ${m[1]}`],
+    [/^⚠ La version ([\d.]+) est disponible\.$/, (m) => `⚠ Version ${m[1]} is available.`],
+    [/^(.+) — l'IA de secours a aussi échoué : (.+)$/s, (m) => `${T(m[1])} — the backup AI also failed: ${T(m[2])}`],
   ];
   const prof = (x) => ({ devant: "front", "derrière": "back" }[x] || x.replace(/^rang (\d)$/, "row $1"));
   const pos = (x) => x.replace(" · derrière", " · back").replace(/ · rang (\d)/, " · row $1");
@@ -795,6 +806,13 @@ const I18N = (() => {
     "accès refusé, ou bloqué dans le panneau Home Assistant":"accesso negato, o bloccato nel pannello di Home Assistant", "bloquée par le navigateur":"bloccata dal browser",
     "aucune caméra trouvée":"nessuna fotocamera trovata", "caméra déjà utilisée par une autre application":"fotocamera già usata da un'altra app",
     "caméra non compatible":"fotocamera non compatibile",
+    // 1.28
+    "Noter":"Valuta", "Dégustation":"Degustazione", "Note enregistrée":"Voto salvato", "Seule une sortie peut être notée":"Solo un'uscita può essere valutata",
+    "IA pour lire les étiquettes":"IA per leggere le etichette", "IA de secours pour les étiquettes (si la première échoue ou est surchargée)":"IA di riserva per le etichette (se la prima fallisce o è sovraccarica)",
+    "Aucune":"Nessuna", "IA pour estimer la garde et la valeur":"IA per periodo di consumo e valore", "La même que pour les étiquettes":"La stessa delle etichette",
+    "✓ À jour":"✓ Aggiornato", "Voir les nouveautés":"Vedi le novità",
+    "⇄ Inverser étiquette et verso":"⇄ Inverti etichetta e retro", "Vous pouvez aussi glisser vos photos depuis l'ordinateur sur les cases.":"Puoi anche trascinare le foto dal computer nelle caselle.",
+    "Glissez sur l'autre photo pour les intervertir":"Trascina sull'altra foto per scambiarle",
   });
   const jours = (n) => (+n === 1 ? "giorno" : "giorni");
   const plur = (n, un, plusieurs) => (+n === 1 ? un : plusieurs);
@@ -957,6 +975,9 @@ const I18N = (() => {
     [/^(\d+) bouteilles? sans prix d'achat renseigné$/, (m) => `${m[1]} ${plur(m[1], "bottiglia", "bottiglie")} senza prezzo d'acquisto`],
     [/^(\d+) bouteilles? clignote(?:nt)? dans cette cave$/, (m) => `${m[1]} ${plur(m[1], "bottiglia lampeggia", "bottiglie lampeggiano")} in questa cantina`],
     [/^Accord : (.+)$/, (m) => `Abbinamento: ${m[1]}`],
+    [/^Sortie du (.+)$/, (m) => `Uscita del ${m[1]}`],
+    [/^⚠ La version ([\d.]+) est disponible\.$/, (m) => `⚠ È disponibile la versione ${m[1]}.`],
+    [/^(.+) — l'IA de secours a aussi échoué : (.+)$/s, (m) => `${Ti(m[1])} — anche l'IA di riserva ha fallito: ${Ti(m[2])}`],
   ];
   const PARTIELS_IT = [
     [" · jusqu'en ", " · fino al "], ["accord : ", "abbinamento: "], ["conseillé avec : ", "consigliato con: "],

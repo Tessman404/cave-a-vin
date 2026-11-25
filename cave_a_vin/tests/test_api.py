@@ -185,6 +185,19 @@ class TestCave(BaseTest):
         vin2 = self.creer_vin(nom="Hors cave", quantite=1)
         self.assertEqual([b["lieu"] for b in self.appel("GET", f"api/vins/{vin2['id']}")["bouteilles"]], ["non rangée"])
 
+    def test_noter_une_sortie_apres_coup(self):
+        """#29 : une sortie peut être notée (ou sa note corrigée) plus tard, depuis l'historique."""
+        vin = self.creer_vin(quantite=2)
+        r = self.appel("POST", f"api/vins/{vin['id']}/sortie", {"quantite": 1, "raison": "bue"}, attendu=200)
+        mid = r["mouvement_id"]
+        self.appel("PUT", f"api/mouvements/{mid}", {"note": "4", "commentaire": "Très bon"}, attendu=200)
+        m = next(x for x in self.appel("GET", f"api/vins/{vin['id']}")["mouvements"] if x["id"] == mid)
+        self.assertEqual((m["note"], m["commentaire"]), (4.0, "Très bon"))
+        self.assertEqual(self.appel("GET", f"api/vins/{vin['id']}")["note_moyenne"], 4.0)
+        self.appel("PUT", f"api/mouvements/{mid}", {"note": "9"}, attendu=400)
+        entree = next(x for x in self.appel("GET", f"api/vins/{vin['id']}")["mouvements"] if x["type"] == "entree")
+        self.appel("PUT", f"api/mouvements/{entree['id']}", {"note": "3"}, attendu=404)
+
     def test_retirer_un_etage_vide(self):
         """#15 : passer de 5 à 4 étages alors que l'étage du bas est occupé retire un étage vide (le plus bas des vides)."""
         cave = self.appel("POST", "api/caves", {"nom": "Casier", "rangees": 5, "colonnes": 3}, attendu=201)

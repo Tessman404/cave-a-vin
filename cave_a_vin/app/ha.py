@@ -19,6 +19,8 @@ REGLAGES_DEFAUT = {
     "hum_max": "80",
     "ia_active": "1",
     "ia_entite": "",
+    "ia_entite_garde": "",     # IA pour la garde et la valeur (1.28) : vide = la même que pour les étiquettes
+    "ia_entite_secours": "",   # IA de secours pour la lecture d'étiquette si la première échoue (1.28)
     "detourage_qualite": "standard",
     "fond_defaut": "cave-voutee",
     "cadrage_defaut": "etiquette",
