@@ -848,7 +848,7 @@ async function pageVin(main, id) {
         <div class="carte"><h2>Historique & dégustations</h2>
           ${v.mouvements.length ? `<div class="defile"><table class="tableau empilable sans-vin"><thead><tr><th>Date</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
           ${v.mouvements.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
-            <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
+            <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc(I18N.t((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison))}</td>
             <td>${etoiles(m.note)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Aucun mouvement.</p>`}</div>
       </div>
     </div>`;
@@ -2743,7 +2743,7 @@ async function pageHistorique(main) {
     $("#table", main).innerHTML = ms.length ? `<table class="tableau empilable"><thead><tr><th>Date</th><th>Vin</th><th>Mouvement</th><th>Note</th><th>Commentaire</th></tr></thead><tbody>
       ${ms.map((m) => `<tr><td style="white-space:nowrap">${dateFr(m.date)}</td>
         <td>${m.vin_id ? `<a href="#/vins/${m.vin_id}">${esc(m.vin_nom)}</a>` : esc(m.vin_nom)}${m.millesime ? " " + m.millesime : ""}</td>
-        <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison)}</td>
+        <td style="white-space:nowrap"><span class="signe ${m.type}" aria-hidden="true">${m.type === "entree" ? "+" : "−"}</span>${m.quantite} ${esc(I18N.t((m.type === "entree" ? REF.raisons_entree : REF.raisons_sortie)[m.raison] || m.raison))}</td>
         <td>${etoiles(m.note)}</td><td>${esc(m.commentaire)}</td></tr>`).join("")}</tbody></table>` : `<p class="vide">Aucun mouvement pour l'instant.</p>`;
   };
   $("#type", main).onchange = (e) => { type = e.target.value; charger(); };

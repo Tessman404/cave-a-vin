@@ -307,6 +307,8 @@ const I18N = (() => {
     "Bouteille sortie, santé !": "Bottle taken out, cheers!", "Bouteilles sorties, santé !": "Bottles taken out, cheers!",
     "◌ Envoi de la photo…": "◌ Sending the photo…", "◌ Détourage de la bouteille…": "◌ Cutting out the bottle…",
     "◌ Verso de la bouteille": "◌ Back of the bottle", "◌ Lecture de l'étiquette par l'IA…": "◌ AI reading the label…",
+    "✓ Photo reçue": "✓ Photo received", "✓ Bouteille détourée": "✓ Bottle cut out", "✓ Verso reçu": "✓ Back label received",
+    "– Verso ignoré": "– Back label skipped", "✕ L'IA n'a rien pu lire : complétez à la main": "✕ The AI couldn't read anything: fill in the details by hand",
     "◌ Détourage… (la première fois, le modèle de détourage est téléchargé : patientez une minute)": "◌ Cutting out… (the first time, the cut-out model is downloaded: please wait a minute)",
     "◌ Lecture du verso…": "◌ Reading the back…",
     // messages d'erreur du serveur (cave.py, photo.py, scan.py, server.py)
@@ -441,6 +443,9 @@ const I18N = (() => {
   /* ---------------------------------------------------------------- motifs (phrases avec nombres ou noms) */
   const s = (n) => (+n > 1 ? "s" : "");
   const T = (x) => traduire(x);  // traduction d'un morceau capturé
+  const CHAMPS_EN = { nom: "name", domaine: "producer", appellation: "appellation", région: "region", couleur: "colour",
+    millésime: "vintage", cépages: "grapes", degré: "ABV", valeur: "value", accords: "pairings", description: "description" };
+  const listeChamps = (texte, dictionnaire) => texte.split(", ").map((champ) => dictionnaire[champ] || champ).join(", ");
   const MOTIFS = [
     [/^\+ (\d+) en vrac dans (.+)$/, (m) => `+ ${m[1]} loose in ${T(m[2])}`],
     [/^Déplacer les (\d+) bouteilles$/, (m) => `Move the ${m[1]} bottles`],
@@ -588,6 +593,11 @@ const I18N = (() => {
     [/^\)\.\s*Le bouton apparaît en haut du menu sur ordinateur, et dans « Plus » sur téléphone\.(.*)$/s, (m) => `). The button appears at the top of the menu on a computer, and in “More” on a phone.${m[1].trim() ? " Outside the add-on, also enter Home Assistant's address below." : ""}`],
     [/^places? dans ce casier · (\d+) emplacements? retirés?$/, (m) => `spots in this rack · ${m[1]} spot${s(m[1])} removed`],
     [/^Envoi impossible : (.+)$/, (m) => `Couldn't send: ${m[1]}`],
+    [/^✓ Verso reçu, code-barres (.+?)( \(lu par l'IA\))?$/, (m) => `✓ Back label received, barcode ${m[1]}${m[2] ? " (read by AI)" : ""}`],
+    [/^✓ Étiquette lue(?: : (.*?))? : (\d+) informations remplies(?: \(à compléter : (.*)\))?$/, (m) =>
+      `✓ Label read${m[1] ? `: ${m[1]}` : ""}: ${m[2]} field${s(m[2])} filled${m[3] ? ` (to complete: ${listeChamps(m[3], CHAMPS_EN)})` : ""}`],
+    [/^✕ Détourage impossible : (.+)$/, (m) => `✕ Cut-out failed: ${T(m[1])}`],
+    [/^✕ Lecture impossible : (.+)$/, (m) => `✕ Reading failed: ${T(m[1])}`],
     [/^Accord : (.+)$/, (m) => `Pairing: ${m[1]}`],
   ];
   const prof = (x) => ({ devant: "front", "derrière": "back" }[x] || x.replace(/^rang (\d)$/, "row $1"));
@@ -681,6 +691,8 @@ const I18N = (() => {
     "Choisissez maintenant un fond.":"Ora scegli uno sfondo.", "Détourage et mise en scène…":"Ritaglio e ambientazione…", "Photo":"Foto", "et":"e",
     "(les bouteilles suivantes dans les cases libres)":"(le bottiglie successive nei posti liberi)", "La bouteille sera rangée dans":"La bottiglia sarà sistemata in",
     "◌ Envoi de la photo…":"◌ Invio della foto…", "◌ Détourage de la bouteille…":"◌ Ritaglio della bottiglia…", "◌ Verso de la bouteille":"◌ Retro della bottiglia",
+    "✓ Photo reçue":"✓ Foto ricevuta", "✓ Bouteille détourée":"✓ Bottiglia ritagliata", "✓ Verso reçu":"✓ Retro ricevuto",
+    "– Verso ignoré":"– Retro ignorato", "✕ L'IA n'a rien pu lire : complétez à la main":"✕ L'IA non è riuscita a leggere nulla: completa i dettagli a mano",
     "◌ Lecture de l'étiquette par l'IA…":"◌ Lettura dell'etichetta da parte dell'IA…",
     "◌ Détourage… (la première fois, le modèle de détourage est téléchargé : patientez une minute)":"◌ Ritaglio… (la prima volta viene scaricato il modello di ritaglio: attendi un minuto)",
     "◌ Lecture du verso…":"◌ Lettura del retro…",
@@ -790,6 +802,8 @@ const I18N = (() => {
   const posIt = (x) => x.replace(" · derrière", " · dietro").replace(/ · rang (\d)/, " · fila $1");
   const COTE_IT = { "du bas": "in basso", "du haut": "in alto", "de gauche": "a sinistra", "de droite": "a destra" };
   const Ti = (x) => traduire(x);
+  const CHAMPS_IT = { nom: "nome", domaine: "produttore", appellation: "denominazione", région: "regione", couleur: "colore",
+    millésime: "annata", cépages: "vitigni", degré: "gradazione", valeur: "valore", accords: "abbinamenti", description: "descrizione" };
   const MOTIFS_IT = [
     [/^(\d[\d\s ]*) bouteilles?$/, (m) => `${m[1]} ${plur(m[1], "bottiglia", "bottiglie")}`],
     [/^(\d[\d\s ]*) références? · (\d[\d\s ]*) bouteilles?$/, (m) => `${m[1]} ${plur(m[1], "vino", "vini")} · ${m[2]} ${plur(m[2], "bottiglia", "bottiglie")}`],
@@ -884,6 +898,11 @@ const I18N = (() => {
     [/^L'IA de Home Assistant a refusé la demande \((\d+)\) : (.*)$/, (m) => `L'IA di Home Assistant ha rifiutato la richiesta (${m[1]}): ${m[2]}`],
     [/^Home Assistant injoignable \((.*)\)$/, (m) => `Home Assistant non raggiungibile (${m[1]})`],
     [/^Estimation de l'IA incohérente \((.*)\)$/, (m) => `Stima dell'IA incoerente (${m[1]})`],
+    [/^✓ Verso reçu, code-barres (.+?)( \(lu par l'IA\))?$/, (m) => `✓ Retro ricevuto, codice a barre ${m[1]}${m[2] ? " (letto dall'IA)" : ""}`],
+    [/^✓ Étiquette lue(?: : (.*?))? : (\d+) informations remplies(?: \(à compléter : (.*)\))?$/, (m) =>
+      `✓ Etichetta letta${m[1] ? `: ${m[1]}` : ""}: ${m[2]} ${plur(m[2], "campo compilato", "campi compilati")}${m[3] ? ` (da completare: ${listeChamps(m[3], CHAMPS_IT)})` : ""}`],
+    [/^✕ Détourage impossible : (.+)$/, (m) => `✕ Ritaglio non riuscito: ${Ti(m[1])}`],
+    [/^✕ Lecture impossible : (.+)$/, (m) => `✕ Lettura non riuscita: ${Ti(m[1])}`],
     [/^Photo enregistrée sans détourage : (.*)$/, (m) => `Foto salvata senza ritaglio: ${m[1]}`],
     [/^Erreur HTTP (\d+)$/, (m) => `Errore HTTP ${m[1]}`],
     [/^« (.+) » doit être un nombre( entier)?$/, (m) => `« ${m[1]} » deve essere un numero${m[2] ? " intero" : ""}`],
