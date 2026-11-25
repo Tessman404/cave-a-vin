@@ -1,5 +1,18 @@
 # Journal des modifications
 
+## 1.28.0
+
+- **Noter un vin plus tard (#29)** : dans l'historique et la fiche d'un vin, un lien « Noter » sur chaque sortie permet
+  d'ajouter (ou de corriger) la note et le commentaire de dégustation après coup.
+- **Une IA pour la garde, une IA de secours (#30)** : dans les Réglages, on peut choisir une IA pour lire les étiquettes,
+  une autre pour estimer la garde et la valeur, et une IA de secours utilisée si la première échoue ou est surchargée.
+- **Mises à jour (#25)** : les Réglages indiquent si Tessvine est à jour ou si une nouvelle version est disponible.
+- **Rangement (#28)** : les numéros « Rangée 1, 2… » s'affichent aussi quand on choisit l'emplacement d'une bouteille,
+  et le plan ne défile plus séparément de la page.
+- **Photos sur ordinateur (#28)** : glisser-déposer des photos sur les cases, glisser une photo sur l'autre pour les
+  intervertir, bouton « ⇄ Inverser étiquette et verso » plus visible.
+- **Traductions anglaises complétées** (merci à rwatjen, #27).
+
 ## 1.27.2
 
 - **Bouton « Localiser » à côté de « Déplacer »** dans la fiche d'un vin : il ouvre le plan de cave avec les bouteilles
